@@ -17,6 +17,7 @@
     "deploy:all": "cd infrastructure && pnpm cdk deploy --all"
   },
   "devDependencies": {
+    "next": "^15.3.0",
     "turbo": "^2.5.0",
     "typescript": "^5.8.0"
   },
