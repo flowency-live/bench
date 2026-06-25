@@ -103,6 +103,9 @@ importers:
       '@aws-sdk/lib-dynamodb':
         specifier: ^3.700.0
         version: 3.1075.0(@aws-sdk/client-dynamodb@3.1075.0)
+      '@bench/types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

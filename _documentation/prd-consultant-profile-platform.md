@@ -1,12 +1,14 @@
-# PRD — Consultant Profile Platform
+# PRD — Bench
 
-**Working title:** Bench *(placeholder — "the bench" is the consultancy's roster of available consultants)*
+**Product:** Bench *(working name)* — a multi-tenant, white-label platform for consultancies to build, manage, and share branded consultant profiles.
 **Author:** Jason Jones
-**Status:** Draft v0.2
+**Status:** Draft v0.5
 **Platform:** AWS, single account, `eu-west-2` (London) for UK data residency
 **Last updated:** 25 June 2026
 
 ---
+
+> **Naming.** **Bench** is the product — the platform we build and (later) sell to multiple consultancies. Each client is a **tenant** that brands its own instance. **Change Connected is the first client (tenant #1); they call their instance the "Change Hub."** So "Change Hub", "Change Maker (CM)" and "Change Hub Admin (CHA)" are *Change Connected's vocabulary*, not Bench's — Bench treats the instance name and these role labels as per-tenant configuration. This document uses Change Connected's terms when describing the pilot, and "Bench / tenant / CM / CHA" generically elsewhere.
 
 ## 1. Problem statement
 
@@ -14,7 +16,7 @@ A consultancy presents its people to clients as profiles — who they are, what 
 
 The cost is owner time and credibility. Every profile is bespoke effort, every refresh is a re-do, and inconsistent profiles undermine the brand the consultancy is selling on.
 
-This product turns the profile into structured data, lets the consultant fill it in themselves through a guided wizard, renders it on-brand automatically, and gives the owner controlled links to put specific profiles in front of specific clients.
+Bench turns the profile into structured data, lets the consultant fill it in themselves through a guided wizard, renders it on-brand automatically, and gives the consultancy controlled links to put specific profiles in front of specific clients. Change Connected is the pilot tenant, running their instance as the "Change Hub".
 
 ## 2. Goals
 
@@ -26,7 +28,7 @@ This product turns the profile into structured data, lets the consultant fill it
 
 ## 3. Non-goals (this version)
 
-- **Multi-consultancy self-serve SaaS** — v1 is single-tenant (one consultancy, one brand). The data model is multi-tenant-ready but there's no public sign-up or billing.
+- **Self-serve tenant sign-up and billing** — the platform is **multi-tenant by design** (see §12); Change Connected is the first pilot tenant. Tenants are onboarded manually during the pilot. Public sign-up, plans, and billing are deferred (P2/V3). The multi-tenant *foundation* — tenant scoping, isolation, per-tenant branding — is in scope from v1.
 - **Consultant marketplace / availability / rates** — not a staffing exchange. No booking, no day-rate logic.
 - **Client accounts** — clients view via link only. No client login, dashboards, or shortlists in v1.
 - **CRM / ATS integration** — no sync to Salesforce, Bullhorn, etc. Manual for now.
@@ -64,7 +66,7 @@ Draft ──invite sent──▶ Invited ──opens link──▶ In progress �
 - **In progress** — consultant has opened the wizard; auto-saving.
 - **Submitted** — consultant marked it complete; locked to consultant, open to owner.
 - **Published** — owner approved; eligible for client share links.
-- **Archived** — hidden from the active roster, links dead, data retained.
+- **Archived** — hidden from the active Collective, links dead, data retained.
 
 Client share links can only be created against a **Published** profile.
 
@@ -92,7 +94,7 @@ Client share links can only be created against a **Published** profile.
 
 ### Edge / empty / error states
 - As a **consultant**, when my link has expired, I want a clear message and a way to request a fresh one, not a dead page.
-- As the **owner**, when a consultant hasn't started after N days, I want the roster to flag it, so I know to nudge.
+- As the **owner**, when a consultant hasn't started after N days, I want the Collective Dashboard to flag it, so I know to nudge.
 - As a **client**, when a link has been revoked or expired, I want a neutral "this profile is no longer available" page, not an error.
 
 ## 7. Requirements
@@ -101,20 +103,20 @@ Client share links can only be created against a **Published** profile.
 
 **Owner authentication**
 - Owner logs in via Amazon Cognito (Google federation and/or email). Sessions are signed and short-lived.
-- Acceptance: Given a registered owner, when they authenticate, then they reach the roster; unauthenticated requests to portal routes redirect to login.
+- Acceptance: Given a registered owner, when they authenticate, then they reach the Collective Dashboard; unauthenticated requests to portal routes redirect to login.
 
 **Brand & website continuity**
-- The entire product — portal, wizard, share view, and every error/landing page — uses the Change Connected brand system (logo, navy/lime/gradient tokens, Fredoka/Poppins, the site's heading style) and lives on the brand domain, so no one is ever handed off to something that looks like a third-party tool.
-- Public-facing pages (share view, wizard) carry the site's header and footer treatment.
-- Acceptance: Given any consultant or client opening a link, when the page loads, then it sits on a `changeconnected.co.uk` domain, shows the Change Connected logo and footer, and is visually indistinguishable from an extension of the main site.
+- Every Bench surface — portal, wizard, share view, and every error/landing page — renders in the **tenant's** brand system (logo, colour tokens, fonts, heading style) and lives on the tenant's brand domain, so no one is ever handed off to something that looks like a third-party tool. For Change Connected that's the navy/lime/gradient system, Fredoka/Poppins, and `changeconnected.co.uk`.
+- Public-facing pages (share view, wizard) carry the tenant's header and footer treatment.
+- Acceptance: Given any consultant or client opening a link, when the page loads, then it sits on the tenant's brand domain (Change Connected → `changeconnected.co.uk`), shows that tenant's logo and footer, and is visually indistinguishable from an extension of their main site.
 
-**Roster dashboard**
-- List of all profiles showing headshot, name, role, status, last updated; search by name; filter by status.
+**Collective Dashboard**
+- The owner's view of the Collective — the tenant's talent pool / portfolio. List of all profiles showing headshot, name, role, status, last updated; search by name; filter by status.
 - Acceptance: Given profiles in mixed states, when the owner opens the dashboard, then each profile shows its current status and the list is searchable and filterable.
 
 **Add consultant**
 - Owner creates a profile with name + email (role optional). Creates a Draft.
-- Acceptance: Given valid name and email, when the owner submits, then a Draft profile is created and appears in the roster; duplicate email warns but doesn't block.
+- Acceptance: Given valid name and email, when the owner submits, then a Draft profile is created and appears in the Collective; duplicate email warns but doesn't block.
 
 **Invite magic link (owner → consultant)**
 - Owner generates an invite link scoped to one profile; system can email it via the consultant's address; link is resumable until submit or expiry.
@@ -151,7 +153,7 @@ Client share links can only be created against a **Published** profile.
 
 ### P2 — Future considerations (design for, don't build)
 
-- **Multi-consultancy tenancy** with self-serve onboarding and billing.
+- **Self-serve tenant onboarding and billing** — the multi-tenant foundation ships in v1; public sign-up, plans, and billing come later.
 - **Client view** — a light client space holding multiple shared profiles (a shortlist).
 - **CRM/ATS sync** for consultant records and share activity.
 - **Profile versioning / history** with rollback and "what the client saw on date X".
@@ -203,9 +205,9 @@ Steps map one-to-one to the rendered profile. Counts are ranges so the layout st
 
 ## 10. Data model (entities)
 
-- **Consultancy** — id, name, brand tokens (colours, logo asset, fonts), default profile template. *(Single row in v1; table exists for tenancy later.)*
-- **User** — owner(s); id, email, auth provider.
-- **Profile** — id, consultancy id, consultant name, email, role, status, headshot asset, positioning (headline, bio), timestamps.
+- **Tenant** — id, name, **instance display name** (e.g. "Change Hub"), brand tokens (colours, logo asset, fonts), custom domain, **terminology overrides** (labels for the CM / admin roles), default profile template, status. **Every other entity below carries a `tenant_id`** and is isolated by it. Change Connected is the first tenant row. *(Isolation in §12.)*
+- **User** — tenant-scoped owner(s)/CHA; id, email, auth provider.
+- **Profile** — id, tenant id, consultant name, email, role, status, headshot asset, positioning (headline, bio), timestamps.
 - **Skill** — id, profile id, title, body, order.
 - **Story** — id, profile id, client tag, title, body, order.
 - **Testimonial** — id, profile id, quote, author name, author role, author company.
@@ -215,30 +217,35 @@ Steps map one-to-one to the rendered profile. Counts are ranges so the layout st
 
 ## 11. Branding, rendering & website continuity
 
-- The product is built to read as an **extension of `changeconnected.co.uk`**, not a separate app. Shared header and footer, the same logo (transparent-keyed), the same type and colour, the same heading style. A client following a share link should feel they never left the site.
-- Profiles render from **brand tokens**, not per-profile styling: navy `#001930`, lime `#BAEB5B`, gradient `#73EB73 → #37ACED`, transparent-keyed logo, Fredoka (display) + Poppins (body). v1 hardcodes the Change Connected brand; P1 moves tokens to the Consultancy record.
+- Each tenant's instance reads as an **extension of that tenant's own website**, not a separate app — for Change Connected (the "Change Hub"), an extension of `changeconnected.co.uk`. Shared header and footer, the same logo (transparent-keyed), the same type and colour, the same heading style. A client following a share link should feel they never left the site.
+- Profiles render from **brand tokens**, not per-profile styling: navy `#001930`, lime `#BAEB5B`, gradient `#73EB73 → #37ACED`, transparent-keyed logo, Fredoka (display) + Poppins (body). **Brand tokens live on the Tenant record from v1** — the renderer themes per tenant. Change Connected's tokens are simply the first tenant's set; a second tenant brings its own logo, colours, fonts, and domain with no code change.
 - All three surfaces — portal, wizard, profile renderer — consume one **shared theme/component package** (reuse the existing Flowency/Change Connected design-system work: CSS tokens, Tailwind theme extension, React/TS components) so brand changes propagate everywhere from one place.
 - One renderer, two paper layouts (A4 landscape and portrait), plus a responsive web view. Print path produces a single-page PDF per orientation.
 - WCAG 2.1 AA contrast is a render-time guarantee, not a per-profile check — token pairs are validated once.
 
 ## 12. Technical architecture (AWS)
 
-Everything runs in one AWS account in `eu-west-2` (London). Infrastructure as code in **AWS CDK (TypeScript)** to match the app stack. Service mapping:
+Everything runs in one AWS account in `eu-west-2` (London). Infrastructure as code in **AWS CDK (TypeScript)** to match the app stack.
+
+**Tenancy.** Bench is multi-tenant from the first migration; Change Connected is tenant #1 (instance name "Change Hub"). Each tenant carries its own brand tokens, instance display name, role-label terminology, and domain. Default isolation model is **pooled** — shared tables with a `tenant_id` on every row, isolation enforced by **Postgres row-level security (RLS)** so no query can cross tenants. Cognito partitions tenants (groups or per-tenant app-client), S3 uses a per-tenant key prefix, and each tenant maps to its own brand domain via CloudFront + ACM. A tenant that demands hard isolation can be **siloed** (schema- or DB-per-tenant) without changing the app contract. Tenant provisioning is a manual operator task during the pilot — no self-serve.
+
+Service mapping:
 
 | Concern | Service | Notes |
 |---|---|---|
 | App hosting (Next.js) | **Amplify Hosting** (or OpenNext on Lambda + CloudFront) | SSR for the portal, wizard, and public profile routes |
+| Tenant isolation | **Pooled — `tenant_id` on every row + Postgres RLS**; per-tenant Cognito partition, S3 prefix, brand domain | Siloed (schema/DB-per-tenant) available for any tenant needing hard isolation |
 | CDN / TLS / DNS | **CloudFront + ACM + Route 53** | Brand domain; no-cache + no-index on link routes; cache static assets and rendered profiles |
 | Owner auth | **Cognito** (Google federation + email) | Managed; hosted or custom UI |
 | Link-scoped sessions | **Lambda + KMS-signed JWT**, validated by an **API Gateway Lambda authorizer** | Consultant/client are not Cognito users — they get scoped, short-lived signed sessions |
 | API | **API Gateway (HTTP API) + Lambda** | Or the Next.js API layer; Lambda authorizer enforces scope |
-| Data | **DynamoDB (single-table)** | Token lookup by hash via GSI; relational alternative is Aurora Serverless v2 (Postgres) — see open questions |
+| Data | **Aurora Serverless v2 (Postgres) + pgvector** | Relational fits Profile→Skills/Stories and (V2) supply×demand; pgvector reserved for V2 semantic match. Token-hash lookup is a trivial indexed query. Chosen over DynamoDB to avoid a V2 migration |
 | Assets | **S3 + CloudFront**; **Lambda (Sharp)** for crop/grayscale/resize | Headshot originals + processed renditions |
 | Email | **SES** (London region, domain + DKIM verified) | Invite and share emails |
 | PDF | **Lambda + headless Chromium** (Puppeteer/Playwright) renders the profile route to a single-page A4 PDF | Server-side render guarantees Fredoka/Poppins load; output to S3, served via CloudFront |
 | Secrets / signing | **Secrets Manager + KMS** | Token-signing keys never in code |
 | Rate limiting / bot defence | **WAF + API Gateway throttling** | Protects public share and link-validation routes |
-| Audit / events | **DynamoDB** event log, optional **EventBridge** fan-out | Backs the audit trail (§7) |
+| Audit / events | **Aurora** event log, optional **EventBridge** fan-out | Backs the audit trail (§7) |
 | Logs / metrics | **CloudWatch** | Dashboards for the success metrics in §14 |
 
 This resolves the v0.1 open questions on email (SES), PDF generation (Lambda headless Chromium), and data residency (London region). It reuses the proven belterpoc auth pattern (magic-link + signed session cookies) rather than rebuilding it — implemented here on Lambda/KMS/DynamoDB.
@@ -249,7 +256,8 @@ Profiles hold consultant PII (name, email, photo) and client view logs. Build in
 - **Lawful basis & consent** — consultant agrees to their profile being shared with clients at submit; record the consent event.
 - **Retention** — archived profiles and link logs retained for a defined period, then purged; document it.
 - **Right to erasure** — owner can hard-delete a profile and its assets/logs on request.
-- **Data residency** — entire stack pinned to `eu-west-2` (London): S3, DynamoDB, SES, Lambda. No data leaves the UK region (matters for regulated clients).
+- **Tenant isolation** — every record is scoped by `tenant_id` and enforced by Postgres row-level security; no tenant can read another's CMs, profiles, or logs. Storage (S3 prefixes) and identity (Cognito) are partitioned per tenant.
+- **Data residency** — entire stack pinned to `eu-west-2` (London): S3, Aurora, SES, Lambda. No data leaves the UK region (matters for regulated clients).
 - **Minimisation** — share links expose only the rendered profile, never the underlying record or other profiles.
 
 ## 14. Success metrics
@@ -269,9 +277,11 @@ Profiles hold consultant PII (name, email, photo) and client view logs. Build in
 
 Resolved since v0.1: email → **SES**; PDF → **Lambda headless Chromium**; residency → **`eu-west-2`**; owner auth → **Cognito**. Still open:
 
-- **Data store** *(eng)* — DynamoDB single-table (lean, link-lookup-friendly) vs Aurora Serverless v2 Postgres (relational, natural for Profile→Skills/Stories). Leaning DynamoDB for v1. *Non-blocking — design the data layer behind a thin repository so it can swap.*
+- **Data store** *(resolved)* — **Aurora Serverless v2 Postgres + pgvector**, decided so V1 and V2 share one store (V2 needs relational supply×demand and vector search). Supersedes the v0.1 DynamoDB lean.
 - **App hosting** *(eng)* — Amplify Hosting vs OpenNext on Lambda + CloudFront. Amplify is faster to stand up; OpenNext gives more control. *Non-blocking.*
 - **Domain layout** *(owner/eng)* — subdomains (`portal.` / `profiles.changeconnected.co.uk`) vs paths on the apex. Public share links should sit on the brand domain either way. *Blocking for DNS/cert setup — pick before Route 53/ACM config.*
+- **Tenant isolation model** *(eng)* — pooled + RLS for all (cheap, standard) vs siloed schema/DB for tenants demanding hard isolation. Leaning pooled + RLS as default, siloed on request. *Non-blocking — RLS is the default.*
+- **Tenant → domain mapping** *(eng/owner)* — each tenant on its own brand domain (Change Connected on `changeconnected.co.uk`); how domain mapping and certs (CloudFront/ACM SANs) are managed as tenants are added. *Blocking once a second tenant onboards.*
 - **Marketing site source** *(eng)* — what is `changeconnected.co.uk` currently built on, and can its header/footer markup be reused directly, or do we rebuild the shell to match? Determines how literal "extension of the site" can be. *Blocking for the continuity requirement.*
 - **Share default lifetime** *(owner)* — sensible default expiry, e.g. 30 days? *Non-blocking.*
 - **Passcode in v1 or P1?** *(owner)* — leaked-link risk vs friction. Currently P1; confirm acceptable for first client shares. *Non-blocking.*
@@ -279,11 +289,161 @@ Resolved since v0.1: email → **SES**; PDF → **Lambda headless Chromium**; re
 
 ## 16. Phasing
 
-- **Phase 0 (foundations):** AWS account hardening, CDK skeleton, Route 53 + ACM on the brand domain, shared brand/theme package, SES domain verification.
-- **Phase 1 (v1, P0):** owner auth (Cognito), roster, add consultant, invite link, wizard, renderer (web + PDF via Lambda), review/publish, client share link with expiry + revoke, audit trail, full brand continuity. Single hardcoded brand.
+- **Phase 0 (foundations):** AWS account hardening, CDK skeleton, **multi-tenant data model (`tenant_id` + Postgres RLS) from the first migration**, Route 53 + ACM on the brand domain, shared brand/theme package, SES domain verification.
+- **Phase 1 (v1, P0):** owner auth (Cognito), Collective Dashboard, add consultant, invite link, wizard, renderer (web + PDF via Lambda), review/publish, client share link with expiry + revoke, audit trail, full brand continuity. **Change Connected onboarded as the first (pilot) tenant via per-tenant brand tokens.**
 - **Phase 2 (P1):** share open tracking on dashboard, passcodes, re-issue/resend, brand settings UI, templates, bulk invite.
-- **Phase 3 (P2):** multi-tenancy + billing, client shortlists, CRM/ATS sync, versioning, section-level analytics.
+- **Phase 3 (P2):** self-serve tenant onboarding + billing (foundation already shipped in v1), client shortlists, CRM/ATS sync, versioning, section-level analytics.
 
 ---
 
-*Assumptions made in this draft: single AWS account in `eu-west-2`; single consultancy and single brand for v1; single owner; consultant and client are link-scoped, not account holders; the renderer reuses the existing Change Impact Profile layout and brand tokens; the auth pattern reuses belterpoc rather than being rebuilt; the whole product is built to read as an extension of `changeconnected.co.uk`. Flag any of these and I'll revise.*
+*Assumptions made in this draft: the product is **Bench**; **Change Connected is the first client/tenant and brands their instance "Change Hub"** (instance name and role labels are per-tenant config); single AWS account in `eu-west-2`; multi-tenant from the first migration (`tenant_id` + Postgres RLS), with self-serve onboarding/billing deferred; single admin per tenant; consultant and client are link-scoped, not account holders (until V2); the renderer reuses the existing Change Impact Profile layout and brand tokens; the auth pattern reuses belterpoc rather than being rebuilt; each tenant's instance reads as an extension of its own site (Change Connected's as an extension of `changeconnected.co.uk`). Flag any of these and I'll revise.*
+
+---
+
+## 17. V2 — Bench as a managed talent platform
+
+### 17.0 What changes
+
+V1 is a **shop window**: branded profiles, with consultants as link-scoped, account-less contributors. V2 turns it into a **managed talent hub** — supply (who's available, with what skills) meets demand (roles to fill) through search and AI-assisted matching. The profile becomes the public face of an operational backend.
+
+Terminology is formalised in V2. These are **Change Connected's labels** for their Bench instance (per-tenant configurable — another tenant would set their own):
+
+- **Change Maker (CM)** — the consultant. Now an account holder, not a link-scoped session.
+- **Change Hub Admin (CHA)** — the admin/owner role.
+- **Change Hub** — Change Connected's name for their Bench instance (the hub).
+- **Opportunity** — a role to fill (the demand side).
+
+Three architectural shifts underpin everything below, each a deliberate cost:
+
+1. CMs move from link-scoped sessions to **Cognito accounts** (social auth).
+2. The data store is **Aurora Postgres + pgvector** — adopted in V1 foundations precisely so V2 lands without migration.
+3. **Bedrock** enters the stack for extraction, embeddings, and match rationale.
+
+**Tenancy holds in V2.** CMs, availability, facets, Opportunities, and matches are all `tenant_id`-scoped. Search and AI matching run **strictly within a tenant** — a CHA only ever sees and matches their own Change Makers against their own Opportunities; embeddings and queries are filtered by `tenant_id` before they reach pgvector. No CM ever appears in another tenant's hub.
+
+### 17.1 CM accounts & social auth
+
+The magic link stops being the session and becomes the **claim** — it proves "you're the person the Change Hub invited," after which social auth binds a durable identity to the profile. Flow: invite link → claim → choose provider → account. Thereafter the CM logs in directly to their own dashboard.
+
+- Cognito federation: **Google and Apple** native; **LinkedIn via generic OIDC** ("Sign in with LinkedIn using OpenID Connect" — not a built-in Cognito provider); **email OTP** as fallback so no one is forced to link a social account.
+- **LinkedIn auth ≠ LinkedIn data.** OIDC returns name, email, photo — not work history. Experience comes from the wizard or CV extraction (§17.4), not from the login.
+
+**Acceptance**
+- Given a valid invite, when a CM claims it and authenticates with a provider, then that identity is bound to their profile and future logins go straight to their dashboard.
+- One profile per identity; duplicate-email collisions are detected and resolved to a single account.
+- Account recovery via email OTP.
+
+### 17.2 Availability & the freshness loop
+
+This is the feature that makes it a Hub rather than a directory, so it's the centre of gravity. The date alone is a trap — engagements slip and a stale date is a lie. The real feature is the **freshness loop**.
+
+- Availability model: **status** (`available now` / `available from <date>` / `on engagement` / `not looking`), estimated **roll-off date**, **capacity** (full-time / part-time), and a **last-confirmed** timestamp.
+- As the roll-off date approaches, the system nudges the CM to reconfirm. This is also the recurring reason a CM comes back to a persistent account.
+- Availability is **internal to CHA by default** — it never appears on a client-shared profile unless CHA explicitly surfaces it.
+
+**Acceptance**
+- Given a CM on their dashboard, when they set or update availability, then `last-confirmed` is recorded.
+- Given a roll-off date within the nudge window, when it approaches, then the CM receives a reconfirm prompt.
+- Given availability older than the staleness threshold, when CHA filters for "available", then that CM is shown as **stale** and excluded until reconfirmed.
+
+### 17.3 CHA pipeline (two axes)
+
+V1 had a single status field; V2 needs **two independent axes**, and conflating them is how these tools turn to mush.
+
+- **Profile-state:** draft → invited → claimed → complete → published → in-review.
+- **Availability-state:** available / coming available / on engagement / not looking.
+
+Views:
+- **Lanes board** by profile-state.
+- **Coming-available timeline** — forward view of supply by roll-off date. This is the money view: it lines up upcoming supply against demand.
+- **Funnel-leak surfacing** — invited-but-never-claimed, claimed-but-incomplete, stale-availability, and **new CMs with no profile yet**, each with a one-click nudge/resend.
+
+**Acceptance**
+- Given all CMs, when CHA opens the hub, then each CM shows both its profile-state and availability-state independently.
+- Given a date window, when CHA opens the coming-available timeline, then CMs are listed by roll-off date within it.
+- Given funnel leaks, when CHA views them, then each is listed explicitly with a remediation action.
+
+### 17.4 Atomised skills & experience
+
+Two layers, kept in sync:
+
+- **Structured facets** for search — skills, sectors (financial services, aviation, infrastructure, automotive), methods (Agile / Lean / SAFe / Kanban), roles, seniority, org-scale ("led 5–40 teams"), regulated-environment exposure (DORA / NIS2), location, languages.
+- **Narrative prose** for the pitch and as semantic context.
+
+The facets are **extracted from the narrative (and optional CV upload) by the LLM at submit, then confirmed/edited by the CM**, normalised to a canonical taxonomy so "agile delivery" and "Agile" collapse to one tag. AI extracts and normalises — it does **not** write the bio.
+
+**Acceptance**
+- Given a submitted narrative or uploaded CV, when the CM reaches review, then the system proposes facets the CM can edit before saving.
+- Given proposed facets, when saved, then synonyms are collapsed to canonical tags and both facets and narrative are stored.
+
+### 17.5 Search & matching
+
+Two modes, in order of trust:
+
+1. **Deterministic facet filtering** — exact filters CHA can believe; **availability applied as a hard filter, not a preference**.
+2. **Semantic match** — CHA selects or pastes an Opportunity brief; **Bedrock embeddings + pgvector** return a ranked shortlist **with reasons**; unavailable CMs excluded; the CM always makes the final call.
+
+Explainable and assistive — never a black-box gatekeeper of people.
+
+**Acceptance**
+- Given facet filters, when CHA searches, then results are deterministic and exclude unavailable CMs by default.
+- Given an Opportunity brief, when CHA runs a semantic match, then CMs are ranked with a short why-matched rationale, availability hard-filtered, and CHA can inspect or override.
+
+### 17.6 Opportunities (demand)
+
+- **Opportunity** entity: title, client / sector, facets needed, seniority, start date, duration, **status** (open → shortlisting → filled → closed).
+- Matched against CM supply (§17.5); CHA assembles a shortlist per Opportunity and tracks outcome.
+
+**Acceptance**
+- Given structured needs, when CHA creates an Opportunity, then the system suggests matched CMs.
+- Given matches, when CHA shortlists, then the Opportunity tracks through to fill.
+
+### 17.7 Edit-with-review & versioning-lite
+
+CMs own their accounts and can edit — but edits to a **published** profile create a working draft and drop the profile to **in-review**. The **last published snapshot stays live to client share links** until CHA approves the re-publish, so shared links never break or silently change mid-review.
+
+**Acceptance**
+- Given a published profile, when the CM edits it, then client links keep showing the last approved version and the profile shows in-review to CHA.
+- Given an in-review profile, when CHA approves, then the live snapshot swaps to the new version.
+
+### 17.8 AWS additions (on top of §12)
+
+| Concern | Service |
+|---|---|
+| CM social auth | **Cognito** federation — Google, Apple (native), LinkedIn (OIDC), email OTP |
+| Extraction, embeddings, match rationale | **Bedrock** — embeddings model + a matching/rationale LLM |
+| Relational + vector store | **Aurora Serverless v2 Postgres + pgvector** (already in V1 foundations) |
+| Availability nudges / freshness loop | **EventBridge Scheduler + SES** |
+| CV upload & extraction pipeline | **S3 + Step Functions + Lambda** |
+
+### 17.9 Data protection additions (UK GDPR)
+
+- CM **account consent** and privacy notice at claim; record it.
+- Availability data is **internal-only** unless explicitly surfaced.
+- **AI-matching transparency** — CMs are told their data feeds matching, and match results are explainable.
+- **Right to be excluded** from search (`not looking`) and **right to erasure** now extends to the Cognito account.
+- Retention policy for **dormant CM accounts**.
+
+### 17.10 Success metrics (V2)
+
+- **Claim rate** — % of invited CMs who bind an account.
+- **Availability freshness** — % of CMs confirmed within the window.
+- **Time-to-shortlist** — Opportunity created → shortlist assembled.
+- **Match acceptance** — % of shortlisted CMs who say yes.
+- **Pipeline accuracy** — predicted vs actual roll-off dates.
+- **Fill rate** — Opportunities filled via the hub.
+
+### 17.11 Open questions (V2)
+
+- **Bedrock model choice** *(eng)* — embeddings (Titan vs Cohere) and the rationale LLM (Claude on Bedrock for explainable match reasons?). *Non-blocking.*
+- **Canonical skills taxonomy** *(owner/eng)* — build our own vs adopt an existing competency framework as the backbone. *Blocking for §17.4 — the taxonomy is the spine of search.*
+- **Availability as commitment vs estimate** *(owner)* — how the UI frames roll-off dates to CHA so they're not treated as hard promises.
+- **LinkedIn OIDC approval** *(eng)* — LinkedIn app review and scopes. *Blocking for LinkedIn auth.*
+- **Multi-CHA seats** *(stakeholder)* — Cognito groups / multiple admins now, or still single?
+
+### 17.12 Suggested V2 build order
+
+1. CM accounts & claim flow (§17.1) + edit-with-review (§17.7) — the account foundation.
+2. Availability & freshness loop (§17.2) + two-axis pipeline (§17.3) — the Hub.
+3. Atomised facets & extraction (§17.4) — the data spine.
+4. Opportunities (§17.6) + search & matching (§17.5) — supply × demand.

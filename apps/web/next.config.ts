@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@bench/ui', '@bench/domain', '@bench/types'],
+  transpilePackages: ['@bench/ui', '@bench/domain', '@bench/types', '@bench/data'],
   experimental: {
     typedRoutes: true,
   },

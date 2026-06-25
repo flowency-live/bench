@@ -6,15 +6,11 @@
  * - Profile 1: Oliver Bradley - Founder & Chief Connecting Officer
  * - Profile 2: Jason Jones - Delivery Execution and Flow Optimisation
  *
- * Usage: npx ts-node --esm seed-change-connected.ts
+ * Usage: pnpm --filter @bench/data seed
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  PutCommand,
-  TransactWriteCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import {
   tenantPK,
   tenantSK,
@@ -57,7 +53,7 @@ const BRAND_TOKENS = {
 const tenantItem = {
   PK: tenantPK(TENANT_ID),
   SK: tenantSK(TENANT_ID),
-  entityType: 'Tenant',
+  entityType: 'TENANT',
   id: TENANT_ID,
   name: 'Change Connected',
   slug: 'change-connected',
@@ -78,7 +74,9 @@ const OLIVER_ID = 'oliver-bradley';
 const oliverProfile = {
   PK: profilePK(TENANT_ID, OLIVER_ID),
   SK: profileSK(OLIVER_ID),
-  entityType: 'Profile',
+  entityType: 'PROFILE',
+  GSI2PK: statusGSI2PK(TENANT_ID, 'published'),
+  GSI2SK: OLIVER_ID,
   id: OLIVER_ID,
   tenantId: TENANT_ID,
   consultantName: 'Oliver Bradley',
@@ -90,23 +88,20 @@ const oliverProfile = {
     bio: 'Oliver founded Change Connected to bring together the best independent consultants and match them with organisations that need real expertise. With a background in transformation leadership and a passion for building genuine relationships, Oliver leads the network with energy and purpose.',
   },
   headshotAssetId: null,
-  testimonial: null,
   createdAt: NOW,
   updatedAt: NOW,
   submittedAt: NOW,
   publishedAt: NOW,
   archivedAt: null,
-  // GSI2: status lookup
-  GSI2PK: statusGSI2PK(TENANT_ID, 'published'),
-  GSI2SK: profileSK(OLIVER_ID),
 };
 
-// Profile listing item (for tenant-scoped queries)
+// Profile listing item (for tenant-scoped queries) - NO GSI2 keys
 const oliverListingItem = {
   PK: tenantPK(TENANT_ID),
   SK: profileSK(OLIVER_ID),
-  entityType: 'ProfileListing',
-  profileId: OLIVER_ID,
+  entityType: 'PROFILE_LISTING',
+  id: OLIVER_ID,
+  tenantId: TENANT_ID,
   consultantName: 'Oliver Bradley',
   role: 'Founder & Chief Connecting Officer',
   status: 'published',
@@ -118,9 +113,8 @@ const oliverSkills = [
   {
     PK: profilePK(TENANT_ID, OLIVER_ID),
     SK: skillSK(1),
-    entityType: 'Skill',
+    entityType: 'SKILL',
     id: 'skill-ob-1',
-    profileId: OLIVER_ID,
     title: 'Network Leadership',
     body: 'Building and nurturing a high-quality network of independent change and transformation consultants.',
     order: 1,
@@ -128,9 +122,8 @@ const oliverSkills = [
   {
     PK: profilePK(TENANT_ID, OLIVER_ID),
     SK: skillSK(2),
-    entityType: 'Skill',
+    entityType: 'SKILL',
     id: 'skill-ob-2',
-    profileId: OLIVER_ID,
     title: 'Transformation Strategy',
     body: 'Defining and executing transformation programmes that deliver measurable business outcomes.',
     order: 2,
@@ -138,9 +131,8 @@ const oliverSkills = [
   {
     PK: profilePK(TENANT_ID, OLIVER_ID),
     SK: skillSK(3),
-    entityType: 'Skill',
+    entityType: 'SKILL',
     id: 'skill-ob-3',
-    profileId: OLIVER_ID,
     title: 'Client Relationship Management',
     body: 'Building long-term partnerships with clients to understand their challenges and match them with the right expertise.',
     order: 3,
@@ -148,9 +140,8 @@ const oliverSkills = [
   {
     PK: profilePK(TENANT_ID, OLIVER_ID),
     SK: skillSK(4),
-    entityType: 'Skill',
+    entityType: 'SKILL',
     id: 'skill-ob-4',
-    profileId: OLIVER_ID,
     title: 'Team Building',
     body: 'Assembling high-performing delivery teams from the network to tackle complex engagements.',
     order: 4,
@@ -158,9 +149,8 @@ const oliverSkills = [
   {
     PK: profilePK(TENANT_ID, OLIVER_ID),
     SK: skillSK(5),
-    entityType: 'Skill',
+    entityType: 'SKILL',
     id: 'skill-ob-5',
-    profileId: OLIVER_ID,
     title: 'Business Development',
     body: 'Identifying opportunities and developing propositions that create value for clients and consultants.',
     order: 5,
@@ -171,9 +161,8 @@ const oliverStories = [
   {
     PK: profilePK(TENANT_ID, OLIVER_ID),
     SK: storySK(1),
-    entityType: 'Story',
+    entityType: 'STORY',
     id: 'story-ob-1',
-    profileId: OLIVER_ID,
     clientTag: 'FTSE 100 Retailer',
     title: 'Digital Transformation Leadership',
     body: 'Led a team of 12 consultants through a major digital transformation, delivering a new e-commerce platform in 8 months.',
@@ -182,9 +171,8 @@ const oliverStories = [
   {
     PK: profilePK(TENANT_ID, OLIVER_ID),
     SK: storySK(2),
-    entityType: 'Story',
+    entityType: 'STORY',
     id: 'story-ob-2',
-    profileId: OLIVER_ID,
     clientTag: 'Global Bank',
     title: 'Agile Operating Model',
     body: 'Designed and implemented a new agile operating model across 20 product teams, reducing time-to-market by 40%.',
@@ -193,9 +181,8 @@ const oliverStories = [
   {
     PK: profilePK(TENANT_ID, OLIVER_ID),
     SK: storySK(3),
-    entityType: 'Story',
+    entityType: 'STORY',
     id: 'story-ob-3',
-    profileId: OLIVER_ID,
     clientTag: 'Energy Sector',
     title: 'Network Launch',
     body: 'Founded Change Connected and grew the network to 50+ consultants within the first year of operation.',
@@ -212,7 +199,9 @@ const JASON_ID = 'jason-jones';
 const jasonProfile = {
   PK: profilePK(TENANT_ID, JASON_ID),
   SK: profileSK(JASON_ID),
-  entityType: 'Profile',
+  entityType: 'PROFILE',
+  GSI2PK: statusGSI2PK(TENANT_ID, 'published'),
+  GSI2SK: JASON_ID,
   id: JASON_ID,
   tenantId: TENANT_ID,
   consultantName: 'Jason Jones',
@@ -224,22 +213,20 @@ const jasonProfile = {
     bio: 'Jason specialises in helping organisations achieve predictable delivery through flow optimisation, Agile/Lean practices, and practical DevOps adoption. With deep technical roots and hands-on leadership experience, Jason bridges the gap between strategy and execution.',
   },
   headshotAssetId: null,
-  testimonial: null,
   createdAt: NOW,
   updatedAt: NOW,
   submittedAt: NOW,
   publishedAt: NOW,
   archivedAt: null,
-  // GSI2: status lookup
-  GSI2PK: statusGSI2PK(TENANT_ID, 'published'),
-  GSI2SK: profileSK(JASON_ID),
 };
 
+// Profile listing item (for tenant-scoped queries) - NO GSI2 keys
 const jasonListingItem = {
   PK: tenantPK(TENANT_ID),
   SK: profileSK(JASON_ID),
-  entityType: 'ProfileListing',
-  profileId: JASON_ID,
+  entityType: 'PROFILE_LISTING',
+  id: JASON_ID,
+  tenantId: TENANT_ID,
   consultantName: 'Jason Jones',
   role: 'Delivery Execution & Flow Optimisation',
   status: 'published',
@@ -251,9 +238,8 @@ const jasonSkills = [
   {
     PK: profilePK(TENANT_ID, JASON_ID),
     SK: skillSK(1),
-    entityType: 'Skill',
+    entityType: 'SKILL',
     id: 'skill-jj-1',
-    profileId: JASON_ID,
     title: 'Flow Optimisation',
     body: 'Identifying and removing bottlenecks in delivery pipelines to achieve continuous, predictable flow of value.',
     order: 1,
@@ -261,9 +247,8 @@ const jasonSkills = [
   {
     PK: profilePK(TENANT_ID, JASON_ID),
     SK: skillSK(2),
-    entityType: 'Skill',
+    entityType: 'SKILL',
     id: 'skill-jj-2',
-    profileId: JASON_ID,
     title: 'Agile Coaching',
     body: 'Coaching teams and organisations in Scrum, Kanban, and scaled Agile frameworks with a focus on outcomes over ceremony.',
     order: 2,
@@ -271,9 +256,8 @@ const jasonSkills = [
   {
     PK: profilePK(TENANT_ID, JASON_ID),
     SK: skillSK(3),
-    entityType: 'Skill',
+    entityType: 'SKILL',
     id: 'skill-jj-3',
-    profileId: JASON_ID,
     title: 'DevOps Adoption',
     body: 'Practical DevOps implementation including CI/CD pipelines, infrastructure as code, and platform engineering.',
     order: 3,
@@ -281,9 +265,8 @@ const jasonSkills = [
   {
     PK: profilePK(TENANT_ID, JASON_ID),
     SK: skillSK(4),
-    entityType: 'Skill',
+    entityType: 'SKILL',
     id: 'skill-jj-4',
-    profileId: JASON_ID,
     title: 'Delivery Leadership',
     body: 'Leading cross-functional delivery teams through complex programmes with clear governance and stakeholder management.',
     order: 4,
@@ -294,9 +277,8 @@ const jasonStories = [
   {
     PK: profilePK(TENANT_ID, JASON_ID),
     SK: storySK(1),
-    entityType: 'Story',
+    entityType: 'STORY',
     id: 'story-jj-1',
-    profileId: JASON_ID,
     clientTag: 'Financial Services',
     title: 'Release Frequency Transformation',
     body: 'Transformed a quarterly release cycle to continuous deployment, increasing release frequency from 4 to 200+ per year.',
@@ -305,9 +287,8 @@ const jasonStories = [
   {
     PK: profilePK(TENANT_ID, JASON_ID),
     SK: storySK(2),
-    entityType: 'Story',
+    entityType: 'STORY',
     id: 'story-jj-2',
-    profileId: JASON_ID,
     clientTag: 'Healthcare Provider',
     title: 'Flow Metrics Implementation',
     body: 'Implemented flow metrics across 15 teams, reducing lead time from 45 days to 8 days within 6 months.',
@@ -316,9 +297,8 @@ const jasonStories = [
   {
     PK: profilePK(TENANT_ID, JASON_ID),
     SK: storySK(3),
-    entityType: 'Story',
+    entityType: 'STORY',
     id: 'story-jj-3',
-    profileId: JASON_ID,
     clientTag: 'Retail Tech',
     title: 'Platform Engineering',
     body: 'Built an internal developer platform that reduced environment provisioning from 2 weeks to 15 minutes.',
@@ -327,9 +307,8 @@ const jasonStories = [
   {
     PK: profilePK(TENANT_ID, JASON_ID),
     SK: storySK(4),
-    entityType: 'Story',
+    entityType: 'STORY',
     id: 'story-jj-4',
-    profileId: JASON_ID,
     clientTag: 'Insurance',
     title: 'Agile Transformation',
     body: 'Led an agile transformation for a 200-person IT organisation, improving team satisfaction and delivery predictability.',
@@ -361,10 +340,9 @@ async function seedProfile(
   const name = profile.consultantName as string;
   console.log(`Seeding profile: ${name}...`);
 
-  // Use batch writes for skills and stories
+  // Write all items individually (DynamoDB limits batches to 25 items)
   const items = [profile, listingItem, ...skills, ...stories];
 
-  // DynamoDB limits batches to 25 items; we have fewer
   for (const item of items) {
     await docClient.send(
       new PutCommand({
@@ -374,7 +352,9 @@ async function seedProfile(
     );
   }
 
-  console.log(`  ✓ Profile created with ${skills.length} skills and ${stories.length} stories`);
+  console.log(
+    `  ✓ Profile created with ${skills.length} skills and ${stories.length} stories`
+  );
 }
 
 async function main(): Promise<void> {
@@ -382,8 +362,18 @@ async function main(): Promise<void> {
 
   try {
     await seedTenant();
-    await seedProfile(oliverProfile, oliverListingItem, oliverSkills, oliverStories);
-    await seedProfile(jasonProfile, jasonListingItem, jasonSkills, jasonStories);
+    await seedProfile(
+      oliverProfile,
+      oliverListingItem,
+      oliverSkills,
+      oliverStories
+    );
+    await seedProfile(
+      jasonProfile,
+      jasonListingItem,
+      jasonSkills,
+      jasonStories
+    );
 
     console.log('\n=== Seed complete ===\n');
     console.log('Summary:');

@@ -37,17 +37,24 @@ export {
   validateTenantId,
 } from './keys.js';
 
-// Repositories
-export {
-  createProfileRepository,
-  type ProfileRepository,
-  type Profile,
-  type ProfileSummary,
-  type ProfileStatus,
-  type PositioningUpdate,
-  type CreateProfileInput,
-} from './repository/profile-repository.js';
+// Profile repository - implementation
+export { createProfileRepository } from './repository/profile-repository.js';
 
+// Re-export types from @bench/types (canonical contract)
+export type {
+  ProfileRepository,
+  CreateConsultantInput,
+  ProfilePatch,
+  Profile,
+  ProfileSummary,
+  ProfileStatus,
+  ProfilePositioning,
+  ProfileSkill,
+  ProfileStory,
+  ProfileTestimonial,
+} from '@bench/types';
+
+// Magic link repository
 export {
   createMagicLinkRepository,
   type MagicLinkRepository,
