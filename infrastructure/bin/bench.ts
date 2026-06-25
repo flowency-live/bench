@@ -24,9 +24,10 @@ const foundationStack = new BenchFoundationStack(app, 'BenchFoundationStack', {
   tags: commonTags,
 });
 
+// Data stack: Aurora Serverless v2 + pgvector (replaces DynamoDB per ADR-0001)
 const dataStack = new BenchDataStack(app, 'BenchDataStack', {
   env,
-  description: 'Bench Data - DynamoDB single-table with multi-tenant isolation',
+  description: 'Bench Data - Aurora Serverless v2 with RLS multi-tenancy',
   tags: commonTags,
 });
 
@@ -34,7 +35,9 @@ const authStack = new BenchAuthStack(app, 'BenchAuthStack', {
   env,
   description: 'Bench Auth - Cognito User Pool with tenant support',
   tags: commonTags,
-  table: dataStack.table,
+  vpc: dataStack.vpc,
+  databaseSecret: dataStack.databaseSecret,
+  databaseSecurityGroup: dataStack.securityGroup,
 });
 authStack.addDependency(dataStack);
 
@@ -42,7 +45,9 @@ const apiStack = new BenchApiStack(app, 'BenchApiStack', {
   env,
   description: 'Bench API - HTTP API with Lambda functions',
   tags: commonTags,
-  table: dataStack.table,
+  vpc: dataStack.vpc,
+  databaseProxy: dataStack.databaseProxy,
+  databaseSecret: dataStack.databaseSecret,
   userPool: authStack.userPool,
   userPoolClient: authStack.userPoolClient,
   assetsBucket: foundationStack.assetsBucket,

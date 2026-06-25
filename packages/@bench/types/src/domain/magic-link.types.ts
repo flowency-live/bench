@@ -16,7 +16,7 @@ export type MagicLinkStatus = 'active' | 'used' | 'expired' | 'revoked';
 export type MagicLinkScope = 'edit' | 'view';
 
 /**
- * Magic link entity (stored in DynamoDB)
+ * Magic link entity
  */
 export interface MagicLink {
   readonly id: string;

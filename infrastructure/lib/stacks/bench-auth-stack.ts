@@ -1,12 +1,15 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
 
 export interface BenchAuthStackProps extends cdk.StackProps {
   readonly domainName?: string;
-  readonly table: dynamodb.ITable;
+  readonly vpc: ec2.IVpc;
+  readonly databaseSecret: secretsmanager.ISecret;
+  readonly databaseSecurityGroup: ec2.ISecurityGroup;
 }
 
 /**
@@ -70,6 +73,8 @@ export class BenchAuthStack extends cdk.Stack {
       },
     });
 
+    // Pre-token generation Lambda - adds tenant context to JWT claims
+    // Currently reads from Cognito attributes; will query DB when needed
     const preTokenLambda = new lambda.Function(this, 'PreTokenGenerationLambda', {
       functionName: 'bench-pre-token-generation',
       runtime: lambda.Runtime.NODEJS_20_X,
@@ -94,12 +99,17 @@ export class BenchAuthStack extends cdk.Stack {
       `),
       timeout: cdk.Duration.seconds(5),
       memorySize: 128,
+      vpc: props.vpc,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
       environment: {
-        TABLE_NAME: props.table.tableName,
+        DATABASE_SECRET_ARN: props.databaseSecret.secretArn,
       },
     });
 
-    props.table.grantReadData(preTokenLambda);
+    // Grant read access to database credentials
+    props.databaseSecret.grantRead(preTokenLambda);
 
     this.userPool.addTrigger(
       cognito.UserPoolOperation.PRE_TOKEN_GENERATION,

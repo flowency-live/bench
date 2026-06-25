@@ -1,12 +1,16 @@
-/* Bench Platform Tokens
- * These are the default platform tokens. Tenants override via their brandTokens record.
- * Change Connected (tenant #1) tokens are in tenant.types.ts CHANGE_CONNECTED_BRAND_TOKENS.
+/* Bench UI Theme - Change Connected (Tenant #1) as dev fallback
+ * These CSS variables use Change Connected's brand (navy/lime/Poppins) as the
+ * fallback for local development. In production, the renderer injects per-tenant
+ * CSS variables from Tenant.brandTokens, overriding these values.
+ *
+ * For white-label correctness: tenant themes are applied at runtime, not build time.
+ * See: CHANGE_CONNECTED_BRAND_TOKENS in tenant.types.ts for the canonical values.
  */
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap');
 
 :root {
-  /* Colour - Change Connected canonical (from live site, ADR-0004) */
+  /* Colour - Change Connected brand (ADR-0004), overridden per-tenant at runtime */
   --color-bg-primary: #001930;   /* navy */
   --color-bg-panel:   #002e52;   /* raised navy surface */
   --color-accent:     #baeb5b;   /* lime */

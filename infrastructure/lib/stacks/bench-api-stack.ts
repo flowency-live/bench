@@ -3,7 +3,8 @@ import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as apigatewayv2Authorizers from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as rds from 'aws-cdk-lib/aws-rds';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as kms from 'aws-cdk-lib/aws-kms';
@@ -13,7 +14,9 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import type { Construct } from 'constructs';
 
 export interface BenchApiStackProps extends cdk.StackProps {
-  readonly table: dynamodb.ITable;
+  readonly vpc: ec2.IVpc;
+  readonly databaseProxy: rds.IDatabaseProxy;
+  readonly databaseSecret: secretsmanager.ISecret;
   readonly userPool: cognito.IUserPool;
   readonly userPoolClient: cognito.IUserPoolClient;
   readonly assetsBucket: s3.IBucket;
@@ -24,6 +27,9 @@ export interface BenchApiStackProps extends cdk.StackProps {
 
 /**
  * Bench API Stack - HTTP API with Lambda functions
+ *
+ * Per ADR-0001/0002: Lambdas connect to Aurora via RDS Proxy.
+ * Each request sets tenant context via SET LOCAL for RLS enforcement.
  */
 export class BenchApiStack extends cdk.Stack {
   public readonly httpApi: apigatewayv2.HttpApi;
@@ -51,8 +57,17 @@ export class BenchApiStack extends cdk.Stack {
       },
     });
 
+    // Lambda security group - allows outbound (VPC CIDR rule in Data stack permits Postgres)
+    const lambdaSecurityGroup = new ec2.SecurityGroup(this, 'LambdaSecurityGroup', {
+      vpc: props.vpc,
+      securityGroupName: 'bench-lambda-sg',
+      description: 'Security group for Bench Lambda functions',
+      allowAllOutbound: true,
+    });
+
     const commonEnv = {
-      TABLE_NAME: props.table.tableName,
+      DATABASE_PROXY_ENDPOINT: props.databaseProxy.endpoint,
+      DATABASE_SECRET_ARN: props.databaseSecret.secretArn,
       ASSETS_BUCKET: props.assetsBucket.bucketName,
       JWT_SECRET_ARN: jwtSecret.secretArn,
       USER_POOL_ID: props.userPool.userPoolId,
@@ -81,6 +96,11 @@ export class BenchApiStack extends cdk.Stack {
         memorySize: 512,
         timeout: cdk.Duration.seconds(30),
         tracing: lambda.Tracing.ACTIVE,
+        vpc: props.vpc,
+        vpcSubnets: {
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        },
+        securityGroups: [lambdaSecurityGroup],
       });
     };
 
@@ -93,7 +113,8 @@ export class BenchApiStack extends cdk.Stack {
     const allLambdas = [profilesLambda, magicLinksLambda, wizardLambda, assetsLambda, tenantsLambda];
 
     for (const fn of allLambdas) {
-      props.table.grantReadWriteData(fn);
+      // Grant access to database credentials
+      props.databaseSecret.grantRead(fn);
       jwtSecret.grantRead(fn);
       this.jwtSigningKey.grantEncryptDecrypt(fn);
     }
