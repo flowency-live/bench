@@ -48,7 +48,7 @@ describe('TenantContext', () => {
     const Pool = pg.Pool;
     const { applyBootstrapMigrations, applySchemaMigrations } = await import('../../migrations/index.js');
 
-    container = await new PostgreSqlContainer('postgres:16')
+    container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
       .withDatabase('bench_test')
       .withUsername('postgres')
       .withPassword('test_password')

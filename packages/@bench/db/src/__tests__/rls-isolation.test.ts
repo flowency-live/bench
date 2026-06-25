@@ -67,7 +67,7 @@ describe('RLS tenant isolation', () => {
     applySchemaMigrations = migrations.applySchemaMigrations;
 
     // Start Postgres container
-    container = await new PostgreSqlContainer('postgres:16')
+    container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
       .withDatabase('bench_test')
       .withUsername('postgres')
       .withPassword('test_password')
@@ -405,7 +405,7 @@ describe('Magic link token lookup (cross-tenant system path)', () => {
     applyBootstrapMigrations = migrations.applyBootstrapMigrations;
     applySchemaMigrations = migrations.applySchemaMigrations;
 
-    container = await new PostgreSqlContainer('postgres:16')
+    container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
       .withDatabase('bench_test')
       .withUsername('postgres')
       .withPassword('test_password')
@@ -575,7 +575,7 @@ describe('Tenants table RLS', () => {
     applyBootstrapMigrations = migrations.applyBootstrapMigrations;
     applySchemaMigrations = migrations.applySchemaMigrations;
 
-    container = await new PostgreSqlContainer('postgres:16')
+    container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
       .withDatabase('bench_test')
       .withUsername('postgres')
       .withPassword('test_password')

@@ -8,7 +8,9 @@ import { BenchApiStack } from '../lib/stacks/bench-api-stack';
 const app = new cdk.App();
 
 const env = {
-  account: process.env.CDK_DEFAULT_ACCOUNT,
+  // Use CDK_DEFAULT_ACCOUNT if set (CLI), otherwise use a dummy value for synth
+  // Actual account is determined at deploy time
+  account: process.env.CDK_DEFAULT_ACCOUNT || '000000000000',
   region: 'eu-west-2',
 };
 
