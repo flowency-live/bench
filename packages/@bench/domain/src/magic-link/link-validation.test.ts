@@ -5,7 +5,7 @@ import {
   isLinkActive,
   type MagicLinkValidationResult,
 } from './link-validation';
-import type { MagicLink } from '@cchub/types';
+import type { MagicLink } from '@bench/types';
 
 function createMockLink(overrides: Partial<MagicLink> = {}): MagicLink {
   const now = new Date();
@@ -13,6 +13,7 @@ function createMockLink(overrides: Partial<MagicLink> = {}): MagicLink {
 
   return {
     id: 'link-001',
+    tenantId: 'tenant-001',
     profileId: 'profile-001',
     type: 'invite',
     tokenHash: 'abc123hash',
@@ -81,6 +82,7 @@ describe('Link Validation', () => {
 
       expect(result).toEqual<MagicLinkValidationResult>({
         valid: true,
+        tenantId: 'tenant-001',
         profileId: 'profile-001',
         scope: 'edit',
       });
@@ -131,6 +133,7 @@ describe('Link Validation', () => {
 
       expect(result).toEqual<MagicLinkValidationResult>({
         valid: true,
+        tenantId: 'tenant-001',
         profileId: 'profile-001',
         scope: 'view',
       });
@@ -159,6 +162,7 @@ describe('Link Validation', () => {
       const resultWithCorrectPasscode = validateMagicLink(link, '1234');
       expect(resultWithCorrectPasscode).toEqual<MagicLinkValidationResult>({
         valid: true,
+        tenantId: 'tenant-001',
         profileId: 'profile-001',
         scope: 'edit',
       });

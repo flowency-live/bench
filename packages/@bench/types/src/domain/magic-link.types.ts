@@ -20,6 +20,7 @@ export type MagicLinkScope = 'edit' | 'view';
  */
 export interface MagicLink {
   readonly id: string;
+  readonly tenantId: string;
   readonly profileId: string;
   readonly type: MagicLinkType;
   readonly tokenHash: string;
@@ -44,6 +45,7 @@ export interface MagicLinkToken {
  * Session payload for wizard (consultant editing)
  */
 export interface WizardSessionPayload {
+  readonly tenantId: string;
   readonly profileId: string;
   readonly scope: 'edit';
   readonly iat: number;
@@ -54,6 +56,7 @@ export interface WizardSessionPayload {
  * Session payload for view (client viewing)
  */
 export interface ViewSessionPayload {
+  readonly tenantId: string;
   readonly profileId: string;
   readonly scope: 'view';
   readonly iat: number;
@@ -66,7 +69,7 @@ export interface ViewSessionPayload {
 export interface OwnerSessionPayload {
   readonly userId: string;
   readonly email: string;
-  readonly consultancyId: string;
+  readonly tenantId: string;
   readonly scope: 'admin';
   readonly iat: number;
   readonly exp: number;

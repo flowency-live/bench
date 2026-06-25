@@ -1,8 +1,8 @@
 {
-  "name": "cchub",
+  "name": "bench",
   "version": "0.1.0",
   "private": true,
-  "description": "Consultant Profile Platform for Change Connected",
+  "description": "White-label Consultant Profile Platform",
   "type": "module",
   "scripts": {
     "dev": "turbo run dev",
@@ -13,7 +13,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",
-    "deploy:foundation": "cd infrastructure && pnpm cdk deploy CCHubFoundationStack",
+    "deploy:foundation": "cd infrastructure && pnpm cdk deploy BenchFoundationStack",
     "deploy:all": "cd infrastructure && pnpm cdk deploy --all"
   },
   "devDependencies": {

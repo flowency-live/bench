@@ -1,8 +1,7 @@
 {
-  "name": "@cchub/infrastructure",
+  "name": "@bench/infrastructure",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",

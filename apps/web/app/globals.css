@@ -1,4 +1,4 @@
-@import '@cchub/ui/src/theme/tokens.css';
+@import '@bench/ui/src/theme/tokens.css';
 
 @tailwind base;
 @tailwind components;

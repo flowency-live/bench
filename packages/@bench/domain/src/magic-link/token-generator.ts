@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
-import type { MagicLinkToken } from '@cchub/types';
+import type { MagicLinkToken } from '@bench/types';
 
 /**
  * Generates a cryptographically secure magic link token.

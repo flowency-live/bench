@@ -1,5 +1,5 @@
 {
-  "name": "@cchub/domain",
+  "name": "@bench/domain",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -33,9 +33,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@cchub/types": "workspace:*"
+    "@bench/types": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^3.2.0",
     "typescript": "^5.8.0",
     "vitest": "^3.2.0"

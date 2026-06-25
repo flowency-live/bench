@@ -1,11 +1,11 @@
 import { createHash } from 'crypto';
-import type { MagicLink, MagicLinkScope } from '@cchub/types';
+import type { MagicLink, MagicLinkScope } from '@bench/types';
 
 /**
  * Result of magic link validation
  */
 export type MagicLinkValidationResult =
-  | { valid: true; profileId: string; scope: MagicLinkScope }
+  | { valid: true; tenantId: string; profileId: string; scope: MagicLinkScope }
   | { valid: false; reason: 'expired' | 'revoked' | 'not_found' | 'invalid_passcode' };
 
 /**
@@ -75,6 +75,7 @@ export function validateMagicLink(
   // Link is valid
   return {
     valid: true,
+    tenantId: link.tenantId,
     profileId: link.profileId,
     scope: link.scope,
   };

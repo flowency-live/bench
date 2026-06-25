@@ -55,7 +55,7 @@ export interface ProfileTestimonial {
  */
 export interface Profile {
   readonly id: string;
-  readonly consultancyId: string;
+  readonly tenantId: string;
   readonly consultantName: string;
   readonly consultantEmail: string;
   readonly role: string | null;
@@ -77,6 +77,7 @@ export interface Profile {
  */
 export interface ProfileSummary {
   readonly id: string;
+  readonly tenantId: string;
   readonly consultantName: string;
   readonly role: string | null;
   readonly status: ProfileStatus;

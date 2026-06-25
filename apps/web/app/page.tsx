@@ -3,7 +3,7 @@ export default function HomePage() {
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-[var(--color-accent)] mb-4 font-heading italic">
-          CCHub
+          Bench
         </h1>
         <p className="text-xl text-[var(--color-text-secondary)]">
           Consultant Profile Platform

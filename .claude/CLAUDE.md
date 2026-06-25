@@ -1,4 +1,4 @@
-# CCHub Project Context
+# Bench Project Context
 
 > Thin pointer to global protocols and project-specific context.
 
@@ -13,7 +13,7 @@ See `C:\VSProjects\CLAUDE.md` for:
 
 - **Monorepo**: pnpm workspaces + Turborepo
 - **Frontend**: Next.js 15 App Router (`apps/web`)
-- **Domain**: Pure TypeScript (`packages/@cchub/domain`)
+- **Domain**: Pure TypeScript (`packages/@bench/domain`)
 - **Infrastructure**: AWS CDK (`infrastructure/`)
 - **Region**: eu-west-2 (London) - UK data residency
 

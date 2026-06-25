@@ -17,15 +17,15 @@ importers:
 
   apps/web:
     dependencies:
-      '@cchub/domain':
+      '@bench/domain':
         specifier: workspace:*
-        version: link:../../packages/@cchub/domain
-      '@cchub/types':
+        version: link:../../packages/@bench/domain
+      '@bench/types':
         specifier: workspace:*
-        version: link:../../packages/@cchub/types
-      '@cchub/ui':
+        version: link:../../packages/@bench/types
+      '@bench/ui':
         specifier: workspace:*
-        version: link:../../packages/@cchub/ui
+        version: link:../../packages/@bench/ui
       next:
         specifier: ^15.3.0
         version: 15.5.19(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -89,12 +89,15 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  packages/@cchub/domain:
+  packages/@bench/domain:
     dependencies:
-      '@cchub/types':
+      '@bench/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.0
       '@vitest/coverage-v8':
         specifier: ^3.2.0
         version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@1.21.7))
@@ -105,13 +108,13 @@ importers:
         specifier: ^3.2.0
         version: 3.2.6(@types/node@22.20.0)(jiti@1.21.7)
 
-  packages/@cchub/types:
+  packages/@bench/types:
     devDependencies:
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
 
-  packages/@cchub/ui:
+  packages/@bench/ui:
     devDependencies:
       '@types/react':
         specifier: ^19.0.0

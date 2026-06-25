@@ -6,38 +6,33 @@ import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import type { Construct } from 'constructs';
 
-export interface CCHubFoundationStackProps extends cdk.StackProps {
+export interface BenchFoundationStackProps extends cdk.StackProps {
   readonly domainName?: string;
 }
 
-export class CCHubFoundationStack extends cdk.Stack {
+export class BenchFoundationStack extends cdk.Stack {
   public readonly hostedZone: route53.IHostedZone;
   public readonly certificate: acm.ICertificate;
   public readonly assetsBucket: s3.Bucket;
   public readonly assetsDistribution: cloudfront.Distribution;
 
-  constructor(scope: Construct, id: string, props?: CCHubFoundationStackProps) {
+  constructor(scope: Construct, id: string, props?: BenchFoundationStackProps) {
     super(scope, id, props);
 
     const domainName = props?.domainName ?? 'cchub.opstack.uk';
 
-    // Route 53 Hosted Zone
-    // Note: The hosted zone should be created manually first, then imported
-    // This allows DNS to be configured before the stack is deployed
     this.hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
       domainName,
     });
 
-    // ACM Certificate for the domain (DNS validation)
     this.certificate = new acm.Certificate(this, 'Certificate', {
       domainName,
       subjectAlternativeNames: [`*.${domainName}`],
       validation: acm.CertificateValidation.fromDns(this.hostedZone),
     });
 
-    // S3 Bucket for assets (headshots, logo, PDFs)
     this.assetsBucket = new s3.Bucket(this, 'AssetsBucket', {
-      bucketName: `cchub-assets-${this.account}`,
+      bucketName: `bench-assets-${this.account}`,
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
@@ -59,7 +54,6 @@ export class CCHubFoundationStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    // CloudFront distribution for assets
     this.assetsDistribution = new cloudfront.Distribution(this, 'AssetsDistribution', {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(this.assetsBucket),
@@ -73,7 +67,6 @@ export class CCHubFoundationStack extends cdk.Stack {
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
     });
 
-    // Route 53 record for assets subdomain
     new route53.ARecord(this, 'AssetsAliasRecord', {
       zone: this.hostedZone,
       recordName: 'assets',
@@ -82,7 +75,6 @@ export class CCHubFoundationStack extends cdk.Stack {
       ),
     });
 
-    // Outputs
     new cdk.CfnOutput(this, 'HostedZoneId', {
       value: this.hostedZone.hostedZoneId,
       description: 'Route 53 Hosted Zone ID',

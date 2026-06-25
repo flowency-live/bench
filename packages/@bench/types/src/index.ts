@@ -1,4 +1,5 @@
 // Entity types
+export * from './domain/tenant.types';
 export * from './domain/profile.types';
 export * from './domain/magic-link.types';
 export * from './domain/wizard.types';

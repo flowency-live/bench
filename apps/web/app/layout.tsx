@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Oswald } from 'next/font/google';
-import '@cchub/ui/theme';
+import '@bench/ui/theme';
 import './globals.css';
 
 const inter = Inter({
@@ -16,7 +16,7 @@ const oswald = Oswald({
 });
 
 export const metadata: Metadata = {
-  title: 'CCHub - Consultant Profile Platform',
+  title: 'Bench - Consultant Profile Platform',
   description: 'Manage and share consultant profiles for Change Connected',
 };
 

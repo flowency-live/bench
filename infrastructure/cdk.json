@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --esm bin/cchub.ts",
+  "app": "npx ts-node bin/bench.ts",
   "watch": {
     "include": ["**"],
     "exclude": [

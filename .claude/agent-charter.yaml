@@ -1,9 +1,9 @@
-# CCHub Agent Charter
+# Bench Agent Charter
 # Defines what Claude can and cannot modify in this project
 
-name: cchub
+name: bench
 version: "1.0"
-description: Consultant Profile Platform for Change Connected
+description: Multi-tenant Consultant Profile Platform (white-label SaaS)
 
 # Paths the agent may freely modify
 owns:
@@ -30,7 +30,7 @@ cannot_touch:
 # Invariants that must hold (documentation - checked at code review)
 must_preserve:
   - "TDD: Every production file must have a corresponding .test.ts file"
-  - "Domain purity: packages/@cchub/domain has no AWS SDK or framework dependencies"
+  - "Domain purity: packages/@bench/domain has no AWS SDK or framework dependencies"
   - "Type safety: No use of 'any' type - use 'unknown' instead"
   - "Immutability: All domain types use 'readonly' modifiers"
   - "UK data residency: All AWS resources in eu-west-2"

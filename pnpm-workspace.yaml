@@ -1,5 +1,5 @@
 packages:
-  - 'packages/@cchub/*'
+  - 'packages/@bench/*'
   - 'apps/*'
   - 'functions/*'
   - 'infrastructure'

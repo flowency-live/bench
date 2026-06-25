@@ -1,5 +1,5 @@
 {
-  "name": "@cchub/web",
+  "name": "@bench/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,9 +12,9 @@
     "clean": "rm -rf .next out"
   },
   "dependencies": {
-    "@cchub/domain": "workspace:*",
-    "@cchub/types": "workspace:*",
-    "@cchub/ui": "workspace:*",
+    "@bench/domain": "workspace:*",
+    "@bench/types": "workspace:*",
+    "@bench/ui": "workspace:*",
     "next": "^15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
