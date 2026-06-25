@@ -21,8 +21,9 @@ See `C:\VSProjects\CLAUDE.md` for:
 
 | Decision | Rationale |
 |----------|-----------|
-| Aurora Serverless v2 + pgvector | SQL flexibility, RLS for tenant isolation, vector search for skills |
-| Pooled multi-tenancy with RLS | Single DB, row-level security per tenant, cost-efficient |
+| DynamoDB single-table | ~$0-5/month at pilot vs ~$100-150 for Aurora; no VPC/NAT/RDS Proxy (ADR-0008) |
+| App-enforced tenant isolation | `TENANT#{tenantId}` key prefix on all items; repository as sole access point |
+| GSI3 for token lookup | The ONE global read (TOKENHASH#{hash}) to resolve tenant context |
 | Amplify Hosting | Faster to stand up for v1 |
 | Magic links, not accounts | Zero friction for consultants and clients |
 | KMS-signed JWTs | Secure session tokens without Cognito for link users |

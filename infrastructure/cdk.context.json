@@ -1,0 +1,11 @@
+{
+  "hosted-zone:account=771551874768:domainName=bench.opstack.uk:region=eu-west-2": {
+    "Id": "/hostedzone/Z058263012O0FEXTD01LZ",
+    "Name": "bench.opstack.uk."
+  },
+  "availability-zones:account=771551874768:region=eu-west-2": [
+    "eu-west-2a",
+    "eu-west-2b",
+    "eu-west-2c"
+  ]
+}
