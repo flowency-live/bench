@@ -1,25 +1,19 @@
 version: 1
-appRoot: apps/web
 frontend:
   phases:
     preBuild:
       commands:
-        # Enable pnpm via corepack (built into Node 18+)
         - corepack enable
         - corepack prepare pnpm@11.1.3 --activate
-        # Install from monorepo root
-        - cd ../.. && pnpm install --frozen-lockfile
-        # Build workspace dependencies first (types, data, domain, ui)
-        - cd ../.. && pnpm turbo run build --filter=@bench/web^...
+        - pnpm install --frozen-lockfile
     build:
       commands:
-        # Build the Next.js app
-        - cd ../.. && pnpm turbo run build --filter=@bench/web
+        - pnpm turbo run build --filter=@bench/web
   artifacts:
-    baseDirectory: .next
+    baseDirectory: apps/web/.next
     files:
       - '**/*'
   cache:
     paths:
-      - ../../node_modules/**/*
-      - .next/cache/**/*
+      - node_modules/**/*
+      - apps/web/.next/cache/**/*
