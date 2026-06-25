@@ -30,7 +30,7 @@ export function DashboardClient({ profiles }: { profiles: ProfileSummary[] }) {
     });
   }, [profiles, query, filter]);
 
-  const chips: Filter[] = ['all', ...STATUS_ORDER.filter((s) => counts[s] > 0)];
+  const chips: Filter[] = ['all', ...STATUS_ORDER.filter((s) => (counts[s] ?? 0) > 0)];
 
   return (
     <div>

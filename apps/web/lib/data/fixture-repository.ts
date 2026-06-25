@@ -180,9 +180,10 @@ export function createFixtureRepository(): ProfileRepository {
       const idx = s.profiles.findIndex(
         (p) => p.tenantId === tenantId && p.id === profileId,
       );
-      if (idx === -1) throw new Error('Profile not found');
+      const existing = s.profiles[idx];
+      if (!existing) throw new Error('Profile not found');
       const next: Profile = {
-        ...s.profiles[idx],
+        ...existing,
         ...('name' in patch && patch.name !== undefined ? { name: patch.name } : {}),
         ...('role' in patch ? { role: patch.role ?? null } : {}),
         ...('headline' in patch ? { headline: patch.headline ?? null } : {}),
@@ -202,9 +203,11 @@ export function createFixtureRepository(): ProfileRepository {
       const idx = s.profiles.findIndex(
         (p) => p.tenantId === tenantId && p.id === profileId,
       );
-      if (idx === -1) throw new Error('Profile not found');
-      s.profiles[idx] = { ...s.profiles[idx], status, updatedAt: now() };
-      return clone(s.profiles[idx]);
+      const existing = s.profiles[idx];
+      if (!existing) throw new Error('Profile not found');
+      const updated = { ...existing, status, updatedAt: now() };
+      s.profiles[idx] = updated;
+      return clone(updated);
     },
   };
 }
