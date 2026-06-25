@@ -21,6 +21,8 @@ export class BenchDataStack extends cdk.Stack {
   public readonly vpc: ec2.IVpc;
   public readonly databaseCluster: rds.DatabaseCluster;
   public readonly databaseSecret: secretsmanager.ISecret;
+  public readonly ddlSecret: secretsmanager.ISecret;
+  public readonly appSecret: secretsmanager.ISecret;
   public readonly databaseProxy: rds.DatabaseProxy;
   public readonly securityGroup: ec2.SecurityGroup;
 
@@ -73,9 +75,35 @@ export class BenchDataStack extends cdk.Stack {
     // Database credentials in Secrets Manager
     this.databaseSecret = new secretsmanager.Secret(this, 'DatabaseSecret', {
       secretName: 'bench/aurora/credentials',
-      description: 'Bench Aurora database credentials',
+      description: 'Bench Aurora database credentials (master user)',
       generateSecretString: {
         secretStringTemplate: JSON.stringify({ username: 'bench_admin' }),
+        generateStringKey: 'password',
+        excludePunctuation: true,
+        passwordLength: 32,
+      },
+    });
+
+    // DDL role credentials (bench_ddl - schema owner, BYPASSRLS)
+    // Used by migrations and SECURITY DEFINER functions
+    this.ddlSecret = new secretsmanager.Secret(this, 'DdlSecret', {
+      secretName: 'bench/aurora/ddl-credentials',
+      description: 'Bench Aurora DDL role credentials (schema owner)',
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ username: 'bench_ddl' }),
+        generateStringKey: 'password',
+        excludePunctuation: true,
+        passwordLength: 32,
+      },
+    });
+
+    // App role credentials (bench_app - runtime, NOBYPASSRLS)
+    // Used by Lambda functions; subject to RLS policies
+    this.appSecret = new secretsmanager.Secret(this, 'AppSecret', {
+      secretName: 'bench/aurora/app-credentials',
+      description: 'Bench Aurora app role credentials (runtime)',
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ username: 'bench_app' }),
         generateStringKey: 'password',
         excludePunctuation: true,
         passwordLength: 32,
@@ -117,10 +145,11 @@ export class BenchDataStack extends cdk.Stack {
     });
 
     // RDS Proxy for connection pooling (critical for Lambda)
+    // Includes all three role secrets for flexible connection routing
     this.databaseProxy = new rds.DatabaseProxy(this, 'DatabaseProxy', {
       dbProxyName: 'bench-aurora-proxy',
       proxyTarget: rds.ProxyTarget.fromCluster(this.databaseCluster),
-      secrets: [this.databaseSecret],
+      secrets: [this.databaseSecret, this.ddlSecret, this.appSecret],
       vpc: this.vpc,
       vpcSubnets: {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
@@ -151,8 +180,20 @@ export class BenchDataStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'DatabaseSecretArn', {
       value: this.databaseSecret.secretArn,
-      description: 'Database credentials secret ARN',
+      description: 'Database credentials secret ARN (master)',
       exportName: 'BenchDatabaseSecretArn',
+    });
+
+    new cdk.CfnOutput(this, 'DdlSecretArn', {
+      value: this.ddlSecret.secretArn,
+      description: 'DDL role credentials secret ARN',
+      exportName: 'BenchDdlSecretArn',
+    });
+
+    new cdk.CfnOutput(this, 'AppSecretArn', {
+      value: this.appSecret.secretArn,
+      description: 'App role credentials secret ARN',
+      exportName: 'BenchAppSecretArn',
     });
 
     new cdk.CfnOutput(this, 'DatabaseName', {

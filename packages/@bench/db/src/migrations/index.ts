@@ -16,16 +16,35 @@
  * Tracks applied migrations in schema_migrations table.
  */
 import type { Pool } from 'pg';
-import { up as bootstrap000Up, down as bootstrap000Down } from './000-bootstrap.js';
+import {
+  up as bootstrap000Up,
+  down as bootstrap000Down,
+  type BootstrapConfig,
+  TEST_BOOTSTRAP_CONFIG,
+} from './000-bootstrap.js';
 import { up as migration001Up, down as migration001Down } from './001-initial-schema.js';
 
-interface Migration {
+// Re-export for external use
+export type { BootstrapConfig } from './000-bootstrap.js';
+export { TEST_BOOTSTRAP_CONFIG } from './000-bootstrap.js';
+
+interface SchemaMigration {
   readonly version: string;
   readonly name: string;
-  readonly phase: 'bootstrap' | 'schema';
+  readonly phase: 'schema';
   readonly up: (pool: Pool) => Promise<void>;
   readonly down: (pool: Pool) => Promise<void>;
 }
+
+interface BootstrapMigration {
+  readonly version: string;
+  readonly name: string;
+  readonly phase: 'bootstrap';
+  readonly up: (pool: Pool, config?: BootstrapConfig) => Promise<void>;
+  readonly down: (pool: Pool) => Promise<void>;
+}
+
+type Migration = SchemaMigration | BootstrapMigration;
 
 /**
  * All migrations in order.
@@ -73,7 +92,7 @@ async function getAppliedMigrations(pool: Pool): Promise<Set<string>> {
 }
 
 /**
- * Apply all pending migrations of a specific phase
+ * Apply all pending schema migrations
  */
 export async function applyMigrations(
   pool: Pool,
@@ -93,6 +112,13 @@ export async function applyMigrations(
       continue;
     }
 
+    // Bootstrap migrations should use applyBootstrapMigrations for proper config
+    if (migration.phase === 'bootstrap') {
+      throw new Error(
+        `Bootstrap migration ${migration.version} requires config. Use applyBootstrapMigrations() instead.`
+      );
+    }
+
     console.log(`Applying migration ${migration.version}: ${migration.name} (${migration.phase})`);
     await migration.up(pool);
 
@@ -107,9 +133,36 @@ export async function applyMigrations(
 
 /**
  * Apply only bootstrap migrations (run as master)
+ *
+ * @param pool - Database pool connected as master/rds_superuser
+ * @param config - Role passwords (from Secrets Manager in production)
  */
-export async function applyBootstrapMigrations(pool: Pool): Promise<void> {
-  return applyMigrations(pool, 'bootstrap');
+export async function applyBootstrapMigrations(
+  pool: Pool,
+  config: BootstrapConfig = TEST_BOOTSTRAP_CONFIG
+): Promise<void> {
+  await initMigrationsTable(pool);
+  const applied = await getAppliedMigrations(pool);
+
+  for (const migration of migrations) {
+    if (migration.phase !== 'bootstrap') {
+      continue;
+    }
+
+    if (applied.has(migration.version)) {
+      continue;
+    }
+
+    console.log(`Applying migration ${migration.version}: ${migration.name} (${migration.phase})`);
+    await migration.up(pool, config);
+
+    await pool.query(
+      'INSERT INTO schema_migrations (version, name, phase) VALUES ($1, $2, $3)',
+      [migration.version, migration.name, migration.phase]
+    );
+
+    console.log(`Applied migration ${migration.version}: ${migration.name}`);
+  }
 }
 
 /**

@@ -16,6 +16,8 @@ export {
   applySchemaMigrations,
   rollbackMigration,
   migrations,
+  type BootstrapConfig,
+  TEST_BOOTSTRAP_CONFIG,
 } from './migrations/index.js';
 
 export { createTenantContext, type TenantContext } from './repository/tenant-context.js';

@@ -12,10 +12,32 @@
  * - The master user (rds_superuser) can CREATE EXTENSION
  * - bench_ddl is created with BYPASSRLS (for SECURITY DEFINER functions)
  * - bench_app is created without BYPASSRLS (runtime, subject to RLS)
+ *
+ * Role passwords:
+ * - Production: Fetched from Secrets Manager (bench/aurora/ddl-credentials, bench/aurora/app-credentials)
+ * - Tests: Use test passwords via BootstrapConfig
  */
 import type { Pool } from 'pg';
 
-export async function up(pool: Pool): Promise<void> {
+/**
+ * Configuration for bootstrap migration
+ * Passwords should be fetched from Secrets Manager in production
+ */
+export interface BootstrapConfig {
+  ddlPassword: string;
+  appPassword: string;
+}
+
+/**
+ * Default test passwords - ONLY for local development and tests
+ * Production deployments MUST use Secrets Manager values
+ */
+export const TEST_BOOTSTRAP_CONFIG: BootstrapConfig = {
+  ddlPassword: 'CHANGEME_DDL_PASSWORD',
+  appPassword: 'CHANGEME_APP_PASSWORD',
+};
+
+export async function up(pool: Pool, config: BootstrapConfig = TEST_BOOTSTRAP_CONFIG): Promise<void> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -31,13 +53,13 @@ export async function up(pool: Pool): Promise<void> {
     // Migrations run as this role so SECURITY DEFINER functions
     // are owned by a role that bypasses RLS.
     // ===========================================
+    // Use parameterized query to safely inject password
     await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'bench_ddl') THEN
           CREATE ROLE bench_ddl WITH
             LOGIN
-            PASSWORD 'CHANGEME_DDL_PASSWORD'
             NOSUPERUSER
             NOCREATEDB
             NOCREATEROLE
@@ -46,6 +68,11 @@ export async function up(pool: Pool): Promise<void> {
       END
       $$
     `);
+    // Set password separately to use parameterized query (safer than string interpolation)
+    await client.query(
+      `ALTER ROLE bench_ddl WITH PASSWORD $1`,
+      [config.ddlPassword]
+    );
 
     // Grant bench_ddl full access to public schema (so it can create tables)
     await client.query(`GRANT ALL ON SCHEMA public TO bench_ddl`);
@@ -60,7 +87,6 @@ export async function up(pool: Pool): Promise<void> {
         IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'bench_app') THEN
           CREATE ROLE bench_app WITH
             LOGIN
-            PASSWORD 'CHANGEME_APP_PASSWORD'
             NOSUPERUSER
             NOCREATEDB
             NOCREATEROLE
@@ -69,6 +95,11 @@ export async function up(pool: Pool): Promise<void> {
       END
       $$
     `);
+    // Set password separately to use parameterized query (safer than string interpolation)
+    await client.query(
+      `ALTER ROLE bench_app WITH PASSWORD $1`,
+      [config.appPassword]
+    );
 
     // Grant bench_app usage on public schema
     await client.query(`GRANT USAGE ON SCHEMA public TO bench_app`);
