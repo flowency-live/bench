@@ -1,28 +1,23 @@
 version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        # Working directory is apps/web (due to AMPLIFY_MONOREPO_APP_ROOT)
-        # Navigate to monorepo root for pnpm install
-        - cd ../..
-        - corepack enable
-        - corepack prepare pnpm@11.1.3 --activate
-        - pnpm install --frozen-lockfile
-    build:
-      commands:
-        # Build all dependencies and the web app from monorepo root
-        - cd ../..
-        - pnpm turbo run build --filter=@bench/web
-  artifacts:
-    # Relative to apps/web (AMPLIFY_MONOREPO_APP_ROOT)
-    baseDirectory: .
-    files:
-      - '.next/**/*'
-      - 'node_modules/**/*'
-      - 'package.json'
-      - 'next.config.ts'
-  cache:
-    paths:
-      - '../../node_modules/**/*'
-      - '.next/cache/**/*'
+applications:
+  - appRoot: apps/web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - cd ../..
+            - corepack enable
+            - corepack prepare pnpm@11.1.3 --activate
+            - pnpm install --frozen-lockfile
+        build:
+          commands:
+            - cd ../..
+            - pnpm turbo run build --filter=@bench/web
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+          - .next/cache/**/*
