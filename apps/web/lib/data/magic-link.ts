@@ -39,10 +39,24 @@ export interface MagicLinkLookup {
   readonly createdAt: string;
 }
 
-/** The slice of the magic-link contract the UI needs (create + token lookup). */
+/** Full magic link (within tenant context) — adds the issuer + update time. */
+export interface MagicLink extends MagicLinkLookup {
+  readonly createdBy: string;
+  readonly updatedAt: string;
+}
+
+/**
+ * The slice of the magic-link contract the UI needs:
+ *  - create (mint)
+ *  - lookupByTokenHash (resolve token → tenant context, the one global read)
+ *  - findById (read the full link, incl. `createdBy`, within tenant context)
+ *  - markAsUsed (single-use enforcement after a successful claim/verify)
+ */
 export interface MagicLinkRepository {
   create(tenantId: string, input: CreateMagicLinkInput): Promise<{ id: string }>;
   lookupByTokenHash(tokenHash: string): Promise<MagicLinkLookup | null>;
+  findById(tenantId: string, profileId: string, linkId: string): Promise<MagicLink | null>;
+  markAsUsed(tenantId: string, profileId: string, linkId: string): Promise<void>;
 }
 
 let instance: MagicLinkRepository | null = null;
@@ -80,10 +94,10 @@ function createDynamoMagicLinkRepository(
   tableName: string,
   region: string | undefined,
 ): MagicLinkRepository {
-  // Lazy require keeps `@aws-sdk/*` out of the local-dev bundle when DATA_BACKEND
-  // is unset (the fixture path), matching the profile-repository seam.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { createClient, createMagicLinkRepository } = require('@bench/data') as typeof import('@bench/data');
+  // Dynamic import at runtime keeps `@aws-sdk/*` out of the local-dev bundle
+  // when DATA_BACKEND is unset, matching the profile-repository seam.
+  const benchData = require('@bench/data') as typeof import('@bench/data');
+  const { createClient, createMagicLinkRepository } = benchData;
 
   const repo = createMagicLinkRepository(
     createClient(region ? { region } : undefined),
@@ -93,16 +107,27 @@ function createDynamoMagicLinkRepository(
   return {
     create: (tenantId, input) => repo.create(tenantId, input),
     lookupByTokenHash: (tokenHash) => repo.lookupByTokenHash(tokenHash),
+    findById: (tenantId, profileId, linkId) => repo.findById(tenantId, profileId, linkId),
+    markAsUsed: (tenantId, profileId, linkId) => repo.markAsUsed(tenantId, profileId, linkId),
   };
 }
 
 /**
  * In-memory fixture store, kept on `globalThis` so it survives the per-request
- * module re-evaluation in Next dev. Token hashes map straight to lookups; links
- * default to 'active'. No expiry sweep — callers validate `expiresAt`.
+ * module re-evaluation in Next dev. Token hashes map straight to the full link;
+ * links default to 'active'. No expiry sweep — callers validate `expiresAt`.
+ *
+ * `byHash` holds the full `MagicLink` (incl. `createdBy`) so the fixture can back
+ * `findById` and `markAsUsed`. `idIndex` maps `tenantId|profileId|linkId` → the
+ * token hash, so id-keyed reads/updates don't have to scan.
  */
 interface FixtureStore {
-  byHash: Map<string, MagicLinkLookup>;
+  byHash: Map<string, MagicLink>;
+  idIndex: Map<string, string>;
+}
+
+function idKey(tenantId: string, profileId: string, linkId: string): string {
+  return `${tenantId}|${profileId}|${linkId}`;
 }
 
 function fixtureStore(): FixtureStore {
@@ -110,7 +135,18 @@ function fixtureStore(): FixtureStore {
     __benchMagicLinks__?: FixtureStore;
   };
   if (!g.__benchMagicLinks__) {
-    g.__benchMagicLinks__ = { byHash: new Map() };
+    g.__benchMagicLinks__ = { byHash: new Map(), idIndex: new Map() };
+  }
+  // Defensive: an older store shape (pre-idIndex) may linger on globalThis
+  // across a hot reload; backfill the index so id-keyed ops keep working.
+  if (!g.__benchMagicLinks__.idIndex) {
+    g.__benchMagicLinks__.idIndex = new Map();
+    for (const [hash, link] of g.__benchMagicLinks__.byHash) {
+      g.__benchMagicLinks__.idIndex.set(
+        idKey(link.tenantId, link.profileId, link.id),
+        hash,
+      );
+    }
   }
   return g.__benchMagicLinks__;
 }
@@ -119,6 +155,7 @@ function createFixtureMagicLinkRepository(): MagicLinkRepository {
   return {
     async create(tenantId, input) {
       const store = fixtureStore();
+      const now = new Date().toISOString();
       store.byHash.set(input.tokenHash, {
         id: input.id,
         tenantId,
@@ -128,12 +165,35 @@ function createFixtureMagicLinkRepository(): MagicLinkRepository {
         status: 'active',
         passcodeHash: input.passcodeHash ?? null,
         expiresAt: input.expiresAt,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        createdBy: input.createdBy,
+        updatedAt: now,
       });
+      store.idIndex.set(idKey(tenantId, input.profileId, input.id), input.tokenHash);
       return { id: input.id };
     },
     async lookupByTokenHash(tokenHash) {
       return fixtureStore().byHash.get(tokenHash) ?? null;
+    },
+    async findById(tenantId, profileId, linkId) {
+      const store = fixtureStore();
+      const hash = store.idIndex.get(idKey(tenantId, profileId, linkId));
+      if (!hash) return null;
+      const link = store.byHash.get(hash);
+      if (!link || link.tenantId !== tenantId) return null;
+      return link;
+    },
+    async markAsUsed(tenantId, profileId, linkId) {
+      const store = fixtureStore();
+      const hash = store.idIndex.get(idKey(tenantId, profileId, linkId));
+      if (!hash) return;
+      const link = store.byHash.get(hash);
+      if (!link || link.tenantId !== tenantId) return;
+      store.byHash.set(hash, {
+        ...link,
+        status: 'used',
+        updatedAt: new Date().toISOString(),
+      });
     },
   };
 }

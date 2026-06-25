@@ -24,30 +24,32 @@ _Last updated: 2026-06-25._
 | Realignment 0–2: agent guardrails, live-site brand tokens, timing-safe compare | AGENT | `b2f2842`, ADR-0004/0005 |
 | Canonical docs: PRD v0.5, ADRs 0001–0008, brand tokens, workplans | CTO | `_documentation/` |
 | RLS design reviewed & proven on real Postgres (now superseded by 0008) | CTO | workplan review |
-| **UI slice** — Collective Dashboard, Add Consultant, 6-step wizard, profile renderer, share view, repository seam, DynamoDB adapter skeleton | CTO | `apps/web/**` (untracked, fixture-backed) |
+| **UI slice** — Collective Dashboard, Add Consultant, 6-step wizard, profile renderer, share view, repository seam | CTO | `apps/web/**` |
+| **Data layer live** — DynamoDB deployed (`bench-main`); `@bench/data` implements the contract incl. the `update()` TransactWrite fix; web wired via domain→view mapper | AGENT + CTO | ADR-0008; reviewed/approved |
+| **Share link** (no-auth, GSI3 token resolve) · **Create PDF** (portrait/landscape browser-print) · **dashboard completion** ring + avg stat | CTO agents | `apps/web/**` |
+| **Admin login** (passwordless magic-link + Web-Crypto signed session + route-protection middleware) · **member invite → claim → wizard** | CTO agents | reviewed/approved |
+| **Brand fixes** — real logo (header/footer/share/print), Poppins via `next/font`, gradient reserved for the logo, flat avatars | CTO | `apps/web/**`, `@bench/ui` |
 
 > Note: the Aurora work (`e6e4ab3`, `98c1e4f`, `97d006d` + fixes) is being **reverted** under ADR-0008 — see below.
 
-## Doing / Next
+## Doing / Next — ship the feature push to the live stack
+
+The feature work is built in `apps/web` (fixture-backed, runs locally). Remaining is AWS/deploy (AGENT owns) + a couple of JASON prereqs. Full handoff: `COLLABORATION.md` [CTO] 2026-06-25.
 
 | # | Item | Owner | Detail |
 |---|------|-------|--------|
-| 1 | **DynamoDB flip** — infra revert, `@bench/data`, isolation tests, deploy + smoke | AGENT | ✅ deployed (`bench-main` live, GSI1/2/3), isolation tests green, `@bench/db` removed (ADR-0008). |
-| 1a | **Data-contract reconciliation** — CTO ✅ contract in `@bench/types` + web wired to `@bench/data` (mapper + transpile). AGENT ✅ `@bench/data` implements the contract (children, dedup, re-seed, 36 tests) — **reviewed/approved with 1 fix outstanding**. | CTO + AGENT | `data-contract.md`, `COLLABORATION.md` |
-| 1b | **Fix `@bench/data.update()` TransactWrite conflict** — delete+put same `SKILL#`/`STORY#` key in one transaction is rejected by DynamoDB; breaks every wizard save. Put-then-delete-orphans; add a DynamoDB-Local test. | AGENT | `COLLABORATION.md` [CTO] 2026-06-25 |
-| 1c | Commit the untracked `apps/web/**` UI files | AGENT/JASON | new files not yet in git |
-| 2 | Web build + lint **green in CI** | AGENT | task — confirm pre-existing vs regression, then fix or isolate |
-| 3 | `pnpm install` (new AWS SDK v3 deps added to `apps/web`) | AGENT/JASON | needed before web build |
-| 4 | Wire `getRepository()` → `@bench/data`; replace `PILOT_TENANT_ID` with the Cognito owner session | AGENT | after #1 |
-| 5 | Owner auth (Cognito) on portal routes | AGENT | PRD §7 P0 |
-| 6 | CTO review of #1 (isolation tests) before UI goes live on real data | CTO | gate |
+| S1 | **Commit → build/lint green → deploy** the feature push. Set env on the deployed app: `SESSION_SECRET` (strong), `ADMIN_EMAILS=oliver@changeconnected.co.uk`, `DATA_BACKEND=dynamodb`, `BENCH_TABLE_NAME=bench-main`, `AWS_REGION=eu-west-2`. | AGENT | gates everything live |
+| S2 | **SES invite/share emails** — verify domain + DKIM; replace the `// TODO(SES)` in `app/login/actions.ts` + `app/profiles/[id]/invite-actions.ts` so the magic link is emailed (not dev-surfaced). | AGENT | PRD §12 |
+| S3 | **Server-side PDF** (Lambda + headless Chromium → S3) for one-click branded download with guaranteed fonts — upgrade from the browser-print path. | AGENT | PRD §12 |
+| S4 | **Member social login** (Google + LinkedIn-OIDC via Cognito hosted UI) layered onto the existing invite→claim flow; claim binds the social identity to the profile. | AGENT + JASON | PRD §17.1 — needs the OAuth apps (below) |
+| S5 | **Photo upload** (S3 presigned + Sharp crop/grayscale) wired to the wizard `headshotAssetId`; renderer resolves the asset URL. | AGENT | PRD §9/§12 |
+| S6 | CTO review of S1–S5 as they land. | CTO | gate |
 
-## 🧩 Open code TODOs (carried from the build)
+## 🧩 Open code TODOs
 
-- `apps/web/lib/data/dynamo-repository.ts` — finalise `update()` write strategy (TransactWrite + delete-then-rewrite children, 25-item BatchWrite chunking); id-collision on `create()`.
-- `MagicLinkRepository` skeleton (GSI3 `TOKENHASH#` → returns `tenantId`, per ADR-0005/0008) — not yet written.
-- Graduate `ProfileRepository` + view types into `@bench/types`; move the Dynamo adapter into the `@bench/data` package.
-- Photo upload (S3 + Sharp), PDF render (Lambda + headless Chromium), SES invite/share emails — P0 surfaces not yet built.
+- Durable multi-admin **User** entity — admin auth today = authorised email + valid magic link (no User row). Add when >1 admin is needed.
+- `SESSION_SECRET` must be set in every deployed env (dev fallback is intentionally non-secret).
+- `@bench/data.update()` — add a DynamoDB-Local integration test for the put-then-delete-orphans path (mock can't catch the TransactWrite same-item constraint).
 
 ## 🟠 Pending decisions (JASON)
 

@@ -7,6 +7,7 @@ import { changeStatus } from '@/app/actions';
 import { getRepository } from '@/lib/data/repository';
 import { PILOT_TENANT_ID } from '@/lib/tenant';
 import { ShareLinkButton } from './ShareLinkButton';
+import { SendInviteButton } from './SendInviteButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export default async function ProfilePage({
 
   const canPublish = profile.status === 'submitted' || profile.status === 'draft';
   const isPublished = profile.status === 'published';
+  const canInvite = profile.status === 'draft' || profile.status === 'invited';
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
@@ -69,6 +71,11 @@ export default async function ProfilePage({
                 Landscape
               </Link>
             </span>
+
+            {/* Send invite — while the profile is still draft/invited. Mints a
+                14-day edit-scoped magic link the consultant uses to claim and
+                build their own profile (sets status to 'invited'). */}
+            {canInvite && <SendInviteButton profileId={profile.id} />}
 
             {/* Share link — only for published profiles. Mints a no-auth,
                 view-only link to this one profile (server action), then shows the

@@ -55,13 +55,12 @@ function Unavailable() {
   return (
     <div className="grid min-h-screen place-items-center bg-[var(--color-bg-primary)] px-6 text-center text-[var(--color-text-primary)]">
       <div>
-        <p
-          aria-hidden
-          className="mx-auto mb-6 grid h-12 w-12 place-items-center rounded-md font-black text-[var(--color-bg-primary)]"
-          style={{ background: 'linear-gradient(135deg, #7ed321, #00bcd4 55%, #2196f3)' }}
-        >
-          CC
-        </p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo-change-connected.webp"
+          alt="Change Connected"
+          className="mx-auto mb-6 h-9 w-auto"
+        />
         <h1 className="text-2xl font-black">This profile is no longer available</h1>
         <p className="mt-2 text-[var(--color-text-secondary)]">
           The link may have expired or been withdrawn. Please contact Change Connected

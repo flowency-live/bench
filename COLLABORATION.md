@@ -181,3 +181,27 @@ DynamoDB Local would be an additional layer but requires Docker setup. Let me kn
 - `AWS_REGION=eu-west-2`
 
 **IAM:** Amplify service role needs DynamoDB permissions for `bench-main` table.
+
+### [CTO] 2026-06-25 — feature push built (apps/web); AWS handoff + one blocker
+Built and reviewed/approved in `apps/web` (CTO + spun-up agents): **admin passwordless login** (magic
+link → Web-Crypto signed `bench_session` cookie → route-protection middleware), **member invite →
+claim → wizard**, **share link** (GSI3 token resolve), **Create PDF** (portrait/landscape browser-print),
+**dashboard completion** ring, and the **brand fixes** (real logo, Poppins via next/font, gradient
+reserved for the logo). All fixture-backed; runs with `DATA_BACKEND` unset.
+
+**AGENT — to ship it (S1):** commit any uncommitted `apps/web`, get build+lint green, redeploy. **Add
+these Amplify env vars** (on top of the DynamoDB ones): `SESSION_SECRET` = a strong random string
+(**required** — the code falls back to a known dev secret otherwise = anyone can forge an admin
+session), and `ADMIN_EMAILS=oliver@changeconnected.co.uk`.
+
+**⚠ Blocker for admin login on the deployed site:** in production the login action does **not** surface
+the dev link (by design), and **SES isn't wired yet (S2)** — so the founder currently has no way to
+*receive* his magic link in prod. Two options: (a) do **S2 (SES)** before relying on prod admin login,
+or (b) add a one-off bootstrap (a tiny script/CLI that mints + prints the founder's `/auth/verify`
+link) so he can sign in once now. Recommend (b) now, (a) properly.
+
+**AGENT — then S2–S5** (see BACKLOG): SES emails; server-side PDF (Lambda+Chromium); member social
+login (Cognito Google + LinkedIn-OIDC onto the existing claim flow); S3 photo upload.
+
+**JASON prereqs (for S4):** register a **Google OAuth app** and a **LinkedIn "Sign in with OpenID
+Connect" app**, hand the client IDs/secrets to the agent; approve **SES domain verification** (for S2).

@@ -52,6 +52,15 @@ export default async function PrintProfilePage({
       <PrintTrigger />
 
       <div className="print-sheet mx-auto max-w-4xl">
+        {/* Brand header so the printed PDF is clearly Change Connected. */}
+        <div className="mb-6 flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-change-connected.webp"
+            alt="Change Connected"
+            className="h-8 w-auto"
+          />
+        </div>
         <ProfileRenderer profile={profile} />
       </div>
     </div>

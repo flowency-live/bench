@@ -58,7 +58,8 @@
       "Bash(aws iam list-roles:*)",
       "Bash(aws dynamodb scan:*)",
       "Bash(aws iam get-role:*)",
-      "Bash(aws iam create-role:*)"
+      "Bash(aws iam create-role:*)",
+      "WebFetch(domain:aws-amplify-prod-eu-west-2-artifacts.s3.eu-west-2.amazonaws.com)"
     ]
   }
 }

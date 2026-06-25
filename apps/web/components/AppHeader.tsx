@@ -1,11 +1,18 @@
 import Link from 'next/link';
 import { PILOT_TENANT } from '@/lib/tenant';
+import { getSession } from '@/lib/auth/session';
 
 /**
  * Branded portal header — reads as an extension of the tenant's site
  * (navy / lime / Poppins). For the pilot that's Change Connected's "Change Hub".
+ *
+ * Async server component: when an admin session is present it shows the signed-in
+ * admin's email (muted) plus a Sign out link.
  */
-export function AppHeader() {
+export async function AppHeader() {
+  const session = await getSession();
+  const admin = session?.kind === 'admin' ? session : null;
+
   return (
     <header className="sticky top-0 z-20 border-b border-white/10 bg-[var(--color-bg-primary)]/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -35,6 +42,19 @@ export function AppHeader() {
           >
             + Add consultant
           </Link>
+          {admin && (
+            <span className="hidden items-center gap-3 border-l border-white/15 pl-6 sm:flex">
+              <span className="text-xs text-[var(--color-text-secondary)]">
+                {admin.email}
+              </span>
+              <a
+                href="/auth/logout"
+                className="text-sm font-semibold text-white/60 transition hover:text-[var(--color-accent)]"
+              >
+                Sign out
+              </a>
+            </span>
+          )}
         </nav>
       </div>
     </header>
