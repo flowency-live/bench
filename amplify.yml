@@ -9,7 +9,8 @@ frontend:
         - pnpm install --frozen-lockfile
     build:
       commands:
-        - pnpm --filter @bench/web build
+        # Build @bench/web and all its dependencies (types, data, domain, ui)
+        - pnpm turbo run build --filter=@bench/web
   artifacts:
     baseDirectory: apps/web/.next
     files:
