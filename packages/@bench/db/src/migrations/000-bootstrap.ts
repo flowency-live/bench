@@ -93,6 +93,22 @@ export async function up(pool: Pool): Promise<void> {
         GRANT EXECUTE ON FUNCTIONS TO bench_app
     `);
 
+    // ===========================================
+    // Create schema_migrations table and grant access
+    // This table is created here so bench_ddl can access it
+    // during the schema migration phase
+    // ===========================================
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        phase TEXT NOT NULL DEFAULT 'schema',
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await client.query(`GRANT SELECT, INSERT, DELETE ON schema_migrations TO bench_ddl`);
+    await client.query(`GRANT SELECT ON schema_migrations TO bench_app`);
+
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
