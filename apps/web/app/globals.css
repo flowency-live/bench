@@ -1,4 +1,4 @@
-@import '@bench/ui/src/theme/tokens.css';
+@import '@bench/ui/theme';
 
 @tailwind base;
 @tailwind components;

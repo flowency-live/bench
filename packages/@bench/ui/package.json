@@ -11,8 +11,10 @@
       "import": "./dist/index.js"
     },
     "./theme": {
-      "import": "./src/theme/tokens.css"
-    }
+      "import": "./src/theme/tokens.css",
+      "default": "./src/theme/tokens.css"
+    },
+    "./src/theme/tokens.css": "./src/theme/tokens.css"
   },
   "scripts": {
     "build": "tsc",
