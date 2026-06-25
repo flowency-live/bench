@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   transpilePackages: ['@bench/ui', '@bench/domain', '@bench/types', '@bench/data'],
   experimental: {
