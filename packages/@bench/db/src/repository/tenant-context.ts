@@ -52,7 +52,8 @@ export function createTenantContext(pool: Pool): TenantContext {
         await client.query('BEGIN');
 
         // SET LOCAL is transaction-scoped (safe with RDS Proxy multiplexing)
-        await client.query('SET LOCAL app.current_tenant_id = $1', [tenantId]);
+        // set_config with true = transaction-local (equivalent to SET LOCAL)
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantId]);
 
         const result = await fn(client);
 

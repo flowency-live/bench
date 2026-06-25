@@ -155,7 +155,7 @@ describe('RLS tenant isolation', () => {
       const client = await appPool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
         const result = await client.query('SELECT consultant_name FROM profiles');
 
@@ -174,7 +174,7 @@ describe('RLS tenant isolation', () => {
       const client = await appPool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantB]);
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantB]);
 
         const result = await client.query(
           'SELECT consultant_name FROM profiles WHERE tenant_id = $1',
@@ -215,7 +215,7 @@ describe('RLS tenant isolation', () => {
       const client = await appPool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
         await client.query(`
           INSERT INTO profiles (id, tenant_id, consultant_name, consultant_email, status, created_at, updated_at)
@@ -238,7 +238,7 @@ describe('RLS tenant isolation', () => {
       const client = await appPool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
         await expect(
           client.query(`
@@ -261,7 +261,7 @@ describe('RLS tenant isolation', () => {
       const client = await appPool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
         await client.query(
           `UPDATE profiles SET consultant_name = 'Alice Updated' WHERE id = $1`,
@@ -286,7 +286,7 @@ describe('RLS tenant isolation', () => {
       const client = await appPool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
         const result = await client.query(
           `UPDATE profiles SET consultant_name = 'Hacked' WHERE id = $1`,
@@ -314,7 +314,7 @@ describe('RLS tenant isolation', () => {
       const client = await appPool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
         await expect(
           client.query(
@@ -337,7 +337,7 @@ describe('RLS tenant isolation', () => {
       const client = await appPool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
         const result = await client.query(
           `DELETE FROM profiles WHERE id = $1`,
@@ -358,7 +358,7 @@ describe('RLS tenant isolation', () => {
       const client = await appPool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+        await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
         const result = await client.query(
           `DELETE FROM profiles WHERE id = $1`,
@@ -534,7 +534,7 @@ describe('Magic link token lookup (cross-tenant system path)', () => {
       const tenantId = linkResult.rows[0].tenant_id;
 
       // Step 2: Set tenant context based on lookup result
-      await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantId]);
+      await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantId]);
 
       // Step 3: Now can access tenant-scoped data
       const profileResult = await client.query(
@@ -642,7 +642,7 @@ describe('Tenants table RLS', () => {
     const client = await appPool.connect();
     try {
       await client.query('BEGIN');
-      await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+      await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
       const result = await client.query('SELECT name, slug FROM tenants');
 
@@ -661,7 +661,7 @@ describe('Tenants table RLS', () => {
     const client = await appPool.connect();
     try {
       await client.query('BEGIN');
-      await client.query(`SET LOCAL app.current_tenant_id = $1`, [tenantA]);
+      await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [tenantA]);
 
       const result = await client.query('SELECT name FROM tenants WHERE id = $1', [tenantB]);
 
