@@ -1,0 +1,43 @@
+# CCHub Agent Charter
+# Defines what Claude can and cannot modify in this project
+
+name: cchub
+version: "1.0"
+description: Consultant Profile Platform for Change Connected
+
+# Paths the agent may freely modify
+owns:
+  - "packages/**"
+  - "apps/**"
+  - "functions/**"
+  - "infrastructure/**"
+  - ".claude/**"
+  - "*.json"
+  - "*.yaml"
+  - "*.ts"
+  - "*.tsx"
+  - "*.css"
+  - "*.md"
+
+# Paths the agent must never modify (carve-outs from owns)
+cannot_touch:
+  - "_documentation/prd-*.md"  # PRD is the source of truth
+  - "_documentation/graphics-references/**"  # Brand assets are externally managed
+  - ".env*"  # Environment files contain secrets
+  - "*.pem"  # Private keys
+  - "*.key"  # Private keys
+
+# Invariants that must hold (documentation - checked at code review)
+must_preserve:
+  - "TDD: Every production file must have a corresponding .test.ts file"
+  - "Domain purity: packages/@cchub/domain has no AWS SDK or framework dependencies"
+  - "Type safety: No use of 'any' type - use 'unknown' instead"
+  - "Immutability: All domain types use 'readonly' modifiers"
+  - "UK data residency: All AWS resources in eu-west-2"
+
+# How violations are caught
+enforcement:
+  - "Pre-write guardian hook (global)"
+  - "TypeScript strict mode"
+  - "Vitest coverage thresholds (80%)"
+  - "ESLint no-any rule"

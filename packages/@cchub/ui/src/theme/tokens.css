@@ -1,0 +1,59 @@
+/* CCHub Brand Tokens - Change Connected */
+
+:root {
+  /* Primary Colors */
+  --color-bg-primary: #0a1929;
+  --color-accent: #c5f82a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #9ca3af;
+
+  /* Gradient Colors */
+  --color-gradient-start: #7ed321;
+  --color-gradient-mid: #00bcd4;
+  --color-gradient-end: #2196f3;
+
+  /* Typography */
+  --font-heading: 'Oswald', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  /* Spacing */
+  --spacing-section: 100px;
+  --max-content-width: 1200px;
+
+  /* Border Radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+/* Gradient utility */
+.brand-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--color-gradient-start) 0%,
+    var(--color-gradient-mid) 50%,
+    var(--color-gradient-end) 100%
+  );
+}
+
+/* Headshot ring gradient */
+.headshot-ring {
+  background: linear-gradient(
+    135deg,
+    var(--color-gradient-start) 0%,
+    var(--color-gradient-mid) 50%,
+    var(--color-gradient-end) 100%
+  );
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.headshot-ring img {
+  border-radius: 50%;
+  filter: grayscale(100%);
+}

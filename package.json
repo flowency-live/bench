@@ -1,0 +1,27 @@
+{
+  "name": "cchub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Consultant Profile Platform for Change Connected",
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean",
+    "deploy:foundation": "cd infrastructure && pnpm cdk deploy CCHubFoundationStack",
+    "deploy:all": "cd infrastructure && pnpm cdk deploy --all"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "pnpm@11.1.3",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
