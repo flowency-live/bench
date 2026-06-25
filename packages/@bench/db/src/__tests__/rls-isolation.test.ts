@@ -143,8 +143,8 @@ describe('RLS tenant isolation', () => {
     await ddlPool.query(`
       INSERT INTO profiles (id, tenant_id, consultant_name, consultant_email, status, created_at, updated_at)
       VALUES
-        ('p0000000-0000-0000-0000-000000000001', $1, 'Alice', 'alice@example.com', 'draft', NOW(), NOW()),
-        ('p0000000-0000-0000-0000-000000000002', $2, 'Bob', 'bob@example.com', 'draft', NOW(), NOW())
+        ('e0000000-0000-0000-0000-000000000001', $1, 'Alice', 'alice@example.com', 'draft', NOW(), NOW()),
+        ('e0000000-0000-0000-0000-000000000002', $2, 'Bob', 'bob@example.com', 'draft', NOW(), NOW())
     `, [tenantA, tenantB]);
   });
 
@@ -219,11 +219,11 @@ describe('RLS tenant isolation', () => {
 
         await client.query(`
           INSERT INTO profiles (id, tenant_id, consultant_name, consultant_email, status, created_at, updated_at)
-          VALUES ('p0000000-0000-0000-0000-000000000003', $1, 'Charlie', 'charlie@example.com', 'draft', NOW(), NOW())
+          VALUES ('e0000000-0000-0000-0000-000000000003', $1, 'Charlie', 'charlie@example.com', 'draft', NOW(), NOW())
         `, [tenantA]);
 
         const result = await client.query('SELECT consultant_name FROM profiles WHERE id = $1',
-          ['p0000000-0000-0000-0000-000000000003']);
+          ['e0000000-0000-0000-0000-000000000003']);
         expect(result.rows[0].consultant_name).toBe('Charlie');
 
         await client.query('ROLLBACK');
@@ -243,7 +243,7 @@ describe('RLS tenant isolation', () => {
         await expect(
           client.query(`
             INSERT INTO profiles (id, tenant_id, consultant_name, consultant_email, status, created_at, updated_at)
-            VALUES ('p0000000-0000-0000-0000-000000000004', $1, 'Evil', 'evil@example.com', 'draft', NOW(), NOW())
+            VALUES ('e0000000-0000-0000-0000-000000000004', $1, 'Evil', 'evil@example.com', 'draft', NOW(), NOW())
           `, [tenantB])
         ).rejects.toThrow(/row-level security/i);
 
@@ -265,12 +265,12 @@ describe('RLS tenant isolation', () => {
 
         await client.query(
           `UPDATE profiles SET consultant_name = 'Alice Updated' WHERE id = $1`,
-          ['p0000000-0000-0000-0000-000000000001']
+          ['e0000000-0000-0000-0000-000000000001']
         );
 
         const result = await client.query(
           'SELECT consultant_name FROM profiles WHERE id = $1',
-          ['p0000000-0000-0000-0000-000000000001']
+          ['e0000000-0000-0000-0000-000000000001']
         );
         expect(result.rows[0].consultant_name).toBe('Alice Updated');
 
@@ -290,7 +290,7 @@ describe('RLS tenant isolation', () => {
 
         const result = await client.query(
           `UPDATE profiles SET consultant_name = 'Hacked' WHERE id = $1`,
-          ['p0000000-0000-0000-0000-000000000002']
+          ['e0000000-0000-0000-0000-000000000002']
         );
 
         expect(result.rowCount).toBe(0);
@@ -303,7 +303,7 @@ describe('RLS tenant isolation', () => {
       // Verify via ddlPool (which bypasses RLS)
       const verify = await ddlPool.query(
         'SELECT consultant_name FROM profiles WHERE id = $1',
-        ['p0000000-0000-0000-0000-000000000002']
+        ['e0000000-0000-0000-0000-000000000002']
       );
       expect(verify.rows[0].consultant_name).toBe('Bob');
     });
@@ -319,7 +319,7 @@ describe('RLS tenant isolation', () => {
         await expect(
           client.query(
             `UPDATE profiles SET tenant_id = $1 WHERE id = $2`,
-            [tenantB, 'p0000000-0000-0000-0000-000000000001']
+            [tenantB, 'e0000000-0000-0000-0000-000000000001']
           )
         ).rejects.toThrow(/row-level security/i);
 
@@ -341,7 +341,7 @@ describe('RLS tenant isolation', () => {
 
         const result = await client.query(
           `DELETE FROM profiles WHERE id = $1`,
-          ['p0000000-0000-0000-0000-000000000001']
+          ['e0000000-0000-0000-0000-000000000001']
         );
 
         expect(result.rowCount).toBe(1);
@@ -362,7 +362,7 @@ describe('RLS tenant isolation', () => {
 
         const result = await client.query(
           `DELETE FROM profiles WHERE id = $1`,
-          ['p0000000-0000-0000-0000-000000000002']
+          ['e0000000-0000-0000-0000-000000000002']
         );
 
         expect(result.rowCount).toBe(0);
@@ -375,7 +375,7 @@ describe('RLS tenant isolation', () => {
       // Verify via ddlPool (which bypasses RLS)
       const verify = await ddlPool.query(
         'SELECT id FROM profiles WHERE id = $1',
-        ['p0000000-0000-0000-0000-000000000002']
+        ['e0000000-0000-0000-0000-000000000002']
       );
       expect(verify.rows).toHaveLength(1);
     });
@@ -465,12 +465,12 @@ describe('Magic link token lookup (cross-tenant system path)', () => {
 
     await ddlPool.query(`
       INSERT INTO profiles (id, tenant_id, consultant_name, consultant_email, status, created_at, updated_at)
-      VALUES ('p0000000-0000-0000-0000-000000000001', $1, 'Alice', 'alice@example.com', 'draft', NOW(), NOW())
+      VALUES ('e0000000-0000-0000-0000-000000000001', $1, 'Alice', 'alice@example.com', 'draft', NOW(), NOW())
     `, [tenantA]);
 
     await ddlPool.query(`
       INSERT INTO magic_links (id, tenant_id, profile_id, type, token_hash, scope, status, expires_at, created_by, created_at, updated_at)
-      VALUES ('l0000000-0000-0000-0000-000000000001', $1, 'p0000000-0000-0000-0000-000000000001', 'invite', 'hash123', 'edit', 'active', NOW() + INTERVAL '7 days', 'system', NOW(), NOW())
+      VALUES ('f0000000-0000-0000-0000-000000000001', $1, 'e0000000-0000-0000-0000-000000000001', 'invite', 'hash123', 'edit', 'active', NOW() + INTERVAL '7 days', 'system', NOW(), NOW())
     `, [tenantA]);
   });
 
@@ -490,7 +490,7 @@ describe('Magic link token lookup (cross-tenant system path)', () => {
 
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].tenant_id).toBe(tenantA);
-      expect(result.rows[0].profile_id).toBe('p0000000-0000-0000-0000-000000000001');
+      expect(result.rows[0].profile_id).toBe('e0000000-0000-0000-0000-000000000001');
       expect(result.rows[0].scope).toBe('edit');
 
       await client.query('ROLLBACK');

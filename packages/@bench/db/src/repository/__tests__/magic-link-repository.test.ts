@@ -30,8 +30,8 @@ describe('MagicLinkRepository', () => {
   let appPool: PoolType | undefined;
 
   const tenantA = 'a0000000-0000-0000-0000-000000000001';
-  const profileId = 'p0000000-0000-0000-0000-000000000001';
-  const linkId = 'l0000000-0000-0000-0000-000000000001';
+  const profileId = 'e0000000-0000-0000-0000-000000000001';
+  const linkId = 'f0000000-0000-0000-0000-000000000001';
 
   beforeAll(async () => {
     dockerAvailable = await checkDockerAvailable();

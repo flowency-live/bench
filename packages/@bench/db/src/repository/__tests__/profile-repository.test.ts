@@ -30,8 +30,8 @@ describe('ProfileRepository', () => {
 
   const tenantA = 'a0000000-0000-0000-0000-000000000001';
   const tenantB = 'b0000000-0000-0000-0000-000000000002';
-  const profileA = 'p0000000-0000-0000-0000-000000000001';
-  const profileB = 'p0000000-0000-0000-0000-000000000002';
+  const profileA = 'e0000000-0000-0000-0000-000000000001';
+  const profileB = 'e0000000-0000-0000-0000-000000000002';
 
   beforeAll(async () => {
     dockerAvailable = await checkDockerAvailable();
@@ -184,7 +184,7 @@ describe('ProfileRepository', () => {
     // Add another profile to tenant A with published status
     await ddlPool!.query(`
       INSERT INTO profiles (id, tenant_id, consultant_name, consultant_email, status, created_at, updated_at)
-      VALUES ('p0000000-0000-0000-0000-000000000003', $1, 'Charlie', 'charlie@example.com', 'published', NOW(), NOW())
+      VALUES ('e0000000-0000-0000-0000-000000000003', $1, 'Charlie', 'charlie@example.com', 'published', NOW(), NOW())
     `, [tenantA]);
 
     const profiles = await tenantCtx.withTenant(tenantA, async (client) => {

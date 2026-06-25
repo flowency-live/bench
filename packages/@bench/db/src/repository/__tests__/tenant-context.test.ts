@@ -121,8 +121,8 @@ describe('TenantContext', () => {
     await ddlPool.query(`
       INSERT INTO profiles (id, tenant_id, consultant_name, consultant_email, status, created_at, updated_at)
       VALUES
-        ('p0000000-0000-0000-0000-000000000001', $1, 'Alice', 'alice@example.com', 'draft', NOW(), NOW()),
-        ('p0000000-0000-0000-0000-000000000002', $2, 'Bob', 'bob@example.com', 'draft', NOW(), NOW())
+        ('e0000000-0000-0000-0000-000000000001', $1, 'Alice', 'alice@example.com', 'draft', NOW(), NOW()),
+        ('e0000000-0000-0000-0000-000000000002', $2, 'Bob', 'bob@example.com', 'draft', NOW(), NOW())
     `, [tenantA, tenantB]);
   });
 
@@ -165,14 +165,14 @@ describe('TenantContext', () => {
     await tenantContext.withTenant(tenantA, async (client) => {
       await client.query(
         `UPDATE profiles SET consultant_name = 'Alice Updated' WHERE id = $1`,
-        ['p0000000-0000-0000-0000-000000000001']
+        ['e0000000-0000-0000-0000-000000000001']
       );
     });
 
     // Verify change persisted (using ddlPool which bypasses RLS)
     const verify = await ddlPool.query(
       'SELECT consultant_name FROM profiles WHERE id = $1',
-      ['p0000000-0000-0000-0000-000000000001']
+      ['e0000000-0000-0000-0000-000000000001']
     );
     expect(verify.rows[0].consultant_name).toBe('Alice Updated');
   });
@@ -187,7 +187,7 @@ describe('TenantContext', () => {
       tenantContext.withTenant(tenantA, async (client) => {
         await client.query(
           `UPDATE profiles SET consultant_name = 'Should Rollback' WHERE id = $1`,
-          ['p0000000-0000-0000-0000-000000000001']
+          ['e0000000-0000-0000-0000-000000000001']
         );
         throw new Error('Intentional error');
       })
@@ -196,7 +196,7 @@ describe('TenantContext', () => {
     // Verify change was rolled back
     const verify = await ddlPool.query(
       'SELECT consultant_name FROM profiles WHERE id = $1',
-      ['p0000000-0000-0000-0000-000000000001']
+      ['e0000000-0000-0000-0000-000000000001']
     );
     expect(verify.rows[0].consultant_name).toBe('Alice');
   });
@@ -211,7 +211,7 @@ describe('TenantContext', () => {
     const rowsAffected = await tenantContext.withTenant(tenantA, async (client) => {
       const res = await client.query(
         `UPDATE profiles SET consultant_name = 'Hacked' WHERE id = $1`,
-        ['p0000000-0000-0000-0000-000000000002']
+        ['e0000000-0000-0000-0000-000000000002']
       );
       return res.rowCount;
     });
