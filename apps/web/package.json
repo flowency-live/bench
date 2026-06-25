@@ -12,6 +12,7 @@
     "clean": "rm -rf .next out"
   },
   "dependencies": {
+    "@bench/data": "workspace:*",
     "@bench/domain": "workspace:*",
     "@bench/types": "workspace:*",
     "@bench/ui": "workspace:*",
