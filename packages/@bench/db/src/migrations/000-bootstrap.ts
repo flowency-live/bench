@@ -53,7 +53,9 @@ export async function up(pool: Pool, config: BootstrapConfig = TEST_BOOTSTRAP_CO
     // Migrations run as this role so SECURITY DEFINER functions
     // are owned by a role that bypasses RLS.
     // ===========================================
-    // Use parameterized query to safely inject password
+    // Pass password via session config, then use format() in DO block
+    // This avoids SQL injection while working around DDL parameter limitations
+    await client.query(`SELECT set_config('bench.ddl_password', $1, true)`, [config.ddlPassword]);
     await client.query(`
       DO $$
       BEGIN
@@ -65,14 +67,11 @@ export async function up(pool: Pool, config: BootstrapConfig = TEST_BOOTSTRAP_CO
             NOCREATEROLE
             BYPASSRLS;
         END IF;
+        -- Use format() with %L for safe string literal escaping
+        EXECUTE format('ALTER ROLE bench_ddl WITH PASSWORD %L', current_setting('bench.ddl_password'));
       END
       $$
     `);
-    // Set password separately to use parameterized query (safer than string interpolation)
-    await client.query(
-      `ALTER ROLE bench_ddl WITH PASSWORD $1`,
-      [config.ddlPassword]
-    );
 
     // Grant bench_ddl full access to public schema (so it can create tables)
     await client.query(`GRANT ALL ON SCHEMA public TO bench_ddl`);
@@ -81,6 +80,7 @@ export async function up(pool: Pool, config: BootstrapConfig = TEST_BOOTSTRAP_CO
     // Create bench_app role (runtime, NOBYPASSRLS)
     // The application connects as this role; it's subject to RLS.
     // ===========================================
+    await client.query(`SELECT set_config('bench.app_password', $1, true)`, [config.appPassword]);
     await client.query(`
       DO $$
       BEGIN
@@ -92,14 +92,11 @@ export async function up(pool: Pool, config: BootstrapConfig = TEST_BOOTSTRAP_CO
             NOCREATEROLE
             NOBYPASSRLS;
         END IF;
+        -- Use format() with %L for safe string literal escaping
+        EXECUTE format('ALTER ROLE bench_app WITH PASSWORD %L', current_setting('bench.app_password'));
       END
       $$
     `);
-    // Set password separately to use parameterized query (safer than string interpolation)
-    await client.query(
-      `ALTER ROLE bench_app WITH PASSWORD $1`,
-      [config.appPassword]
-    );
 
     // Grant bench_app usage on public schema
     await client.query(`GRANT USAGE ON SCHEMA public TO bench_app`);
