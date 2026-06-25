@@ -19,7 +19,7 @@ export class BenchFoundationStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: BenchFoundationStackProps) {
     super(scope, id, props);
 
-    const domainName = props?.domainName ?? 'cchub.opstack.uk';
+    const domainName = props?.domainName ?? 'bench.opstack.uk';
 
     this.hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
       domainName,

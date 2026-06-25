@@ -28,8 +28,8 @@ See `C:\VSProjects\CLAUDE.md` for:
 
 ## Domain
 
-- `cchub.opstack.uk` - main domain
-- `assets.cchub.opstack.uk` - CloudFront for headshots/PDFs
+- `bench.opstack.uk` - main domain
+- `assets.bench.opstack.uk` - CloudFront for headshots/PDFs
 
 ## Quick Commands
 

@@ -20,7 +20,7 @@ export class BenchAuthStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: BenchAuthStackProps) {
     super(scope, id, props);
 
-    const domainName = props.domainName ?? 'cchub.opstack.uk';
+    const domainName = props.domainName ?? 'bench.opstack.uk';
 
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: 'bench-users',

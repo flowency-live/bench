@@ -32,7 +32,7 @@ export class BenchApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: BenchApiStackProps) {
     super(scope, id, props);
 
-    const domainName = props.domainName ?? 'cchub.opstack.uk';
+    const domainName = props.domainName ?? 'bench.opstack.uk';
 
     this.jwtSigningKey = new kms.Key(this, 'JwtSigningKey', {
       description: 'Bench JWT signing key for magic link sessions',
