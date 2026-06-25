@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Note: Don't use 'standalone' - Amplify handles Next.js SSR natively
   reactStrictMode: true,
   typedRoutes: true,
   transpilePackages: ['@bench/ui', '@bench/domain', '@bench/types', '@bench/data'],
