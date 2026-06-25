@@ -1,20 +1,22 @@
 /**
- * Initial schema migration
+ * Initial schema migration - runs as bench_ddl
+ *
+ * PREREQUISITE: 000-bootstrap must run first (as master) to create extensions and roles.
  *
  * Creates all §10 entities with RLS policies per ADR-0002:
  * - Tenant, User, Profile, Skill, Story, Testimonial, Asset, MagicLink, AuditEvent
  *
- * Role model (CTO review fix):
- * - bench_ddl: owns schema + lookup function, has BYPASSRLS, migrations run as this
- * - bench_app: runtime role, NOBYPASSRLS, non-owner, app connects as this
+ * Role model:
+ * - This migration runs as bench_ddl (BYPASSRLS), so:
+ *   - Tables are owned by bench_ddl
+ *   - The SECURITY DEFINER function is owned by bench_ddl (bypasses RLS)
+ * - bench_app (runtime) gets access via ALTER DEFAULT PRIVILEGES (set in bootstrap)
  *
  * RLS enforcement:
  * - ENABLE + FORCE ROW LEVEL SECURITY on all tenant-scoped tables
  * - Policies use NULLIF guard to fail closed on empty context
  * - WITH CHECK on INSERT/UPDATE to prevent cross-tenant writes
  * - Token lookup via SECURITY DEFINER function owned by bench_ddl (bypasses RLS)
- *
- * pgvector enabled for V2 semantic matching.
  */
 import type { Pool } from 'pg';
 
@@ -23,11 +25,8 @@ export async function up(pool: Pool): Promise<void> {
   try {
     await client.query('BEGIN');
 
-    // Enable pgvector extension
-    await client.query(`CREATE EXTENSION IF NOT EXISTS vector`);
-
-    // Enable uuid-ossp for uuid generation
-    await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+    // Note: Extensions (vector, uuid-ossp) are created in 000-bootstrap
+    // which runs as master/rds_superuser before this migration.
 
     // ===========================================
     // Tenant table (not tenant-scoped - this IS the tenant)
@@ -175,10 +174,7 @@ export async function up(pool: Pool): Promise<void> {
       )
     `);
 
-    // Index on token_hash for fast lookups (cross-tenant query)
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_magic_links_token_hash ON magic_links(token_hash)
-    `);
+    // Note: token_hash index is created automatically by the UNIQUE constraint
 
     // ===========================================
     // AuditEvent table (tenant-scoped)

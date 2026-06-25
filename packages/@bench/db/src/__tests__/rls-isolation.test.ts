@@ -5,13 +5,9 @@
  * tenant B even with a raw query and a forged id. Pure unit mocks do not satisfy
  * this item - must use real Postgres via Testcontainers.
  *
- * Role model (mirrors production):
- * - bench_ddl: owns schema, has BYPASSRLS, runs migrations
- * - bench_app: runtime role, NOBYPASSRLS, non-owner, subject to RLS
- *
- * IMPORTANT: Tests run migrations as bench_ddl (non-superuser with BYPASSRLS),
- * NOT as postgres superuser. This ensures the test catches the Aurora behavior
- * where rds_superuser doesn't bypass RLS.
+ * Two-phase migration model (mirrors production):
+ * - Phase 1 (bootstrap): As superuser - creates extensions, roles, default privileges
+ * - Phase 2 (schema): As bench_ddl - creates tables, RLS, functions
  *
  * REQUIRES: Docker to be running for Testcontainers.
  * These tests MUST run in CI with Docker - the isolation guarantee is unverified without them.
@@ -21,12 +17,13 @@
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import type { Pool as PoolType, PoolClient } from 'pg';
+import type { Pool as PoolType } from 'pg';
 
-// Lazy imports to avoid errors when Docker isn't available
+// Lazy imports
 let PostgreSqlContainer: typeof import('@testcontainers/postgresql').PostgreSqlContainer;
 let Pool: typeof import('pg').Pool;
-let applyMigrations: typeof import('../migrations/index.js').applyMigrations;
+let applyBootstrapMigrations: typeof import('../migrations/index.js').applyBootstrapMigrations;
+let applySchemaMigrations: typeof import('../migrations/index.js').applySchemaMigrations;
 
 // Check if Docker is available
 async function checkDockerAvailable(): Promise<boolean> {
@@ -42,50 +39,6 @@ async function checkDockerAvailable(): Promise<boolean> {
     console.log('Skipping Docker tests: Container runtime not available');
     return false;
   }
-}
-
-/**
- * Setup the two-role model that mirrors production:
- * - bench_ddl: owns schema, has BYPASSRLS (for SECURITY DEFINER function)
- * - bench_app: runtime role, NOBYPASSRLS, non-owner (subject to RLS)
- */
-async function setupRoles(superuserPool: PoolType): Promise<void> {
-  // Create bench_ddl role with BYPASSRLS (schema owner for migrations)
-  await superuserPool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'bench_ddl') THEN
-        CREATE ROLE bench_ddl WITH LOGIN PASSWORD 'ddl_password' NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
-      END IF;
-    END
-    $$;
-  `);
-
-  // Create bench_app role WITHOUT BYPASSRLS (runtime, subject to RLS)
-  await superuserPool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'bench_app') THEN
-        CREATE ROLE bench_app WITH LOGIN PASSWORD 'app_password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
-      END IF;
-    END
-    $$;
-  `);
-
-  // Grant CREATE on schema to bench_ddl (so it can create tables)
-  await superuserPool.query(`GRANT ALL ON SCHEMA public TO bench_ddl`);
-  await superuserPool.query(`GRANT USAGE ON SCHEMA public TO bench_app`);
-}
-
-/**
- * After migrations, grant bench_app access to tables and functions
- */
-async function grantAppPermissions(ddlPool: PoolType): Promise<void> {
-  await ddlPool.query(`
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO bench_app;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO bench_app;
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO bench_app;
-  `);
 }
 
 describe('RLS tenant isolation', () => {
@@ -110,7 +63,8 @@ describe('RLS tenant isolation', () => {
     const pg = await import('pg');
     Pool = pg.Pool;
     const migrations = await import('../migrations/index.js');
-    applyMigrations = migrations.applyMigrations;
+    applyBootstrapMigrations = migrations.applyBootstrapMigrations;
+    applySchemaMigrations = migrations.applySchemaMigrations;
 
     // Start Postgres container
     container = await new PostgreSqlContainer('postgres:16')
@@ -119,7 +73,7 @@ describe('RLS tenant isolation', () => {
       .withPassword('test_password')
       .start();
 
-    // Superuser pool for initial role setup only
+    // Superuser pool for bootstrap phase
     superuserPool = new Pool({
       host: container.getHost(),
       port: container.getPort(),
@@ -128,34 +82,30 @@ describe('RLS tenant isolation', () => {
       password: 'test_password',
     });
 
-    // Setup roles (bench_ddl with BYPASSRLS, bench_app without)
-    await setupRoles(superuserPool);
+    // Phase 1: Bootstrap (as superuser) - creates extensions, roles, default privileges
+    await applyBootstrapMigrations(superuserPool);
 
-    // DDL pool for migrations (non-superuser, but has BYPASSRLS)
+    // DDL pool for schema phase (bench_ddl has BYPASSRLS)
     ddlPool = new Pool({
       host: container.getHost(),
       port: container.getPort(),
       database: 'bench_test',
       user: 'bench_ddl',
-      password: 'ddl_password',
+      password: 'CHANGEME_DDL_PASSWORD',
     });
 
-    // Apply migrations as bench_ddl (NOT as superuser)
-    // This mirrors production where migrations run as rds_superuser-equivalent
-    await applyMigrations(ddlPool);
+    // Phase 2: Schema (as bench_ddl) - creates tables, RLS, functions
+    await applySchemaMigrations(ddlPool);
 
-    // Grant permissions to bench_app after tables exist
-    await grantAppPermissions(ddlPool);
-
-    // App pool uses non-owner role without BYPASSRLS (subject to RLS)
+    // App pool uses bench_app (no BYPASSRLS, subject to RLS)
     appPool = new Pool({
       host: container.getHost(),
       port: container.getPort(),
       database: 'bench_test',
       user: 'bench_app',
-      password: 'app_password',
+      password: 'CHANGEME_APP_PASSWORD',
     });
-  }, 120000); // 2 min timeout for container startup
+  }, 120000);
 
   afterAll(async () => {
     await appPool?.end();
@@ -452,7 +402,8 @@ describe('Magic link token lookup (cross-tenant system path)', () => {
     const pg = await import('pg');
     Pool = pg.Pool;
     const migrations = await import('../migrations/index.js');
-    applyMigrations = migrations.applyMigrations;
+    applyBootstrapMigrations = migrations.applyBootstrapMigrations;
+    applySchemaMigrations = migrations.applySchemaMigrations;
 
     container = await new PostgreSqlContainer('postgres:16')
       .withDatabase('bench_test')
@@ -468,26 +419,24 @@ describe('Magic link token lookup (cross-tenant system path)', () => {
       password: 'test_password',
     });
 
-    await setupRoles(superuserPool);
+    await applyBootstrapMigrations(superuserPool);
 
     ddlPool = new Pool({
       host: container.getHost(),
       port: container.getPort(),
       database: 'bench_test',
       user: 'bench_ddl',
-      password: 'ddl_password',
+      password: 'CHANGEME_DDL_PASSWORD',
     });
 
-    // Apply migrations as bench_ddl (NOT as superuser)
-    await applyMigrations(ddlPool);
-    await grantAppPermissions(ddlPool);
+    await applySchemaMigrations(ddlPool);
 
     appPool = new Pool({
       host: container.getHost(),
       port: container.getPort(),
       database: 'bench_test',
       user: 'bench_app',
-      password: 'app_password',
+      password: 'CHANGEME_APP_PASSWORD',
     });
   }, 120000);
 
@@ -506,12 +455,7 @@ describe('Magic link token lookup (cross-tenant system path)', () => {
 
     await ddlPool.query('DELETE FROM audit_events');
     await ddlPool.query('DELETE FROM magic_links');
-    await ddlPool.query('DELETE FROM skills');
-    await ddlPool.query('DELETE FROM stories');
-    await ddlPool.query('DELETE FROM testimonials');
-    await ddlPool.query('DELETE FROM assets');
     await ddlPool.query('DELETE FROM profiles');
-    await ddlPool.query('DELETE FROM users');
     await ddlPool.query('DELETE FROM tenants');
 
     await ddlPool.query(`
@@ -628,7 +572,8 @@ describe('Tenants table RLS', () => {
     const pg = await import('pg');
     Pool = pg.Pool;
     const migrations = await import('../migrations/index.js');
-    applyMigrations = migrations.applyMigrations;
+    applyBootstrapMigrations = migrations.applyBootstrapMigrations;
+    applySchemaMigrations = migrations.applySchemaMigrations;
 
     container = await new PostgreSqlContainer('postgres:16')
       .withDatabase('bench_test')
@@ -644,25 +589,24 @@ describe('Tenants table RLS', () => {
       password: 'test_password',
     });
 
-    await setupRoles(superuserPool);
+    await applyBootstrapMigrations(superuserPool);
 
     ddlPool = new Pool({
       host: container.getHost(),
       port: container.getPort(),
       database: 'bench_test',
       user: 'bench_ddl',
-      password: 'ddl_password',
+      password: 'CHANGEME_DDL_PASSWORD',
     });
 
-    await applyMigrations(ddlPool);
-    await grantAppPermissions(ddlPool);
+    await applySchemaMigrations(ddlPool);
 
     appPool = new Pool({
       host: container.getHost(),
       port: container.getPort(),
       database: 'bench_test',
       user: 'bench_app',
-      password: 'app_password',
+      password: 'CHANGEME_APP_PASSWORD',
     });
   }, 120000);
 
@@ -681,12 +625,7 @@ describe('Tenants table RLS', () => {
 
     await ddlPool.query('DELETE FROM audit_events');
     await ddlPool.query('DELETE FROM magic_links');
-    await ddlPool.query('DELETE FROM skills');
-    await ddlPool.query('DELETE FROM stories');
-    await ddlPool.query('DELETE FROM testimonials');
-    await ddlPool.query('DELETE FROM assets');
     await ddlPool.query('DELETE FROM profiles');
-    await ddlPool.query('DELETE FROM users');
     await ddlPool.query('DELETE FROM tenants');
 
     await ddlPool.query(`
@@ -752,7 +691,8 @@ describe('pgvector extension', () => {
     const pg = await import('pg');
     Pool = pg.Pool;
     const migrations = await import('../migrations/index.js');
-    applyMigrations = migrations.applyMigrations;
+    applyBootstrapMigrations = migrations.applyBootstrapMigrations;
+    applySchemaMigrations = migrations.applySchemaMigrations;
 
     container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
       .withDatabase('bench_test')
@@ -768,17 +708,17 @@ describe('pgvector extension', () => {
       password: 'test_password',
     });
 
-    await setupRoles(superuserPool);
+    await applyBootstrapMigrations(superuserPool);
 
     ddlPool = new Pool({
       host: container.getHost(),
       port: container.getPort(),
       database: 'bench_test',
       user: 'bench_ddl',
-      password: 'ddl_password',
+      password: 'CHANGEME_DDL_PASSWORD',
     });
 
-    await applyMigrations(ddlPool);
+    await applySchemaMigrations(ddlPool);
   }, 120000);
 
   afterAll(async () => {
