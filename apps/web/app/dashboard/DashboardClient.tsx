@@ -7,7 +7,21 @@ import { STATUS_LABELS, STATUS_ORDER } from '@/lib/types';
 
 type Filter = ProfileStatus | 'all';
 
-export function DashboardClient({ profiles }: { profiles: ProfileSummary[] }) {
+/**
+ * Dashboard view row: a `ProfileSummary` augmented with a derived completion
+ * score. This is a UI-only shape — it intentionally does NOT live in
+ * `lib/types.ts` so the shared `ProfileSummary`/`@bench/data` contract stays
+ * untouched. The dashboard page builds these rows; this is the single source.
+ */
+export type DashboardRow = ProfileSummary & {
+  readonly completion: {
+    readonly completed: number;
+    readonly total: number;
+    readonly percent: number;
+  };
+};
+
+export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -73,7 +87,7 @@ export function DashboardClient({ profiles }: { profiles: ProfileSummary[] }) {
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((p) => (
-            <ProfileCard key={p.id} profile={p} />
+            <ProfileCard key={p.id} profile={p} completion={p.completion} />
           ))}
         </div>
       )}

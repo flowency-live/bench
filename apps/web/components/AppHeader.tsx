@@ -10,23 +10,16 @@ export function AppHeader() {
     <header className="sticky top-0 z-20 border-b border-white/10 bg-[var(--color-bg-primary)]/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="grid h-8 w-8 place-items-center rounded-md font-black text-[var(--color-bg-primary)]"
-            style={{
-              background:
-                'linear-gradient(135deg, #7ed321 0%, #00bcd4 50%, #2196f3 100%)',
-            }}
-          >
-            CC
-          </span>
-          <span className="leading-tight">
-            <span className="block text-sm font-black uppercase tracking-[0.18em] text-white">
-              {PILOT_TENANT.name}
-            </span>
-            <span className="block text-[11px] uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">
-              {PILOT_TENANT.instanceName}
-            </span>
+          {/* Real Change Connected logo — interlocking mark + white wordmark,
+              transparent-keyed for the navy header. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-change-connected.webp"
+            alt="Change Connected"
+            className="h-7 w-auto"
+          />
+          <span className="hidden border-l border-white/15 pl-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)] sm:block">
+            {PILOT_TENANT.instanceName}
           </span>
         </Link>
         <nav className="flex items-center gap-6 text-sm">

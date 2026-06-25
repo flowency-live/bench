@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { changeStatus } from '@/app/actions';
 import { getRepository } from '@/lib/data/repository';
 import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { ShareLinkButton } from './ShareLinkButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,14 +44,36 @@ export default async function ProfilePage({
             >
               Edit profile
             </Link>
-            {isPublished && (
+
+            {/* Create PDF — opens the bare print page in a new tab, which
+                auto-fires the browser print dialog (owner saves as PDF). Two
+                orientation choices keep it on-brand and one click each. */}
+            <span className="flex items-center gap-1 rounded-full border border-[var(--color-accent)]/40 py-1 pl-3 pr-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+                Create PDF
+              </span>
               <Link
-                href={`/share/${profile.id}`}
-                className="rounded-full border border-white/20 px-4 py-1.5 text-sm font-semibold text-white transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                href={`/profiles/${profile.id}/print?o=portrait`}
+                target="_blank"
+                rel="noopener"
+                className="rounded-full border border-[var(--color-accent)]/60 px-3 py-1 text-xs font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
               >
-                Share view ↗
+                Portrait
               </Link>
-            )}
+              <Link
+                href={`/profiles/${profile.id}/print?o=landscape`}
+                target="_blank"
+                rel="noopener"
+                className="rounded-full border border-[var(--color-accent)]/60 px-3 py-1 text-xs font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
+              >
+                Landscape
+              </Link>
+            </span>
+
+            {/* Share link — only for published profiles. Mints a no-auth,
+                view-only link to this one profile (server action), then shows the
+                URL with a copy button. */}
+            {isPublished && <ShareLinkButton profileId={profile.id} />}
             {canPublish && (
               <form action={changeStatus}>
                 <input type="hidden" name="profileId" value={profile.id} />

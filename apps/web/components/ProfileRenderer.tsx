@@ -18,10 +18,7 @@ function initials(name: string) {
 
 function BrandRing({ name, url }: { name: string; url: string | null }) {
   return (
-    <div
-      className="grid h-28 w-28 shrink-0 place-items-center rounded-full p-1"
-      style={{ background: 'linear-gradient(135deg, #7ed321, #00bcd4 55%, #2196f3)' }}
-    >
+    <div className="h-28 w-28 shrink-0 rounded-full ring-2 ring-[var(--color-accent)] ring-offset-4 ring-offset-[var(--color-bg-primary)]">
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -30,7 +27,7 @@ function BrandRing({ name, url }: { name: string; url: string | null }) {
           className="h-full w-full rounded-full object-cover grayscale"
         />
       ) : (
-        <div className="grid h-full w-full place-items-center rounded-full bg-[var(--color-bg-primary)] text-2xl font-black text-white">
+        <div className="grid h-full w-full place-items-center rounded-full bg-[var(--color-bg-panel)] text-2xl font-black text-[var(--color-accent)]">
           {initials(name)}
         </div>
       )}

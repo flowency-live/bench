@@ -1,6 +1,7 @@
+import { createHash } from 'node:crypto';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
 import { getRepository } from '@/lib/data/repository';
-import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { getMagicLinkRepository } from '@/lib/data/magic-link';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,9 +9,12 @@ export const dynamic = 'force-dynamic';
  * Client share view — read-only, no portal chrome, reads as an extension of the
  * tenant's site.
  *
- * NOTE: `[token]` is treated as the profile id for this dev slice. In production
- * the token resolves to a profile via the magic-link GSI3 lookup (ADR-0005/0008),
- * honouring expiry/revoke; an invalid/expired token shows the neutral page below.
+ * The `[token]` segment is the raw secret from the share link. We re-hash it
+ * (SHA-256) and resolve it via GSI3 (`lookupByTokenHash`, ADR-0008) to recover
+ * tenant context, then validate the link is live (active, unexpired, view scope)
+ * and the underlying profile is published. Any failure — bad token, expired,
+ * revoked, wrong scope, or an unpublished profile — falls through to the neutral
+ * `Unavailable` page so we never leak why.
  */
 export default async function SharePage({
   params,
@@ -18,7 +22,21 @@ export default async function SharePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const profile = await getRepository().get(PILOT_TENANT_ID, token);
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+
+  const link = await getMagicLinkRepository().lookupByTokenHash(tokenHash);
+
+  const isValid =
+    !!link &&
+    link.status === 'active' &&
+    link.scope === 'view' &&
+    new Date(link.expiresAt).getTime() > Date.now();
+
+  if (!isValid) {
+    return <Unavailable />;
+  }
+
+  const profile = await getRepository().get(link.tenantId, link.profileId);
 
   if (!profile || profile.status !== 'published') {
     return <Unavailable />;

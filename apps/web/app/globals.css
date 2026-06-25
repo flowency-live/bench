@@ -4,10 +4,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Wire typography to the self-hosted next/font Poppins (reliable in build) and
+   fix the stale `--font-heading` reference that left headings on a fallback. */
+:root {
+  --font-display: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+  --font-body: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+}
+
 body {
   font-family: var(--font-body);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
 }

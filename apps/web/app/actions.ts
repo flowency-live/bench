@@ -1,8 +1,10 @@
 'use server';
 
+import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getRepository } from '@/lib/data/repository';
+import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { PILOT_TENANT_ID } from '@/lib/tenant';
 import type { FormState, ProfilePatch, ProfileStatus } from '@/lib/types';
 
@@ -59,4 +61,41 @@ export async function submitForReview(profileId: string) {
   await repo.setStatus(PILOT_TENANT_ID, profileId, 'submitted');
   revalidatePath(`/profiles/${profileId}`);
   revalidatePath('/dashboard');
+}
+
+/** Share link expiry — 30 days from creation. */
+const SHARE_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Mint a no-auth, view-only share link for a published profile.
+ *
+ * The raw token is generated here and returned to the owner exactly once; we
+ * persist ONLY its SHA-256 hash (the table never sees the secret). On open,
+ * `/share/[token]` re-hashes the URL token and resolves it via GSI3
+ * (`lookupByTokenHash`) to recover tenant context — the one cross-tenant read
+ * per ADR-0008.
+ *
+ * Returns a relative path (`/share/{rawToken}`); the caller composes the
+ * absolute URL from the request origin.
+ *
+ * TODO: a `/p/{shortcode}` shortener can wrap this later for friendlier URLs;
+ * the opaque-token URL is the v1.
+ */
+export async function createShareLink(profileId: string): Promise<string> {
+  // 32 bytes of entropy, URL-safe — the secret half of the share link.
+  const rawToken = randomBytes(32).toString('base64url');
+  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+  const links = getMagicLinkRepository();
+  await links.create(PILOT_TENANT_ID, {
+    id: randomUUID(),
+    profileId,
+    type: 'share',
+    scope: 'view',
+    tokenHash,
+    expiresAt: new Date(Date.now() + SHARE_LINK_TTL_MS).toISOString(),
+    createdBy: 'owner',
+  });
+
+  return `/share/${rawToken}`;
 }

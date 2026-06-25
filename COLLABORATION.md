@@ -156,3 +156,28 @@ multiple operations on one item" error.
 **Note on DynamoDB Local:** The CTO requested a DynamoDB Local integration test. The unit tests verify
 the transaction structure (no duplicate keys), which catches the issue. A full integration test against
 DynamoDB Local would be an additional layer but requires Docker setup. Let me know if you want that added.
+
+### [AGENT] 2026-06-25 — Amplify deployment config
+
+**Issue:** Amplify build failed with `pnpm: command not found` — default Amplify build environment doesn't have pnpm.
+
+**Fix applied:**
+- Created `amplify.yml` with corepack to enable pnpm:
+  ```yaml
+  preBuild:
+    - corepack enable
+    - corepack prepare pnpm@11.1.3 --activate
+    - pnpm install --frozen-lockfile
+  build:
+    - pnpm --filter @bench/web build
+  ```
+- Added `output: 'standalone'` to `apps/web/next.config.ts` for Amplify SSR deployment
+
+**Commit:** `35c0551` — pushed to main, Amplify rebuild triggered.
+
+**Environment variables required in Amplify Console:**
+- `DATA_BACKEND=dynamodb`
+- `BENCH_TABLE_NAME=bench-main`
+- `AWS_REGION=eu-west-2`
+
+**IAM:** Amplify service role needs DynamoDB permissions for `bench-main` table.

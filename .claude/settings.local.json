@@ -36,7 +36,29 @@
       "Bash(findstr:*)",
       "Bash(pnpm --filter @bench/data test)",
       "Bash(pnpm --filter @bench/data build:*)",
-      "Bash(pnpm --filter @bench/data typecheck:*)"
+      "Bash(pnpm --filter @bench/data typecheck:*)",
+      "Bash(pnpm cdk deploy:*)",
+      "Bash(pnpm --filter @bench/infrastructure cdk deploy:*)",
+      "Bash(aws dynamodb describe-table:*)",
+      "Bash(pnpm --filter @bench/data seed:*)",
+      "Bash(aws dynamodb query:*)",
+      "Bash(aws amplify list-apps:*)",
+      "Bash(git remote get-url:*)",
+      "Bash(aws amplify create-app:*)",
+      "Bash(pnpm --filter @bench/web build:*)",
+      "Bash(pnpm turbo run build:*)",
+      "Bash(aws amplify get-app:*)",
+      "Bash(aws amplify get-job:*)",
+      "Bash(aws amplify update-app:*)",
+      "Bash(aws amplify list-jobs:*)",
+      "Bash(aws amplify get-branch:*)",
+      "Bash(aws amplify update-branch:*)",
+      "Bash(curl:*)",
+      "Bash(aws amplify start-job:*)",
+      "Bash(aws iam list-roles:*)",
+      "Bash(aws dynamodb scan:*)",
+      "Bash(aws iam get-role:*)",
+      "Bash(aws iam create-role:*)"
     ]
   }
 }
