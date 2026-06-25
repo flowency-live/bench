@@ -16,8 +16,10 @@
     "deploy:foundation": "cd infrastructure && pnpm cdk deploy BenchFoundationStack",
     "deploy:all": "cd infrastructure && pnpm cdk deploy --all"
   },
+  "dependencies": {
+    "next": "^15.3.0"
+  },
   "devDependencies": {
-    "next": "^15.3.0",
     "turbo": "^2.5.0",
     "typescript": "^5.8.0"
   },
