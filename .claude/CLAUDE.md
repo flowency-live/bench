@@ -21,10 +21,13 @@ See `C:\VSProjects\CLAUDE.md` for:
 
 | Decision | Rationale |
 |----------|-----------|
-| DynamoDB single-table | Fast link lookups via GSI, serverless-native |
+| Aurora Serverless v2 + pgvector | SQL flexibility, RLS for tenant isolation, vector search for skills |
+| Pooled multi-tenancy with RLS | Single DB, row-level security per tenant, cost-efficient |
 | Amplify Hosting | Faster to stand up for v1 |
 | Magic links, not accounts | Zero friction for consultants and clients |
 | KMS-signed JWTs | Secure session tokens without Cognito for link users |
+| `@bench/*` namespace | White-label product branding (ADR-0003) |
+| Live-site brand tokens | Poppins, navy #001930, lime #BAEB5B (ADR-0004) |
 
 ## Domain
 
@@ -47,4 +50,4 @@ See `_documentation/prd-consultant-profile-platform.md`
 
 ## Brand
 
-See `_documentation/graphics-references/brand-style-guide.md`
+See `_documentation/graphics-references/brand-tokens.md` (canonical tokens from live site)

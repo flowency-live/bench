@@ -21,8 +21,7 @@ owns:
 
 # Paths the agent must never modify (carve-outs from owns)
 cannot_touch:
-  - "_documentation/prd-*.md"  # PRD is the source of truth
-  - "_documentation/graphics-references/**"  # Brand assets are externally managed
+  - "_documentation/**"  # CTO-maintained: PRD, ADRs, brand refs are read-only for agents
   - ".env*"  # Environment files contain secrets
   - "*.pem"  # Private keys
   - "*.key"  # Private keys

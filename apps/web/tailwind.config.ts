@@ -11,21 +11,19 @@ const config: Config = {
     extend: {
       colors: {
         navy: {
-          DEFAULT: '#0a1929',
-          light: '#1a2a3a',
+          DEFAULT: '#001930',
+          panel: '#002e52',
         },
         lime: {
-          DEFAULT: '#c5f82a',
+          DEFAULT: '#baeb5b',
         },
-        gradient: {
-          start: '#7ed321',
-          mid: '#00bcd4',
-          end: '#2196f3',
+        slate: {
+          secondary: '#9dadc8',
         },
       },
       fontFamily: {
-        heading: ['var(--font-oswald)', 'system-ui', 'sans-serif'],
-        body: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-poppins)', 'system-ui', 'sans-serif'],
+        body: ['var(--font-poppins)', 'system-ui', 'sans-serif'],
       },
     },
   },

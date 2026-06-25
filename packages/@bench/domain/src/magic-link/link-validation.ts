@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import type { MagicLink, MagicLinkScope } from '@bench/types';
 
 /**
@@ -60,14 +60,24 @@ export function validateMagicLink(
     return { valid: false, reason: 'expired' };
   }
 
-  // Check passcode if required
+  // Check passcode if required (timing-safe comparison per ADR-0005)
   if (link.passcodeHash !== null) {
     if (!passcode) {
       return { valid: false, reason: 'invalid_passcode' };
     }
 
     const providedHash = createHash('sha256').update(passcode).digest('hex');
-    if (providedHash !== link.passcodeHash) {
+    const storedHash = link.passcodeHash;
+
+    // Guard: ensure equal length (SHA-256 hex is always 64 chars, but be defensive)
+    if (providedHash.length !== storedHash.length) {
+      return { valid: false, reason: 'invalid_passcode' };
+    }
+
+    // Constant-time comparison to prevent timing attacks
+    const providedBuffer = Buffer.from(providedHash, 'hex');
+    const storedBuffer = Buffer.from(storedHash, 'hex');
+    if (!timingSafeEqual(providedBuffer, storedBuffer)) {
       return { valid: false, reason: 'invalid_passcode' };
     }
   }
