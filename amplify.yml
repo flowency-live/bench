@@ -10,11 +10,9 @@ frontend:
       commands:
         - pnpm turbo run build --filter=@bench/web
   artifacts:
-    baseDirectory: apps/web
+    baseDirectory: apps/web/.next
     files:
-      - '.next/**/*'
-      - 'public/**/*'
-      - 'package.json'
+      - '**/*'
   cache:
     paths:
       - node_modules/**/*
