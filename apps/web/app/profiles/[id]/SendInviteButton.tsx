@@ -39,7 +39,7 @@ export function SendInviteButton({ profileId }: { profileId: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError('Copy failed — select the link and copy it manually.');
+      setError('Copy failed. Select the link and copy it manually.');
     }
   }
 

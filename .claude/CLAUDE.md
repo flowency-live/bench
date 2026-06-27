@@ -45,6 +45,12 @@ pnpm test:unit        # Run unit tests only
 pnpm deploy:all       # Deploy all CDK stacks
 ```
 
+## UI Copy Rules
+
+- **No emdashes (—)** in rendered UI text. Use periods, colons, or commas instead.
+- **No smart quotes**. Use straight quotes only.
+- Keep microcopy short and direct.
+
 ## PRD
 
 See `_documentation/prd-consultant-profile-platform.md`

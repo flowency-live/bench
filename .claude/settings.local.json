@@ -62,7 +62,9 @@
       "WebFetch(domain:aws-amplify-prod-eu-west-2-artifacts.s3.eu-west-2.amazonaws.com)",
       "Bash(git -C \"c:/VSProjects/change-connected-portal\" push origin main)",
       "WebFetch(domain:main.d1apn3zgo6n42q.amplifyapp.com)",
-      "Bash(aws logs describe-log-groups:*)"
+      "Bash(aws logs describe-log-groups:*)",
+      "Bash(GIT_SSH_COMMAND=\"ssh -o ConnectTimeout=30\" git push:*)",
+      "Bash(pnpm dev:*)"
     ]
   }
 }

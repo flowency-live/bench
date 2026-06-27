@@ -16,7 +16,7 @@ export default function NewConsultantPage() {
         <h1 className="mt-4 text-3xl font-black tracking-tight">Add a consultant</h1>
         <p className="mt-2 text-[var(--color-text-secondary)]">
           Just a name and email gets them started. They complete their own profile
-          through a guided invite link — you review and publish.
+          through a guided invite link. You review and publish.
         </p>
         <div className="mt-8 rounded-2xl border border-white/10 bg-[var(--color-bg-panel)] p-6">
           <AddConsultantForm />

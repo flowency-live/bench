@@ -45,6 +45,21 @@ The feature work is built in `apps/web` (fixture-backed, runs locally). Remainin
 | S5 | **Photo upload** (S3 presigned + Sharp crop/grayscale) wired to the wizard `headshotAssetId`; renderer resolves the asset URL. | AGENT | PRD §9/§12 |
 | S6 | CTO review of S1–S5 as they land. | CTO | gate |
 
+## Multi-tenant control plane (ADR-0010) — godmode + tenant/user RBAC
+
+Turns the single-tenant app into a real multi-tenant SaaS with a platform super-admin. Decisions locked
+(ADR-0010); model ported from bndy-backstage.
+
+| # | Item | Owner |
+|---|------|-------|
+| G1 | `TenantRepository` (create/list/get) + `UserRepository` (create, `getByEmail` via GSI1, `listByTenant`, `setRole`/`setStatus`); MagicLink gains `role`+`email`. | AGENT (`@bench/data`) |
+| G2 | CDK: confirm/expose GSI1 `EMAIL#` for user-login lookup; IAM. | AGENT |
+| G3 | Session model → `platform` / `tenant{role}` / `member`; replace 27× `PILOT_TENANT_ID` with `getTenantId()` from session. | CTO (`apps/web`) |
+| G4 | `/godmode` — platform login + list/create tenants + switch-in. **CTO ✅ foundation built (fixture, additive):** platform session, allowlist, `/godmode` screen, Tenant/User fixture repos. | CTO + AGENT |
+| G4a | **Close the loop** (the two blockers stopping a created tenant from working end-to-end): (1) **G3 de-hardcode** — replace 27× `PILOT_TENANT_ID` with `getTenantId()` from the session so switch-in actually scopes the dashboard; (2) **magic-link tenant binding** — verify route must read the link's `email\|tenantId` so a new tenant's admin can claim. | CTO |
+| G5 | Per-tenant user management (add portal user, role admin/viewer, send link) + role-gating (viewer read-only) + invite role-binding. | CTO |
+| G6 | **JASON:** register a Google OAuth app for godmode (until then godmode bootstraps via magic-link to jason@flowency.co.uk). | JASON |
+
 ## 🧩 Open code TODOs
 
 - Durable multi-admin **User** entity — admin auth today = authorised email + valid magic link (no User row). Add when >1 admin is needed.

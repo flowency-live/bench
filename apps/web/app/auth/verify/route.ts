@@ -2,10 +2,14 @@ import { createHash } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { createSession } from '@/lib/auth/session';
+import { isPlatformAdmin } from '@/lib/auth/platform';
 import { PILOT_TENANT_ID } from '@/lib/tenant';
 
 /** Sentinel profile id under which admin (owner) magic links are stored. */
 const ADMIN_PROFILE_ID = 'ADMIN';
+
+/** Sentinel profile id under which platform (godmode) magic links are stored. */
+const PLATFORM_PROFILE_ID = 'PLATFORM';
 
 /**
  * Verify an admin sign-in link.
@@ -34,6 +38,35 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (new Date(lookup.expiresAt).getTime() <= Date.now()) return invalid();
   if (lookup.type !== 'invite') return invalid();
   if (lookup.scope !== 'edit') return invalid();
+
+  // ── Platform (godmode) branch — NOT tenant-bound (ADR-0010). ──────────────
+  // A PLATFORM link seeds a tenant-less platform session; the admin email is
+  // recovered from `createdBy` and must still be an allowlisted platform admin.
+  if (lookup.profileId === PLATFORM_PROFILE_ID) {
+    const link = await links.findById(
+      lookup.tenantId,
+      PLATFORM_PROFILE_ID,
+      lookup.id,
+    );
+    if (!link || !link.createdBy) return invalid();
+
+    const email = link.createdBy.trim().toLowerCase();
+    if (!isPlatformAdmin(email)) {
+      // Redirect to the godmode login on a non-allowlisted email.
+      return NextResponse.redirect(
+        new URL('/godmode/login?error=invalid', request.url),
+      );
+    }
+
+    await createSession({ kind: 'platform', email });
+
+    // Single-use: burn the link so the URL can't be replayed.
+    await links.markAsUsed(lookup.tenantId, PLATFORM_PROFILE_ID, lookup.id);
+
+    return NextResponse.redirect(new URL('/godmode', request.url));
+  }
+
+  // ── Admin (tenant owner) branch — unchanged. ──────────────────────────────
   if (lookup.tenantId !== PILOT_TENANT_ID) return invalid();
   if (lookup.profileId !== ADMIN_PROFILE_ID) return invalid();
 

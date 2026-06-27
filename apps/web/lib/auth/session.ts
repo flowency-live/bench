@@ -33,6 +33,7 @@ export type {
   SessionInput,
   AdminSession,
   MemberSession,
+  PlatformSession,
 } from './session-token';
 
 /**

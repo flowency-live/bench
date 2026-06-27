@@ -123,7 +123,7 @@ export function ProfileRenderer({ profile }: { profile: Profile }) {
               {profile.testimonial.authorName}
               <span className="font-normal text-[var(--color-text-secondary)]">
                 {' '}
-                — {profile.testimonial.authorRole}, {profile.testimonial.authorCompany}
+                · {profile.testimonial.authorRole}, {profile.testimonial.authorCompany}
               </span>
             </p>
           </section>

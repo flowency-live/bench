@@ -19,6 +19,7 @@ Format: lightweight [MADR](https://adr.github.io/madr/). Statuses: **Proposed**,
 | [0007](0007-domain-and-dns.md) | Domain & DNS strategy | Proposed | 2026-06-25 |
 | [0008](0008-revert-to-dynamodb.md) | **Revert data store to DynamoDB single-table** | Accepted | 2026-06-25 |
 | [0009](0009-admin-auth-magic-link.md) | Admin/owner auth: passwordless magic-link (V1) | Accepted | 2026-06-25 |
+| [0010](0010-multi-tenant-control-plane.md) | **Multi-tenant control plane** — godmode + tenant/user RBAC | Accepted | 2026-06-25 |
 
 ## Conventions
 

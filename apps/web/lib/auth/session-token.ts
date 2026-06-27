@@ -49,12 +49,29 @@ export interface MemberSession {
   readonly exp: number;
 }
 
-export type Session = AdminSession | MemberSession;
+/**
+ * Platform (godmode) super-admin session — see ADR-0010.
+ *
+ * NOT tied to a tenant: identified by an allowlisted Flowency email. When the
+ * platform admin "switches into" a tenant, `activeTenantId` records which one is
+ * being impersonated; the godmode area and tenant routes read it to scope data.
+ */
+export interface PlatformSession {
+  readonly kind: 'platform';
+  readonly email: string;
+  /** Set once the platform admin switches into a tenant (impersonation). */
+  readonly activeTenantId?: string;
+  /** Unix epoch seconds. */
+  readonly exp: number;
+}
+
+export type Session = AdminSession | MemberSession | PlatformSession;
 
 /** The payload accepted by `createSession` — `exp` is filled in by the caller. */
 export type SessionInput =
   | Omit<AdminSession, 'exp'>
-  | Omit<MemberSession, 'exp'>;
+  | Omit<MemberSession, 'exp'>
+  | Omit<PlatformSession, 'exp'>;
 
 export function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
@@ -157,7 +174,11 @@ export async function verifySessionToken(token: string): Promise<Session | null>
   if (typeof payload.exp !== 'number' || payload.exp <= nowSeconds()) {
     return null;
   }
-  if (payload.kind !== 'admin' && payload.kind !== 'member') {
+  if (
+    payload.kind !== 'admin' &&
+    payload.kind !== 'member' &&
+    payload.kind !== 'platform'
+  ) {
     return null;
   }
 

@@ -2,13 +2,13 @@
 
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { requestAdminLink, type AdminLinkState } from './actions';
+import { requestPlatformLink, type PlatformLinkState } from './actions';
 
-const initial: AdminLinkState = { ok: false };
+const initial: PlatformLinkState = { ok: false };
 
-/** Same neutral confirmation regardless of whether the email is an admin. */
+/** Same neutral confirmation regardless of whether the email is a platform admin. */
 const NEUTRAL_CONFIRMATION =
-  'If that email is registered as an admin, a sign-in link is on its way.';
+  'If that email is a platform admin, a sign-in link is on its way.';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -21,7 +21,7 @@ function SubmitButton() {
                  text-[#001930] cursor-pointer transition-all duration-200
                  disabled:opacity-70 disabled:cursor-not-allowed"
     >
-      <span>{pending ? 'Sending…' : 'Email me a sign-in link'}</span>
+      <span>{pending ? 'Sending…' : 'Email me a godmode link'}</span>
       {!pending && (
         <svg
           className="w-[18px] h-[18px] transition-transform duration-200 group-hover:translate-x-1"
@@ -40,7 +40,7 @@ function SubmitButton() {
 }
 
 export function LoginForm({ invalid }: { invalid?: boolean }) {
-  const [state, action] = useActionState(requestAdminLink, initial);
+  const [state, action] = useActionState(requestPlatformLink, initial);
 
   if (state.ok) {
     return (
@@ -74,7 +74,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
               className="inline-flex items-center gap-2 text-sm font-semibold text-[#baeb5b]
                          no-underline hover:opacity-85 hover:underline hover:underline-offset-4 transition-opacity"
             >
-              Open sign-in link
+              Open godmode link
             </a>
           </div>
         )}
@@ -93,7 +93,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
           >
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
           </svg>
-          <span>That sign-in link is invalid or has expired. Request a new one below.</span>
+          <span>That godmode link is invalid or has expired. Request a new one below.</span>
         </div>
       )}
 
@@ -102,7 +102,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
           htmlFor="email"
           className="mb-2 text-[11px] font-bold tracking-[0.12em] uppercase text-[#cbd5e1]"
         >
-          Admin email
+          Flowency email
         </label>
         <input
           id="email"
@@ -110,7 +110,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
           type="email"
           required
           autoComplete="email"
-          placeholder="you@changeconnected.co.uk"
+          placeholder="you@flowency.co.uk"
           className="login-input w-full px-4 py-3.5 rounded-[10px] border border-white/10
                      bg-[rgba(0,12,24,0.6)] text-[15px] text-white outline-none
                      placeholder:text-white/50
@@ -124,7 +124,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
       <SubmitButton />
 
       <p className="m-0 text-xs text-[#94a3b8] text-center leading-relaxed">
-        We&rsquo;ll email a secure, single-use link. No password to remember.
+        Platform admins only. We&rsquo;ll email a secure, single-use link.
       </p>
     </form>
   );

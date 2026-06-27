@@ -49,7 +49,7 @@ export default async function DashboardPage() {
               The <span className="text-[var(--color-accent)]">Collective</span>
             </h1>
             <p className="mt-2 max-w-xl text-[var(--color-text-secondary)]">
-              {PILOT_TENANT.name}&rsquo;s talent pool — every Change Maker, their
+              {PILOT_TENANT.name}&rsquo;s talent pool: every Change Maker, their
               status, and what they&rsquo;re ready to take on.
             </p>
           </div>
@@ -100,7 +100,7 @@ function EmptyState() {
     <div className="rounded-xl border border-dashed border-white/15 bg-[var(--color-bg-panel)] p-12 text-center">
       <p className="text-lg font-black">No one in the Collective yet</p>
       <p className="mt-2 text-[var(--color-text-secondary)]">
-        Add a consultant with just their name and email — they complete the rest.
+        Add a consultant with just their name and email. They complete the rest.
       </p>
       <Link
         href="/dashboard/new"

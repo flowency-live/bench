@@ -32,7 +32,7 @@ function seed(): Profile[] {
       role: 'Founder & Chief Connecting Officer',
       status: 'published',
       headline: 'Connecting great talent, delivering great change',
-      bio: 'Over a decade connecting organisations with outcome-focused Change Makers across Higher Education, Legal, FMCG, Retail, Automotive and Professional Services. Believes successful change comes down to the right people at the right time — without the jargon or the upselling.',
+      bio: 'Over a decade connecting organisations with outcome-focused Change Makers across Higher Education, Legal, FMCG, Retail, Automotive and Professional Services. Believes successful change comes down to the right people at the right time, without the jargon or the upselling.',
       headshotUrl: null,
       skills: [
         { id: uid(), title: 'Talent Curation', body: 'Builds trusted communities of proven change professionals matched on mindset, not just CVs.', order: 0 },

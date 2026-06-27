@@ -71,7 +71,7 @@ export default async function InvitePage({
         You&rsquo;ve been invited to build your Change Maker profile
       </h1>
       <p className="mb-6 text-sm text-[var(--color-text-secondary)]">
-        Set out your skills, stories, and impact — it takes just a few minutes,
+        Set out your skills, stories, and impact. It takes just a few minutes,
         and you can save as you go.
       </p>
       <form action={`/invite/${token}/claim`} method="post">

@@ -41,7 +41,19 @@ const PUBLIC_PREFIXES = [
 
 function isPublic(pathname: string): boolean {
   if (pathname === '/auth' || pathname === '/login') return true;
+  // Godmode sign-in + its auth callbacks are public (no platform session yet).
+  if (pathname === '/godmode/login' || pathname.startsWith('/godmode/login/')) {
+    return true;
+  }
+  if (pathname === '/godmode/auth' || pathname.startsWith('/godmode/auth/')) {
+    return true;
+  }
   return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
+/** Godmode routes that require a `platform` session (excludes the public ones). */
+function isGodmode(pathname: string): boolean {
+  return pathname === '/godmode' || pathname.startsWith('/godmode/');
 }
 
 function isProtected(pathname: string): boolean {
@@ -49,7 +61,8 @@ function isProtected(pathname: string): boolean {
     pathname === '/dashboard' ||
     pathname.startsWith('/dashboard/') ||
     pathname.startsWith('/profiles/') ||
-    pathname.startsWith('/admin/')
+    pathname.startsWith('/admin/') ||
+    isGodmode(pathname)
   );
 }
 
@@ -61,7 +74,18 @@ function editProfileId(pathname: string): string | null {
 }
 
 function authorize(session: Session, pathname: string): boolean {
-  // Admins can reach anything protected.
+  // Godmode routes require a platform session.
+  if (isGodmode(pathname)) {
+    return session.kind === 'platform';
+  }
+
+  // A platform session may reach tenant routes ONLY once it has switched into a
+  // tenant (impersonation); `activeTenantId` is set by the switchTenant action.
+  if (session.kind === 'platform') {
+    return session.activeTenantId != null;
+  }
+
+  // Admins can reach anything protected (non-godmode).
   if (session.kind === 'admin') return true;
 
   // Members may ONLY reach the edit wizard for their own profile.
@@ -117,8 +141,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   let session = token ? await verifySessionToken(token) : null;
 
-  // AUTH_BYPASS: auto-mint admin session when enabled and no valid session exists
-  if (!session && isAuthBypassEnabled()) {
+  // AUTH_BYPASS auto-mints an ADMIN session — never valid for godmode, which
+  // always requires a real platform session. So skip the bypass on /godmode.
+  if (!session && isAuthBypassEnabled() && !isGodmode(pathname)) {
     const bypassToken = await createBypassSession();
     const response = NextResponse.next();
     response.cookies.set(SESSION_COOKIE, bypassToken, {
@@ -132,7 +157,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   if (!session || !authorize(session, pathname)) {
-    const loginUrl = new URL('/login', request.url);
+    // Godmode routes bounce to the godmode login; everything else to /login.
+    const loginPath = isGodmode(pathname) ? '/godmode/login' : '/login';
+    const loginUrl = new URL(loginPath, request.url);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -148,5 +175,7 @@ export const config = {
     '/dashboard/:path*',
     '/profiles/:path*',
     '/admin/:path*',
+    '/godmode',
+    '/godmode/:path*',
   ],
 };
