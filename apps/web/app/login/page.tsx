@@ -40,7 +40,7 @@ export default async function LoginPage({
             priority
             className="h-auto w-auto max-w-[280px] drop-shadow-lg"
           />
-          <span className="mt-4 text-[11px] font-semibold tracking-[0.25em] uppercase text-[#7a8fa8]">
+          <span className="mt-4 text-[11px] font-semibold tracking-[0.25em] uppercase text-[#94a3b8]">
             {PILOT_TENANT.instanceName}
           </span>
         </header>
@@ -59,7 +59,7 @@ export default async function LoginPage({
             <h1 className="mb-1 text-[1.75rem] font-black text-white tracking-tight">
               Admin sign-in
             </h1>
-            <p className="mb-8 text-[15px] text-[#8da0b8] leading-relaxed">
+            <p className="mb-8 text-[15px] text-[#cbd5e1] leading-relaxed">
               Manage the collective and consultant profiles.
             </p>
             <LoginForm invalid={invalid} />
@@ -67,7 +67,7 @@ export default async function LoginPage({
         </div>
 
         {/* Footer tagline */}
-        <p className="mt-8 text-[13px] text-[#5a6f85] text-center font-medium">
+        <p className="mt-8 text-[13px] text-[#94a3b8] text-center font-medium">
           Drop us a line! Connecting is what we do.
         </p>
       </div>

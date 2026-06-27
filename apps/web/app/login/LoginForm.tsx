@@ -66,7 +66,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
 
         {state.devLink && (
           <div className="p-4 rounded-xl bg-black/25 border border-white/[0.06]">
-            <p className="mb-2 text-[11px] font-semibold tracking-[0.1em] uppercase text-[#6a7a8a]">
+            <p className="mb-2 text-[11px] font-semibold tracking-[0.1em] uppercase text-[#94a3b8]">
               Dev mode — no email service
             </p>
             <a
@@ -100,7 +100,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
       <div className="flex flex-col">
         <label
           htmlFor="email"
-          className="mb-2 text-[11px] font-bold tracking-[0.12em] uppercase text-[#8da0b8]"
+          className="mb-2 text-[11px] font-bold tracking-[0.12em] uppercase text-[#cbd5e1]"
         >
           Admin email
         </label>
@@ -113,7 +113,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
           placeholder="you@changeconnected.co.uk"
           className="login-input w-full px-4 py-3.5 rounded-[10px] border border-white/10
                      bg-[rgba(0,12,24,0.6)] text-[15px] text-white outline-none
-                     placeholder:text-white/25
+                     placeholder:text-white/50
                      hover:border-white/[0.18] hover:bg-[rgba(0,12,24,0.8)]
                      focus:border-[rgba(186,235,91,0.5)] focus:bg-[rgba(0,12,24,0.9)]
                      focus:shadow-[0_0_0_3px_rgba(186,235,91,0.1)]
@@ -123,7 +123,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
 
       <SubmitButton />
 
-      <p className="m-0 text-xs text-white/35 text-center leading-relaxed">
+      <p className="m-0 text-xs text-[#94a3b8] text-center leading-relaxed">
         We&rsquo;ll email a secure, single-use link — no password to remember.
       </p>
     </form>
