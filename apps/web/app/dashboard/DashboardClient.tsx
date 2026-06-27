@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ProfileCard } from '@/components/ProfileCard';
+import { AvailabilityBadge } from '@/components/AvailabilityBadge';
+import { StatusBadge } from '@/components/StatusBadge';
 import type { ProfileStatus, ProfileSummary } from '@/lib/types';
 import { STATUS_LABELS, STATUS_ORDER } from '@/lib/types';
 
@@ -138,6 +140,7 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
                 <th className="px-4 py-3 font-semibold text-[var(--color-text-secondary)]">Name</th>
                 <th className="hidden px-4 py-3 font-semibold text-[var(--color-text-secondary)] sm:table-cell">Role</th>
                 <th className="px-4 py-3 font-semibold text-[var(--color-text-secondary)]">Status</th>
+                <th className="px-4 py-3 font-semibold text-[var(--color-text-secondary)]">Availability</th>
                 <th className="hidden px-4 py-3 font-semibold text-[var(--color-text-secondary)] md:table-cell">Complete</th>
                 <th className="px-4 py-3 text-right font-semibold text-[var(--color-text-secondary)]">Action</th>
               </tr>
@@ -150,17 +153,10 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
                     {p.role || '-'}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                        p.status === 'published'
-                          ? 'bg-green-500/15 text-green-400'
-                          : p.status === 'draft'
-                            ? 'bg-amber-500/15 text-amber-400'
-                            : 'bg-white/10 text-white/60'
-                      }`}
-                    >
-                      {STATUS_LABELS[p.status]}
-                    </span>
+                    <StatusBadge status={p.status} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <AvailabilityBadge availability={p.availability} />
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell">
                     <div className="flex items-center gap-2">

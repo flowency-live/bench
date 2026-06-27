@@ -9,6 +9,7 @@
  * State is cached on globalThis so it survives dev hot-reloads within a process.
  */
 import type {
+  Availability,
   CreateConsultantInput,
   Profile,
   ProfilePatch,
@@ -30,7 +31,8 @@ function seed(): Profile[] {
       name: 'Oliver Bradley',
       email: 'oliver@changeconnected.co.uk',
       role: 'Founder & Chief Connecting Officer',
-      status: 'published',
+      status: 'active',
+      availability: { status: 'engaged', endDate: '2026-09-30' },
       headline: 'Connecting great talent, delivering great change',
       bio: 'Over a decade connecting organisations with outcome-focused Change Makers across Higher Education, Legal, FMCG, Retail, Automotive and Professional Services. Believes successful change comes down to the right people at the right time, without the jargon or the upselling.',
       headshotUrl: null,
@@ -58,7 +60,8 @@ function seed(): Profile[] {
       name: 'Priya Nair',
       email: 'priya.nair@example.com',
       role: 'Change & Transformation Lead',
-      status: 'submitted',
+      status: 'active',
+      availability: { status: 'looking', noticePeriod: '1_month' },
       headline: 'Driving value from strategy to execution',
       bio: 'Transformation lead specialising in regulated environments. Turns ambiguous mandates into delivered outcomes, with a bias for measurable impact and teams that keep moving after she leaves.',
       headshotUrl: null,
@@ -68,7 +71,7 @@ function seed(): Profile[] {
         { id: uid(), title: 'Regulatory Change', body: 'Hands-on exposure to DORA and NIS2 programme delivery.', order: 2 },
       ],
       stories: [
-        { id: uid(), clientTag: 'Aviation', title: '15k cabin crew, ten hours → two seconds', body: 'Replaced a manual rostering check across 15,000 cabin crew, cutting a ten-hour process to under two seconds.', order: 0 },
+        { id: uid(), clientTag: 'Aviation', title: '15k cabin crew, ten hours to two seconds', body: 'Replaced a manual rostering check across 15,000 cabin crew, cutting a ten-hour process to under two seconds.', order: 0 },
         { id: uid(), clientTag: 'Financial Services', title: 'DORA readiness in one quarter', body: 'Took a tier-1 bank from gap analysis to audit-ready operational resilience in a single quarter.', order: 1 },
       ],
       testimonial: null,
@@ -82,6 +85,7 @@ function seed(): Profile[] {
       email: 'marcus.hale@example.com',
       role: 'Delivery Director',
       status: 'in_progress',
+      availability: { status: 'available' },
       headline: null,
       bio: null,
       headshotUrl: null,
@@ -97,7 +101,8 @@ function seed(): Profile[] {
       name: 'Sara Okoro',
       email: 'sara.okoro@example.com',
       role: null,
-      status: 'draft',
+      status: 'no_profile',
+      availability: { status: 'pitched' },
       headline: null,
       bio: null,
       headshotUrl: null,
@@ -128,6 +133,7 @@ const toSummary = (p: Profile): ProfileSummary => ({
   name: p.name,
   role: p.role,
   status: p.status,
+  availability: p.availability,
   headshotUrl: p.headshotUrl,
   updatedAt: p.updatedAt,
 });
@@ -161,7 +167,8 @@ export function createFixtureRepository(): ProfileRepository {
         name: input.name.trim(),
         email: input.email.trim(),
         role: input.role?.trim() || null,
-        status: 'draft',
+        status: 'no_profile',
+        availability: { status: 'available' },
         headline: null,
         bio: null,
         headshotUrl: null,
@@ -192,6 +199,7 @@ export function createFixtureRepository(): ProfileRepository {
         ...(patch.skills ? { skills: patch.skills } : {}),
         ...(patch.stories ? { stories: patch.stories } : {}),
         ...('testimonial' in patch ? { testimonial: patch.testimonial ?? null } : {}),
+        ...(patch.availability ? { availability: patch.availability } : {}),
         updatedAt: now(),
       };
       s.profiles[idx] = next;

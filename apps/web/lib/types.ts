@@ -7,13 +7,37 @@
  * imports once the package build/transpile path is settled).
  */
 
+/** Profile status: admin-controlled lifecycle state. */
 export type ProfileStatus =
-  | 'draft'
-  | 'invited'
-  | 'in_progress'
-  | 'submitted'
-  | 'published'
-  | 'archived';
+  | 'no_profile'   // Exists but hasn't filled anything yet
+  | 'in_progress'  // Working on their profile
+  | 'active'       // Live and visible
+  | 'removed';     // Deactivated/archived
+
+/** Notice period options for "Looking" availability. */
+export type NoticePeriod =
+  | 'immediate'
+  | '1_week'
+  | '2_weeks'
+  | '1_month'
+  | '3_months'
+  | '6_months';
+
+/** Availability status: market position of the associate. */
+export type AvailabilityStatus =
+  | 'available'  // Ready to work now
+  | 'looking'    // Looking, with notice period
+  | 'engaged'    // Currently working, with end date
+  | 'pitched';   // Linked to active work pitch
+
+/** Availability details depending on status. */
+export interface Availability {
+  readonly status: AvailabilityStatus;
+  /** For "looking" status: notice period before they can start. */
+  readonly noticePeriod?: NoticePeriod;
+  /** For "engaged" status: ISO date when they become available. */
+  readonly endDate?: string;
+}
 
 export interface Skill {
   readonly id: string;
@@ -44,6 +68,7 @@ export interface Profile {
   readonly email: string;
   readonly role: string | null;
   readonly status: ProfileStatus;
+  readonly availability: Availability;
   readonly headline: string | null;
   readonly bio: string | null;
   readonly headshotUrl: string | null;
@@ -60,6 +85,7 @@ export interface ProfileSummary {
   readonly name: string;
   readonly role: string | null;
   readonly status: ProfileStatus;
+  readonly availability: Availability;
   readonly headshotUrl: string | null;
   readonly updatedAt: string;
 }
@@ -80,24 +106,46 @@ export interface ProfilePatch {
   readonly skills?: readonly Skill[];
   readonly stories?: readonly Story[];
   readonly testimonial?: Testimonial | null;
+  readonly availability?: Availability;
 }
 
 export const STATUS_LABELS: Record<ProfileStatus, string> = {
-  draft: 'Draft',
-  invited: 'Invited',
-  in_progress: 'In progress',
-  submitted: 'Submitted',
-  published: 'Published',
-  archived: 'Archived',
+  no_profile: 'No Profile',
+  in_progress: 'In Progress',
+  active: 'Active',
+  removed: 'Removed',
 };
 
 export const STATUS_ORDER: readonly ProfileStatus[] = [
-  'draft',
-  'invited',
+  'no_profile',
   'in_progress',
-  'submitted',
-  'published',
-  'archived',
+  'active',
+  'removed',
+];
+
+export const AVAILABILITY_LABELS: Record<AvailabilityStatus, string> = {
+  available: 'Available',
+  looking: 'Looking',
+  engaged: 'Engaged',
+  pitched: 'Pitched',
+};
+
+export const NOTICE_PERIOD_LABELS: Record<NoticePeriod, string> = {
+  immediate: 'Immediate',
+  '1_week': '1 Week',
+  '2_weeks': '2 Weeks',
+  '1_month': '1 Month',
+  '3_months': '3 Months',
+  '6_months': '6 Months',
+};
+
+export const NOTICE_PERIOD_ORDER: readonly NoticePeriod[] = [
+  'immediate',
+  '1_week',
+  '2_weeks',
+  '1_month',
+  '3_months',
+  '6_months',
 ];
 
 /** Result shape for form server actions (used with React `useActionState`). */

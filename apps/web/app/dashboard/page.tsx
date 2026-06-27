@@ -27,9 +27,9 @@ export default async function DashboardPage() {
     return { ...summary, completion };
   });
 
-  const published = profiles.filter((p) => p.status === 'published').length;
-  const live = profiles.filter(
-    (p) => p.status !== 'archived' && p.status !== 'draft',
+  const active = profiles.filter((p) => p.status === 'active').length;
+  const available = profiles.filter(
+    (p) => p.availability?.status === 'available' || p.availability?.status === 'looking',
   ).length;
   const avgCompletion =
     profiles.length === 0
@@ -55,8 +55,8 @@ export default async function DashboardPage() {
           </div>
           <div className="flex gap-6">
             <Stat label="In the Collective" value={profiles.length} />
-            <Stat label="Active" value={live} />
-            <Stat label="Published" value={published} />
+            <Stat label="Active" value={active} />
+            <Stat label="Available" value={available} />
             <Stat label="Avg complete" value={avgCompletion} suffix="%" />
           </div>
         </div>

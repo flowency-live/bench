@@ -11,6 +11,11 @@
   --font-body: var(--font-poppins), 'Poppins', system-ui, sans-serif;
 }
 
+html {
+  /* Prevent layout shift when scrollbar appears/disappears */
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: var(--font-body);
 }

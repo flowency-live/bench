@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ProfileSummary } from '@/lib/types';
 import { StatusBadge } from '@/components/StatusBadge';
+import { AvailabilityBadge } from '@/components/AvailabilityBadge';
 
 function initials(name: string) {
   return name
@@ -27,51 +28,21 @@ interface CompletionInfo {
   readonly percent: number;
 }
 
-/** Compact lime completion ring with percent + "{completed}/{total}". */
-function CompletionRing({ completion }: { completion: CompletionInfo }) {
+/** Compact completion indicator. */
+function CompletionBar({ completion }: { completion: CompletionInfo }) {
   const { completed, total, percent } = completion;
-  // 16px radius, 2.5px stroke → circumference for the dash offset.
-  const radius = 16;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - percent / 100);
-
   return (
     <div
       className="flex items-center gap-2"
       title={`Profile ${percent}% complete (${completed}/${total} sections)`}
     >
-      <span
-        className="relative grid h-10 w-10 shrink-0 place-items-center"
-        aria-hidden
-      >
-        <svg viewBox="0 0 40 40" className="h-10 w-10 -rotate-90">
-          <circle
-            cx="20"
-            cy="20"
-            r={radius}
-            fill="none"
-            stroke="rgba(255,255,255,0.12)"
-            strokeWidth="2.5"
-          />
-          <circle
-            cx="20"
-            cy="20"
-            r={radius}
-            fill="none"
-            stroke="var(--color-accent)"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-          />
-        </svg>
-        <span className="absolute text-[0.6rem] font-black text-[var(--color-accent)]">
-          {percent}%
-        </span>
-      </span>
-      <span className="text-xs font-semibold text-[var(--color-text-secondary)]">
-        {completed}/{total} complete
-      </span>
+      <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-[var(--color-accent)]"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <span className="text-xs text-white/50">{percent}%</span>
     </div>
   );
 }
@@ -86,30 +57,38 @@ export function ProfileCard({
   return (
     <Link
       href={`/profiles/${profile.id}`}
-      className="group flex flex-col gap-4 rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-5 transition hover:border-[var(--color-accent)]/50 hover:shadow-lg hover:shadow-black/30"
+      className="group flex flex-col rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-4 transition hover:border-[var(--color-accent)]/50 hover:shadow-lg hover:shadow-black/30"
     >
-      <div className="flex items-start gap-3">
+      {/* Row 1: Avatar + Name + Status */}
+      <div className="flex items-center gap-3">
         <span
           aria-hidden
-          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--color-bg-primary)] text-sm font-black text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/40"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--color-bg-primary)] text-xs font-black text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/40"
         >
           {initials(profile.name)}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="truncate font-black text-white group-hover:text-[var(--color-accent)]">
-              {profile.name}
-            </p>
-            <StatusBadge status={profile.status} />
-          </div>
-          <p className="truncate text-sm text-[var(--color-text-secondary)]">
-            {profile.role ?? 'Role to be confirmed'}
+          <p className="truncate font-bold text-white group-hover:text-[var(--color-accent)]">
+            {profile.name}
           </p>
         </div>
+        <StatusBadge status={profile.status} />
       </div>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-white/40">Updated {timeAgo(profile.updatedAt)}</p>
-        {completion ? <CompletionRing completion={completion} /> : null}
+
+      {/* Row 2: Role */}
+      <p className="mt-1 truncate pl-[52px] text-sm text-[var(--color-text-secondary)]">
+        {profile.role ?? 'Role to be confirmed'}
+      </p>
+
+      {/* Row 3: Availability */}
+      <div className="mt-3 pl-[52px]">
+        <AvailabilityBadge availability={profile.availability} />
+      </div>
+
+      {/* Row 4: Footer */}
+      <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
+        <span className="text-xs text-white/40">{timeAgo(profile.updatedAt)}</span>
+        {completion ? <CompletionBar completion={completion} /> : null}
       </div>
     </Link>
   );

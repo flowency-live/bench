@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
+import { HeadshotUpload } from '@/components/HeadshotUpload';
 import { saveProfile, submitForReview } from '@/app/actions';
 import type { Profile, Skill, Story, Testimonial } from '@/lib/types';
 
@@ -124,17 +125,12 @@ export function WizardClient({ profile }: { profile: Profile }) {
                 placeholder="e.g. Change &amp; Transformation Lead"
               />
             </Labeled>
-            <Labeled label="Headshot image URL (optional)">
-              <input
-                className={field}
-                value={headshotUrl}
-                onChange={(e) => setHeadshotUrl(e.target.value)}
-                placeholder="https://…"
+            <Labeled label="Profile photo">
+              <HeadshotUpload
+                currentUrl={headshotUrl || null}
+                profileId={profile.id}
+                onUploadComplete={(url) => setHeadshotUrl(url)}
               />
-              <p className={help}>
-                Upload-and-crop comes with the deployed build; for now paste a URL or leave blank for a
-                branded monogram.
-              </p>
             </Labeled>
           </Section>
         )}

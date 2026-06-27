@@ -2,12 +2,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AppHeader } from '@/components/AppHeader';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
-import { StatusBadge } from '@/components/StatusBadge';
-import { changeStatus } from '@/app/actions';
 import { getRepository } from '@/lib/data/repository';
 import { PILOT_TENANT_ID } from '@/lib/tenant';
 import { ShareLinkButton } from './ShareLinkButton';
 import { SendInviteButton } from './SendInviteButton';
+import { StatusControls } from './StatusControls';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +19,8 @@ export default async function ProfilePage({
   const profile = await getRepository().get(PILOT_TENANT_ID, id);
   if (!profile) notFound();
 
-  const canPublish = profile.status === 'submitted' || profile.status === 'draft';
-  const isPublished = profile.status === 'published';
-  const canInvite = profile.status === 'draft' || profile.status === 'invited';
+  const isActive = profile.status === 'active';
+  const canInvite = profile.status === 'no_profile' || profile.status === 'in_progress';
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
@@ -37,7 +35,11 @@ export default async function ProfilePage({
             >
               ← Collective
             </Link>
-            <StatusBadge status={profile.status} />
+            <StatusControls
+              profileId={profile.id}
+              currentStatus={profile.status}
+              currentAvailability={profile.availability}
+            />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Link
@@ -72,43 +74,18 @@ export default async function ProfilePage({
               </Link>
             </span>
 
-            {/* Send invite — while the profile is still draft/invited. Mints a
+            {/* Send invite: while profile is no_profile or in_progress. Mints a
                 14-day edit-scoped magic link the consultant uses to claim and
-                build their own profile (sets status to 'invited'). */}
+                build their own profile. */}
             {canInvite && <SendInviteButton profileId={profile.id} />}
 
-            {/* Share link — only for published profiles. Mints a no-auth,
-                view-only link to this one profile (server action), then shows the
-                URL with a copy button. */}
-            {isPublished && <ShareLinkButton profileId={profile.id} />}
-            {canPublish && (
-              <form action={changeStatus}>
-                <input type="hidden" name="profileId" value={profile.id} />
-                <input type="hidden" name="status" value="published" />
-                <button
-                  type="submit"
-                  className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95"
-                >
-                  Publish
-                </button>
-              </form>
-            )}
-            {profile.status !== 'archived' && (
-              <form action={changeStatus}>
-                <input type="hidden" name="profileId" value={profile.id} />
-                <input type="hidden" name="status" value="archived" />
-                <button
-                  type="submit"
-                  className="rounded-full border border-white/15 px-4 py-1.5 text-sm font-semibold text-white/60 transition hover:text-white"
-                >
-                  Archive
-                </button>
-              </form>
-            )}
+            {/* Share link: only for active profiles. Mints a no-auth,
+                view-only link to this one profile. */}
+            {isActive && <ShareLinkButton profileId={profile.id} />}
           </div>
         </div>
 
-        {isPublished && (
+        {isActive && (
           <p className="mb-4 text-xs text-[var(--color-text-secondary)]">
             This is exactly what a client sees via a share link.
           </p>

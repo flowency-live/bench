@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { getRepository } from '@/lib/data/repository';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { PILOT_TENANT_ID } from '@/lib/tenant';
-import type { FormState, ProfilePatch, ProfileStatus } from '@/lib/types';
+import type { Availability, FormState, ProfilePatch, ProfileStatus } from '@/lib/types';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -58,7 +58,15 @@ export async function saveProfile(profileId: string, patch: ProfilePatch) {
 /** Consultant submits their completed profile for owner review. */
 export async function submitForReview(profileId: string) {
   const repo = getRepository();
-  await repo.setStatus(PILOT_TENANT_ID, profileId, 'submitted');
+  await repo.setStatus(PILOT_TENANT_ID, profileId, 'in_progress');
+  revalidatePath(`/profiles/${profileId}`);
+  revalidatePath('/dashboard');
+}
+
+/** Update a profile's availability (market position). */
+export async function setAvailability(profileId: string, availability: Availability) {
+  const repo = getRepository();
+  await repo.update(PILOT_TENANT_ID, profileId, { availability });
   revalidatePath(`/profiles/${profileId}`);
   revalidatePath('/dashboard');
 }
