@@ -25,6 +25,9 @@
   - **Body:** Poppins **400**, line-height ~1.5 (site uses 27px on 18px).
 - Fallback stack: `'Poppins', system-ui, Arial, sans-serif`.
 - **Not** Oswald (old style guide) and **not** Fredoka (old PRD §11). Poppins only.
+- **Web wiring:** Poppins is self-hosted via `next/font` (`--font-poppins`); the app's `--font-display`
+  / `--font-body` reference it. Do not rely on the Google-Fonts `@import` alone — it's unreliable in the
+  build and left headings on a fallback (fixed 2026-06-25).
 
 ## Gradient
 
@@ -33,8 +36,9 @@
 - The green→teal→blue gradient referenced in older docs is a **logo-mark treatment** that lives inside
   the logo asset (`logo-qt=q_95.webp`), not a UI token. The exact endpoints are not reliably
   derivable from CSS; treat the logo as the artefact of record.
-- The profile **headshot ring** gradient is a *design choice* for the profile renderer, not a site
-  token — keep it subtle and optional.
+- **Rule (2026-06-25):** the gradient is reserved for the **logo only**. UI avatars/monograms use flat
+  lime-on-navy (lime ring + lime initials), not the gradient — splashing it across every avatar cheapens
+  the mark. The profile headshot is a clean lime ring (grayscale photo when present).
 
 ## CSS custom properties (canonical)
 
@@ -70,4 +74,8 @@
 
 - **Company number:** 16401015
 - **Tagline:** "Connecting great talent, delivering great change"
-- **Logo:** abstract interlocking mark + "CHANGE CONNECTED" wordmark; green→blue gradient in-asset.
+- **Logo:** abstract interlocking infinity/X mark + white "CHANGE CONNECTED" wordmark; green→teal→blue
+  gradient in-asset; transparent-keyed. The white wordmark means **use on dark/navy backgrounds only**
+  (a dark-on-light variant is still needed for light surfaces). Source:
+  `graphics-references/logo-qt=q_95.webp`. In the web app it's served at `/logo-change-connected.webp`
+  (`apps/web/public/`) and used in the header, profile footer, share page, and the PDF print header.

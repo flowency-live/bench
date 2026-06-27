@@ -18,3 +18,46 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
 }
+
+/* ============================================================================
+   Login Page Styles
+   ============================================================================ */
+
+.login-page {
+  background: linear-gradient(180deg, #001930 0%, #001020 50%, #000a15 100%);
+}
+
+.login-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.02) 50%,
+    rgba(186, 235, 91, 0.08) 100%
+  );
+}
+
+.login-card__inner {
+  background: linear-gradient(180deg, #0a2540 0%, #061a30 100%);
+}
+
+.login-btn {
+  background: linear-gradient(135deg, #baeb5b 0%, #a8d94a 100%);
+  box-shadow:
+    0 2px 8px rgba(186, 235, 91, 0.25),
+    0 0 0 0 rgba(186, 235, 91, 0);
+}
+
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 16px rgba(186, 235, 91, 0.35),
+    0 0 0 3px rgba(186, 235, 91, 0.15);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-input {
+  font-family: var(--font-body);
+}

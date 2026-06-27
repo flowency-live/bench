@@ -59,7 +59,10 @@
       "Bash(aws dynamodb scan:*)",
       "Bash(aws iam get-role:*)",
       "Bash(aws iam create-role:*)",
-      "WebFetch(domain:aws-amplify-prod-eu-west-2-artifacts.s3.eu-west-2.amazonaws.com)"
+      "WebFetch(domain:aws-amplify-prod-eu-west-2-artifacts.s3.eu-west-2.amazonaws.com)",
+      "Bash(git -C \"c:/VSProjects/change-connected-portal\" push origin main)",
+      "WebFetch(domain:main.d1apn3zgo6n42q.amplifyapp.com)",
+      "Bash(aws logs describe-log-groups:*)"
     ]
   }
 }
