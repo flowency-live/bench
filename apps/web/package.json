@@ -12,6 +12,7 @@
     "clean": "rm -rf .next out"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1075.0",
     "@bench/data": "workspace:*",
     "@bench/domain": "workspace:*",
     "@bench/types": "workspace:*",
