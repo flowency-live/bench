@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import { PILOT_TENANT } from '@/lib/tenant';
 import { LoginForm } from './LoginForm';
+import { LOGO_BASE64 } from '@/lib/logo-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,12 +32,12 @@ export default async function LoginPage({
       <div className="relative w-full max-w-[460px] flex flex-col items-center">
         {/* Logo & Branding */}
         <header className="flex flex-col items-center mb-10 text-center">
-          <Image
-            src="/logo-change-connected.webp"
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={LOGO_BASE64}
             alt="Change Connected"
             width={280}
             height={56}
-            priority
             className="h-auto w-auto max-w-[280px] drop-shadow-lg"
           />
           <span className="mt-4 text-[11px] font-semibold tracking-[0.25em] uppercase text-[#94a3b8]">
