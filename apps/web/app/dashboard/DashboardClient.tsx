@@ -1,11 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ProfileCard } from '@/components/ProfileCard';
 import type { ProfileStatus, ProfileSummary } from '@/lib/types';
 import { STATUS_LABELS, STATUS_ORDER } from '@/lib/types';
 
 type Filter = ProfileStatus | 'all';
+type ViewMode = 'cards' | 'list';
 
 /**
  * Dashboard view row: a `ProfileSummary` augmented with a derived completion
@@ -24,6 +26,7 @@ export type DashboardRow = ProfileSummary & {
 export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [view, setView] = useState<ViewMode>('cards');
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: profiles.length };
@@ -71,24 +74,119 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
             );
           })}
         </div>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name or role…"
-          className="w-full rounded-full border border-white/15 bg-[var(--color-bg-panel)] px-4 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[var(--color-accent)] md:w-72"
-        />
+        <div className="flex items-center gap-3">
+          <div className="flex rounded-lg border border-white/15 p-0.5">
+            <button
+              type="button"
+              onClick={() => setView('cards')}
+              title="Card view"
+              className={`rounded-md p-1.5 transition ${
+                view === 'cards'
+                  ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]'
+                  : 'text-white/50 hover:text-white'
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('list')}
+              title="List view"
+              className={`rounded-md p-1.5 transition ${
+                view === 'list'
+                  ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]'
+                  : 'text-white/50 hover:text-white'
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="18" x2="20" y2="18" />
+              </svg>
+            </button>
+          </div>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name or role..."
+            className="w-full rounded-full border border-white/15 bg-[var(--color-bg-panel)] px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-[var(--color-accent)] md:w-72"
+          />
+        </div>
       </div>
 
       {visible.length === 0 ? (
         <p className="mt-10 text-center text-[var(--color-text-secondary)]">
           No consultants match your search.
         </p>
-      ) : (
+      ) : view === 'cards' ? (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((p) => (
             <ProfileCard key={p.id} profile={p} completion={p.completion} />
           ))}
+        </div>
+      ) : (
+        <div className="mt-6 overflow-hidden rounded-xl border border-white/10">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-white/10 bg-white/[0.02]">
+              <tr>
+                <th className="px-4 py-3 font-semibold text-[var(--color-text-secondary)]">Name</th>
+                <th className="hidden px-4 py-3 font-semibold text-[var(--color-text-secondary)] sm:table-cell">Role</th>
+                <th className="px-4 py-3 font-semibold text-[var(--color-text-secondary)]">Status</th>
+                <th className="hidden px-4 py-3 font-semibold text-[var(--color-text-secondary)] md:table-cell">Complete</th>
+                <th className="px-4 py-3 text-right font-semibold text-[var(--color-text-secondary)]">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {visible.map((p) => (
+                <tr key={p.id} className="transition hover:bg-white/[0.02]">
+                  <td className="px-4 py-3 font-semibold text-white">{p.name}</td>
+                  <td className="hidden px-4 py-3 text-[var(--color-text-secondary)] sm:table-cell">
+                    {p.role || '-'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                        p.status === 'published'
+                          ? 'bg-green-500/15 text-green-400'
+                          : p.status === 'draft'
+                            ? 'bg-amber-500/15 text-amber-400'
+                            : 'bg-white/10 text-white/60'
+                      }`}
+                    >
+                      {STATUS_LABELS[p.status]}
+                    </span>
+                  </td>
+                  <td className="hidden px-4 py-3 md:table-cell">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-[var(--color-accent)]"
+                          style={{ width: `${p.completion.percent}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-[var(--color-text-secondary)]">
+                        {p.completion.percent}%
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/profiles/${p.id}`}
+                      className="text-xs font-semibold text-[var(--color-accent)] hover:underline"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
