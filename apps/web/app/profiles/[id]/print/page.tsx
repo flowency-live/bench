@@ -3,6 +3,7 @@ import { ProfileRenderer } from '@/components/ProfileRenderer';
 import { getRepository } from '@/lib/data/repository';
 import { PILOT_TENANT_ID } from '@/lib/tenant';
 import { PrintTrigger } from './PrintTrigger';
+import { Logo } from '@/components/Logo';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,12 +55,7 @@ export default async function PrintProfilePage({
       <div className="print-sheet mx-auto max-w-4xl">
         {/* Brand header so the printed PDF is clearly Change Connected. */}
         <div className="mb-6 flex items-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-change-connected.webp"
-            alt="Change Connected"
-            className="h-8 w-auto"
-          />
+          <Logo className="h-8 w-auto" />
         </div>
         <ProfileRenderer profile={profile} />
       </div>

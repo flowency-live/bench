@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
 import { getRepository } from '@/lib/data/repository';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
+import { Logo } from '@/components/Logo';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,12 +56,7 @@ function Unavailable() {
   return (
     <div className="grid min-h-screen place-items-center bg-[var(--color-bg-primary)] px-6 text-center text-[var(--color-text-primary)]">
       <div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logo-change-connected.webp"
-          alt="Change Connected"
-          className="mx-auto mb-6 h-9 w-auto"
-        />
+        <Logo className="mx-auto mb-6 h-9 w-auto" />
         <h1 className="text-2xl font-black">This profile is no longer available</h1>
         <p className="mt-2 text-[var(--color-text-secondary)]">
           The link may have expired or been withdrawn. Please contact Change Connected

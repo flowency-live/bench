@@ -1,6 +1,6 @@
 import { PILOT_TENANT } from '@/lib/tenant';
 import { LoginForm } from './LoginForm';
-import { LOGO_BASE64 } from '@/lib/logo-data';
+import { Logo } from '@/components/Logo';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,14 +32,7 @@ export default async function LoginPage({
       <div className="relative w-full max-w-[460px] flex flex-col items-center">
         {/* Logo & Branding */}
         <header className="flex flex-col items-center mb-10 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={LOGO_BASE64}
-            alt="Change Connected"
-            width={280}
-            height={56}
-            className="h-auto w-auto max-w-[280px] drop-shadow-lg"
-          />
+          <Logo className="h-auto w-auto max-w-[280px] drop-shadow-lg" />
           <span className="mt-4 text-[11px] font-semibold tracking-[0.25em] uppercase text-[#94a3b8]">
             {PILOT_TENANT.instanceName}
           </span>

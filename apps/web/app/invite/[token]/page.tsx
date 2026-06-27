@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { PILOT_TENANT } from '@/lib/tenant';
+import { Logo } from '@/components/Logo';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,12 +23,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)] px-6 py-12 text-[var(--color-text-primary)]">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-change-connected.webp"
-            alt="Change Connected"
-            className="h-9 w-auto"
-          />
+          <Logo className="h-9 w-auto" />
           <span className="mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
             {PILOT_TENANT.instanceName}
           </span>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PILOT_TENANT } from '@/lib/tenant';
 import { getSession } from '@/lib/auth/session';
+import { Logo } from '@/components/Logo';
 
 /**
  * Branded portal header — reads as an extension of the tenant's site
@@ -17,14 +18,7 @@ export async function AppHeader() {
     <header className="sticky top-0 z-20 border-b border-white/10 bg-[var(--color-bg-primary)]/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link href="/dashboard" className="flex items-center gap-3">
-          {/* Real Change Connected logo — interlocking mark + white wordmark,
-              transparent-keyed for the navy header. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-change-connected.webp"
-            alt="Change Connected"
-            className="h-7 w-auto"
-          />
+          <Logo className="h-7 w-auto" />
           <span className="hidden border-l border-white/15 pl-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)] sm:block">
             {PILOT_TENANT.instanceName}
           </span>

@@ -1,4 +1,5 @@
 import type { Profile } from '@/lib/types';
+import { Logo } from '@/components/Logo';
 
 /**
  * The branded one-pager. Renders structured profile data through brand tokens
@@ -138,12 +139,7 @@ export function ProfileRenderer({ profile }: { profile: Profile }) {
       </div>
 
       <footer className="flex items-center justify-center gap-3 border-t border-white/10 px-8 py-4 text-center text-xs uppercase tracking-[0.2em] text-white/30">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logo-change-connected.webp"
-          alt="Change Connected"
-          className="h-5 w-auto"
-        />
+        <Logo className="h-5 w-auto" />
         Change Connected · Connecting great talent, delivering great change
       </footer>
     </article>
