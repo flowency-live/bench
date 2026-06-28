@@ -173,8 +173,12 @@ export async function uploadTenantLogo(
   try {
     // Upload to S3
     const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-    const bucketName = process.env.ASSETS_BUCKET ?? 'bench-assets';
-    const s3 = new S3Client({ region: process.env.AWS_REGION ?? 'eu-west-2' });
+    // Bucket name includes account ID - see COLLABORATION.md and BenchAuthStack outputs
+    const bucketName = process.env.ASSETS_BUCKET ?? 'bench-assets-771551874768';
+    const region = process.env.AWS_REGION ?? 'eu-west-2';
+    const s3 = new S3Client({ region });
+
+    console.log('[logo-upload] Starting upload', { bucketName, s3Key, contentType: logoFile.type, size: logoFile.size });
 
     const fileBuffer = Buffer.from(await logoFile.arrayBuffer());
     await s3.send(
@@ -187,10 +191,12 @@ export async function uploadTenantLogo(
       }),
     );
 
+    console.log('[logo-upload] S3 upload complete, updating tenant');
+
     // Update tenant with new logo asset ID
     const { createTenantRepository, createClient } = await import('@bench/data');
     const tableName = process.env.BENCH_TABLE_NAME ?? 'bench-main';
-    const client = createClient({ region: process.env.AWS_REGION ?? 'eu-west-2' });
+    const client = createClient({ region });
     const extendedRepo = createTenantRepository(client, tableName);
 
     await extendedRepo.update(tenantId, {
@@ -200,10 +206,13 @@ export async function uploadTenantLogo(
     // Revalidate pages
     revalidatePath('/godmode');
 
+    console.log('[logo-upload] Complete', { assetId });
     return { ok: true, logoAssetId: assetId };
   } catch (err) {
-    console.error('[godmode-logo-upload-error]', err);
-    return { ok: false, error: 'Failed to upload logo' };
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorName = err instanceof Error ? err.name : 'Unknown';
+    console.error('[godmode-logo-upload-error]', { errorName, errorMessage, err });
+    return { ok: false, error: `Failed to upload logo: ${errorName}` };
   }
 }
 
