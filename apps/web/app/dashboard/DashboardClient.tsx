@@ -5,11 +5,13 @@ import { useMemo, useState } from 'react';
 import { ProfileCard } from '@/components/ProfileCard';
 import { AvailabilityBadge } from '@/components/AvailabilityBadge';
 import { StatusBadge } from '@/components/StatusBadge';
-import type { ProfileStatus, ProfileSummary } from '@/lib/types';
-import { STATUS_LABELS, STATUS_ORDER } from '@/lib/types';
+import { MultiSelectDropdown } from '@/components/MultiSelectDropdown';
+import type { AvailabilityStatus, ProfileStatus, ProfileSummary } from '@/lib/types';
+import { STATUS_LABELS, STATUS_ORDER, AVAILABILITY_LABELS } from '@/lib/types';
 
-type Filter = ProfileStatus | 'all';
 type ViewMode = 'cards' | 'list';
+
+const AVAILABILITY_ORDER: AvailabilityStatus[] = ['available', 'looking', 'engaged', 'pitched'];
 
 /**
  * Dashboard view row: a `ProfileSummary` augmented with a derived completion
@@ -27,54 +29,71 @@ export type DashboardRow = ProfileSummary & {
 
 export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
+  const [statusFilter, setStatusFilter] = useState<ProfileStatus[]>([]);
+  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityStatus[]>([]);
   const [view, setView] = useState<ViewMode>('cards');
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { all: profiles.length };
-    for (const s of STATUS_ORDER) c[s] = 0;
-    for (const p of profiles) c[p.status] = (c[p.status] ?? 0) + 1;
-    return c;
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const s of STATUS_ORDER) counts[s] = 0;
+    for (const p of profiles) counts[p.status] = (counts[p.status] ?? 0) + 1;
+    return counts;
+  }, [profiles]);
+
+  const availabilityCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const a of AVAILABILITY_ORDER) counts[a] = 0;
+    for (const p of profiles) {
+      const status = p.availability?.status;
+      if (status) counts[status] = (counts[status] ?? 0) + 1;
+    }
+    return counts;
   }, [profiles]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return profiles.filter((p) => {
-      if (filter !== 'all' && p.status !== filter) return false;
+      // Status filter (empty = all)
+      if (statusFilter.length > 0 && !statusFilter.includes(p.status)) return false;
+      // Availability filter (empty = all)
+      if (availabilityFilter.length > 0 && !availabilityFilter.includes(p.availability?.status)) return false;
+      // Text search
       if (!q) return true;
       return (
         p.name.toLowerCase().includes(q) ||
         (p.role ?? '').toLowerCase().includes(q)
       );
     });
-  }, [profiles, query, filter]);
+  }, [profiles, query, statusFilter, availabilityFilter]);
 
-  const chips: Filter[] = ['all', ...STATUS_ORDER.filter((s) => (counts[s] ?? 0) > 0)];
+  const statusOptions = STATUS_ORDER.map((s) => ({
+    value: s,
+    label: STATUS_LABELS[s],
+    count: statusCounts[s],
+  }));
+
+  const availabilityOptions = AVAILABILITY_ORDER.map((a) => ({
+    value: a,
+    label: AVAILABILITY_LABELS[a],
+    count: availabilityCounts[a],
+  }));
 
   return (
     <div>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {chips.map((c) => {
-            const active = filter === c;
-            return (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setFilter(c)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
-                  active
-                    ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]'
-                    : 'bg-white/5 text-[var(--color-text-secondary)] ring-1 ring-white/10 hover:text-white'
-                }`}
-              >
-                {c === 'all' ? 'All' : STATUS_LABELS[c]}
-                <span className={active ? 'ml-1.5 opacity-70' : 'ml-1.5 opacity-50'}>
-                  {counts[c]}
-                </span>
-              </button>
-            );
-          })}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap gap-3">
+          <MultiSelectDropdown
+            label="Status"
+            options={statusOptions}
+            selected={statusFilter}
+            onChange={(selected) => setStatusFilter(selected as ProfileStatus[])}
+          />
+          <MultiSelectDropdown
+            label="Availability"
+            options={availabilityOptions}
+            selected={availabilityFilter}
+            onChange={(selected) => setAvailabilityFilter(selected as AvailabilityStatus[])}
+          />
         </div>
         <div className="flex items-center gap-3">
           <div className="flex rounded-lg border border-white/15 p-0.5">
@@ -122,9 +141,26 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
         </div>
       </div>
 
+      <div className="mt-3 flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+        <span>Showing {visible.length} of {profiles.length}</span>
+        {(statusFilter.length > 0 || availabilityFilter.length > 0 || query) && (
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter([]);
+              setAvailabilityFilter([]);
+              setQuery('');
+            }}
+            className="text-[var(--color-accent)] hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
       {visible.length === 0 ? (
         <p className="mt-10 text-center text-[var(--color-text-secondary)]">
-          No consultants match your search.
+          No consultants match your filters.
         </p>
       ) : view === 'cards' ? (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
