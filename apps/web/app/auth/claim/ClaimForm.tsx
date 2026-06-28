@@ -43,9 +43,9 @@ export function ClaimForm({ token, email }: { token: string; email: string }) {
           name="password"
           type="password"
           required
-          minLength={8}
+          minLength={12}
           autoComplete="new-password"
-          placeholder="At least 8 characters"
+          placeholder="At least 12 characters"
           className="w-full rounded-[10px] border border-white/10 bg-[rgba(0,12,24,0.6)] px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 transition-all hover:border-white/20 focus:border-[var(--color-accent)] focus:bg-[rgba(0,12,24,0.9)] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.10)]"
         />
       </div>
@@ -63,7 +63,7 @@ export function ClaimForm({ token, email }: { token: string; email: string }) {
           name="confirmPassword"
           type="password"
           required
-          minLength={8}
+          minLength={12}
           autoComplete="new-password"
           placeholder="Re-enter your password"
           className="w-full rounded-[10px] border border-white/10 bg-[rgba(0,12,24,0.6)] px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 transition-all hover:border-white/20 focus:border-[var(--color-accent)] focus:bg-[rgba(0,12,24,0.9)] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.10)]"
@@ -94,7 +94,7 @@ export function ClaimForm({ token, email }: { token: string; email: string }) {
       </button>
 
       <p className="text-center text-xs text-[var(--color-text-secondary)]">
-        Password must be at least 8 characters with uppercase, lowercase, and numbers.
+        Password must be at least 12 characters with uppercase, lowercase, numbers, and symbols.
       </p>
     </form>
   );

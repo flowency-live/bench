@@ -10,11 +10,12 @@
 
 import {
   CognitoIdentityProviderClient,
-  SignUpCommand,
   InitiateAuthCommand,
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
   AdminGetUserCommand,
+  AdminCreateUserCommand,
+  AdminSetUserPasswordCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 const AWS_REGION = process.env.AWS_REGION ?? 'eu-west-2';
@@ -70,28 +71,47 @@ export interface ForgotPasswordResult {
 }
 
 /**
- * Register a new user with Cognito.
+ * Register a new user with Cognito using admin APIs.
  *
  * Used when an owner claims their onboarding link and sets their password.
- * The user is auto-confirmed (no email verification required for this flow).
+ * Since selfSignUpEnabled is false in our user pool, we use AdminCreateUser
+ * followed by AdminSetUserPassword to create a confirmed user.
  */
 export async function signUp(email: string, password: string): Promise<SignUpResult> {
+  const username = email.toLowerCase();
+
   try {
-    const result = await getClient().send(
-      new SignUpCommand({
-        ClientId: CLIENT_ID,
-        Username: email.toLowerCase(),
+    // Create user with suppressed welcome message (we handle our own onboarding)
+    const createResult = await getClient().send(
+      new AdminCreateUserCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: username,
+        UserAttributes: [
+          { Name: 'email', Value: username },
+          { Name: 'email_verified', Value: 'true' },
+        ],
+        MessageAction: 'SUPPRESS', // Don't send temp password email
+      }),
+    );
+
+    const userSub = createResult.User?.Attributes?.find((a) => a.Name === 'sub')?.Value ?? '';
+
+    // Set the permanent password (makes user CONFIRMED)
+    await getClient().send(
+      new AdminSetUserPasswordCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: username,
         Password: password,
-        UserAttributes: [{ Name: 'email', Value: email.toLowerCase() }],
+        Permanent: true,
       }),
     );
 
     return {
-      userSub: result.UserSub ?? '',
-      userConfirmed: result.UserConfirmed ?? false,
+      userSub,
+      userConfirmed: true,
     };
   } catch (err) {
-    throw mapCognitoError(err);
+    throw mapCognitoError(err, 'signUp');
   }
 }
 
@@ -127,7 +147,7 @@ export async function signIn(email: string, password: string): Promise<SignInRes
       refreshToken: auth.RefreshToken,
     };
   } catch (err) {
-    throw mapCognitoError(err);
+    throw mapCognitoError(err, 'signIn');
   }
 }
 
@@ -148,7 +168,7 @@ export async function forgotPassword(email: string): Promise<ForgotPasswordResul
       deliveryMedium: result.CodeDeliveryDetails?.DeliveryMedium ?? 'EMAIL',
     };
   } catch (err) {
-    throw mapCognitoError(err);
+    throw mapCognitoError(err, 'forgotPassword');
   }
 }
 
@@ -170,7 +190,7 @@ export async function confirmForgotPassword(
       }),
     );
   } catch (err) {
-    throw mapCognitoError(err);
+    throw mapCognitoError(err, 'confirmForgotPassword');
   }
 }
 
@@ -193,7 +213,7 @@ export async function getUserSub(email: string): Promise<string | null> {
     if (isAwsError(err) && err.name === 'UserNotFoundException') {
       return null;
     }
-    throw mapCognitoError(err);
+    throw mapCognitoError(err, 'getUserSub');
   }
 }
 
@@ -203,19 +223,27 @@ function isAwsError(err: unknown): err is { name: string; message: string } {
 }
 
 /** Map AWS Cognito exceptions to typed CognitoError. */
-function mapCognitoError(err: unknown): CognitoError {
+function mapCognitoError(err: unknown, context?: string): CognitoError {
   if (err instanceof CognitoError) {
     return err;
   }
 
   if (!isAwsError(err)) {
+    console.error(`[cognito-error] ${context ?? 'unknown'}: non-AWS error`, err);
     return new CognitoError('UNKNOWN', String(err));
   }
+
+  // Log the raw error for debugging
+  console.error(`[cognito-error] ${context ?? 'unknown'}: ${err.name} - ${err.message}`);
 
   switch (err.name) {
     case 'UsernameExistsException':
       return new CognitoError('USER_EXISTS', 'An account with this email already exists.');
     case 'NotAuthorizedException':
+      // For signUp context, this usually means a configuration issue, not bad credentials
+      if (context === 'signUp') {
+        return new CognitoError('UNKNOWN', `Registration failed: ${err.message}`);
+      }
       return new CognitoError('INVALID_CREDENTIALS', 'Incorrect email or password.');
     case 'UserNotFoundException':
       return new CognitoError('USER_NOT_FOUND', 'No account found for this email.');
@@ -225,8 +253,10 @@ function mapCognitoError(err: unknown): CognitoError {
     case 'InvalidPasswordException':
       return new CognitoError(
         'INVALID_PASSWORD',
-        'Password must be at least 8 characters with uppercase, lowercase, and numbers.',
+        'Password must be at least 12 characters with uppercase, lowercase, numbers, and symbols.',
       );
+    case 'InvalidParameterException':
+      return new CognitoError('INVALID_PASSWORD', err.message);
     default:
       return new CognitoError('UNKNOWN', err.message);
   }

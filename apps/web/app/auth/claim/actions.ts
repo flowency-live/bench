@@ -81,8 +81,8 @@ export async function completeClaim(
   const confirmPassword = String(formData.get('confirmPassword') ?? '');
 
   // Validate passwords
-  if (password.length < 8) {
-    return { ok: false, error: 'Password must be at least 8 characters.' };
+  if (password.length < 12) {
+    return { ok: false, error: 'Password must be at least 12 characters.' };
   }
   if (password !== confirmPassword) {
     return { ok: false, error: 'Passwords do not match.' };
