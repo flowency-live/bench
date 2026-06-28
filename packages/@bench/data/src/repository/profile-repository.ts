@@ -581,6 +581,7 @@ export function createProfileRepository(
         role: updatedProfile.role,
         status,
         availability: updatedProfile.availability,
+        ratesAndPreferences: updatedProfile.ratesAndPreferences,
         positioning: updatedProfile.positioning,
         headshotAssetId: updatedProfile.headshotAssetId,
         createdAt: updatedProfile.createdAt,
