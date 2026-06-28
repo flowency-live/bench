@@ -10,7 +10,6 @@
  */
 import {
   DynamoDBDocumentClient,
-  GetCommand,
   PutCommand,
   UpdateCommand,
   QueryCommand,
@@ -216,21 +215,25 @@ export function createMagicLinkRepository(
     ): Promise<MagicLink | null> {
       validateTenantId(tenantId);
 
+      // Query by PK and filter by linkId since SK includes type which we don't know
       const result = await client.send(
-        new GetCommand({
+        new QueryCommand({
           TableName: tableName,
-          Key: {
-            PK: profilePK(tenantId, profileId),
-            SK: magicLinkSK('LINK', linkId),
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+          FilterExpression: 'id = :linkId',
+          ExpressionAttributeValues: {
+            ':pk': profilePK(tenantId, profileId),
+            ':skPrefix': 'LINK#',
+            ':linkId': linkId,
           },
         })
       );
 
-      if (!result.Item) {
+      if (!result.Items || result.Items.length === 0) {
         return null;
       }
 
-      const item = result.Item as MagicLinkItem;
+      const item = result.Items[0] as MagicLinkItem;
 
       // Double-check tenant isolation (defense in depth)
       if (item.tenantId !== tenantId) {

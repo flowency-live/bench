@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, GetCommand, QueryCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { createMagicLinkRepository, type MagicLinkRepository } from '../magic-link-repository.js';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -101,13 +101,21 @@ describe('MagicLinkRepository', () => {
         updatedAt: '2024-01-01T00:00:00.000Z',
       };
 
-      ddbMock.on(GetCommand).resolves({ Item: linkItem });
+      // findById now uses QueryCommand (not GetCommand) to avoid needing the type in the SK
+      ddbMock.on(QueryCommand).resolves({ Items: [linkItem] });
 
       const result = await repo.findById(tenantA, profileId, linkId);
 
       expect(result).not.toBeNull();
       expect(result?.id).toBe(linkId);
       expect(result?.tenantId).toBe(tenantA);
+
+      // Verify the query pattern
+      const calls = ddbMock.commandCalls(QueryCommand);
+      expect(calls.length).toBeGreaterThan(0);
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall.args[0].input.KeyConditionExpression).toContain('begins_with(SK, :skPrefix)');
+      expect(lastCall.args[0].input.FilterExpression).toBe('id = :linkId');
     });
 
     it('returns null when link belongs to different tenant', async () => {
@@ -128,7 +136,8 @@ describe('MagicLinkRepository', () => {
         updatedAt: '2024-01-01T00:00:00.000Z',
       };
 
-      ddbMock.on(GetCommand).resolves({ Item: linkItem });
+      // findById now uses QueryCommand
+      ddbMock.on(QueryCommand).resolves({ Items: [linkItem] });
 
       // Tenant A tries to access tenant B's link
       const result = await repo.findById(tenantA, profileId, linkId);
