@@ -1,11 +1,8 @@
 /**
  * ProfileRepository — the data-access contract for the Bench portal.
  *
- * This is the seam. The UI only ever talks to this interface. `@bench/data`
- * (DynamoDB, per ADR-0008) will provide the production implementation; swapping
- * it in is a one-line change in `getRepository()` below. Every method is
- * tenant-scoped (tenantId first) to match the `TENANT#` app-enforced isolation
- * model — the UI never reaches the table directly.
+ * DynamoDB single-table design (ADR-0008). Every method is tenant-scoped
+ * (tenantId first) to match the `TENANT#` app-enforced isolation model.
  */
 import type {
   CreateConsultantInput,
@@ -14,7 +11,6 @@ import type {
   ProfileStatus,
   ProfileSummary,
 } from '@/lib/types';
-import { createFixtureRepository } from '@/lib/data/fixture-repository';
 import { createDynamoProfileRepository } from '@/lib/data/dynamo-repository';
 
 export interface ProfileRepository {
@@ -28,29 +24,17 @@ export interface ProfileRepository {
 let instance: ProfileRepository | null = null;
 
 /**
- * Resolve the active repository.
- *
- * - DATA_BACKEND=dynamodb → the real DynamoDB layer (ADR-0008). Requires
- *   BENCH_TABLE_NAME (and AWS creds in the runtime's environment/role).
- * - otherwise → the seeded fixture, so the UI runs locally with no AWS.
- *
- * This is the only place the backend is chosen; pages/actions never know which.
+ * Get the DynamoDB profile repository.
+ * Requires BENCH_TABLE_NAME environment variable.
  */
 export function getRepository(): ProfileRepository {
   if (instance) return instance;
 
-  if (process.env.DATA_BACKEND === 'dynamodb') {
-    const tableName = process.env.BENCH_TABLE_NAME;
-    if (!tableName) {
-      throw new Error('BENCH_TABLE_NAME is required when DATA_BACKEND=dynamodb');
-    }
-    instance = createDynamoProfileRepository({
-      tableName,
-      region: process.env.AWS_REGION,
-    });
-  } else {
-    instance = createFixtureRepository();
-  }
+  const tableName = process.env.BENCH_TABLE_NAME ?? 'bench-main';
+  instance = createDynamoProfileRepository({
+    tableName,
+    region: process.env.AWS_REGION ?? 'eu-west-2',
+  });
 
   return instance;
 }
