@@ -119,6 +119,12 @@ SaaS-Factory) vs Bench today. ✅ have · 🟡 partial · ❌ missing.
 | CP14 | Enterprise — SSO/SAML + SCIM; custom roles / granular permissions | ❌ |
 | CP15 | Data resilience — tested restore, export/import, real `TENANT#` cascade-purge | 🟡 |
 
+## 🅿️ Product backlog (parked — placeholders, not scheduled)
+
+| # | Item |
+|---|------|
+| PB1 | **Rates / Terms on shared profiles — show/hide + dedicated section.** When a consultant profile is shared (magic-link share view **and** PDF), optionally include a **separate, well-laid-out Rates / Terms section**, visually distinct from the profile body. A per-share **show/hide rates** control decides whether it's included at all. The section's content + format depend on **placement type** — e.g. *commission on perm*, *placement fee*, or *day-rate margin* — **TBC by Jason with clients**. NB: the consultant's own `ratesAndPreferences` (day rate, salary, IR35, employment type) already lives on the Profile; PB1 is the **tenant's client-facing commercial terms** for a given share — a different concept. **Placeholder: needs Jason's placement-type model before scoping/building.** |
+
 ## 🧩 Open code TODOs
 
 - Durable multi-admin **User** entity — admin auth today = authorised email + valid magic link (no User row). Add when >1 admin is needed.

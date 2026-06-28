@@ -21,8 +21,9 @@ Format: lightweight [MADR](https://adr.github.io/madr/). Statuses: **Proposed**,
 | [0009](0009-admin-auth-magic-link.md) | Admin/owner auth: passwordless magic-link (V1) | ~~Superseded by 0012~~ | 2026-06-25 |
 | [0010](0010-multi-tenant-control-plane.md) | **Multi-tenant control plane** — godmode + tenant/user RBAC | Accepted | 2026-06-25 |
 | [0011](0011-profile-status-and-availability-model.md) | **Profile status model + availability axis** (V1 two-axis) | Accepted | 2026-06-25 |
-| [0012](0012-adopt-cognito-identity-v1.md) | **Adopt Cognito as V1 identity provider** (owners + godmode) | Accepted | 2026-06-27 |
+| [0012](0012-adopt-cognito-identity-v1.md) | **Adopt Cognito as V1 identity provider** (owners + godmode) | Accepted (password part superseded by 0014) | 2026-06-27 |
 | [0013](0013-tenant-brand-resolution.md) | **Tenant brand resolution** — shared domain + context detection (V1) | Accepted | 2026-06-27 |
+| [0014](0014-passwordless-multimethod-auth.md) | **Passwordless, invite-only, multi-method auth** (bndy model) | Accepted | 2026-06-27 |
 
 ## Conventions
 

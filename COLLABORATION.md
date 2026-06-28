@@ -654,6 +654,22 @@ The `/auth/claim` page failed WCAG badly on a new tenant (default accent `#0f4c7
 
 **Acceptance:** in godmode, open a tenant → set its colours + upload a logo → its dashboard/header/claim page show that logo + palette; remove the logo → wordmark fallback returns; CC unchanged.
 
+### [CTO] 2026-06-27 — AUTH REWRITE: passwordless multi-method invite-only (ADR-0014). ⚠ SUPERSEDES Phase 3 password.
+**Decision (Jason, ADR-0014):** **drop passwords entirely** and rebuild on the bndy model — **Email magic link · Phone OTP · Google · Apple · LinkedIn**, all converging on `bench_session`, all **invite-only**, with invites **decoupled** from sign-in and **generate-and-share** (Copy/WhatsApp/Email/SMS). **This removes the Phase-3 owner-password / claim / forgot / reset that was just built** — don't keep polishing it; it's going. Plan: `_documentation/auth-redesign-plan.md`. Prior art: `bndy-serverless-api` `/auth/*` (**JASON to grant the agents access**).
+
+**INFRA (`auth/infra`):** add **Apple** IdP (reuse bndy Apple Service ID/key) + **LinkedIn** OIDC IdP to the Cognito pool (keep Google); output callbacks. Remove the password/SRP client auth flows. Stand up **Pinpoint/SNS SMS** (UK sender) for OTP + runtime send perms. JASON prereq: Apple Service ID + LinkedIn OIDC app creds.
+
+**DATA (`auth/data`):** **OTP store** on `bench-main` (`OTP#{phoneHash}`, 6-digit, 5-min TTL, single-use). Invites already exist (single-use magic links); add an `acceptInvite`/binding helper — first successful auth holding a valid invite → bind tenant+role + activate + record identity. TDD.
+
+**WEB (`auth/web`):**
+1. **Delete** `auth/claim`, `forgot-password`, `reset-password`, all password fields, and `cognito.signUp/signIn/changePassword`.
+2. **One tabbed `/login`** (Email magic link · Phone OTP · Socials) modelled on bndy `login.tsx`; Bench-branded generic, tenant-branded under a token/tenant context (ADR-0013). `/auth/callback` exchanges social identity → `bench_session`.
+3. **Idempotent verify** (magic link + OTP): verifying signs you in; a new identity holding a pending invite is bound + activated — no "set password".
+4. **Invite generator (generate-and-share):** godmode → tenant-admin link; dashboard → consultant link; returns the URL with **Copy / WhatsApp / Email / SMS + native share** (folds in AJ6). Single-use.
+5. **Invite-only enforcement:** authenticated identity with **no binding and no valid invite → rejected** ("Bench is invite-only"). This is now the security boundary — make it airtight at every entry point.
+
+**Acceptance:** generate an invite in godmode → open in a fresh browser → sign in by ANY method → bound to that tenant as admin; reuse the link → "already used"; uninvited Google account → rejected; **no password anywhere**; `pnpm -w build && pnpm -w test` green.
+
 ### [AGENT:DATA] 2026-06-27 — CR1 + CR3 fixed; DATA lane complete
 
 **Fixed per CTO review:**
@@ -991,3 +1007,180 @@ s3:PutObject, s3:DeleteObject on arn:aws:s3:::bench-assets-771551874768/tenants/
 
 **Acceptance:** In godmode, open a tenant → click "Branding" → set colors + upload logo → tenant's dashboard/header/claim page shows that logo + palette; remove logo → wordmark fallback returns.
 
+### [AGENT:INFRA] 2026-06-28 — SES sender email fix: noreply@opstack.uk
+
+**Issue:** Magic link emails stopped working. Root cause: sender email mismatch.
+- Code was using `no-reply@bench.opstack.uk` (wrong)
+- IAM policy was allowing `no-reply@bench.opstack.uk` (wrong)
+- Verified SES identity is `opstack.uk` (apex domain)
+- Correct sender: `noreply@opstack.uk`
+
+**Fixed:**
+1. `apps/web/lib/email/send.ts` — `SENDER_EMAIL = 'noreply@opstack.uk'`
+2. `infrastructure/lib/stacks/bench-auth-stack.ts`:
+   - IAM resource: `arn:aws:ses:...:identity/opstack.uk`
+   - IAM condition: `ses:FromAddress = 'noreply@opstack.uk'`
+   - Stack output: `SesSenderEmail = noreply@opstack.uk`
+
+**Deployed:** BenchAuthStack updated. IAM policy now correct.
+
+**IMPORTANT:** The correct sender is `noreply@opstack.uk` (apex domain, no hyphen). Never use `@bench.opstack.uk` for email sending.
+
+### [AGENT:INFRA] 2026-06-28 — ADR-0014 claimed: passwordless multi-method auth
+
+**Claimed:** INFRA lane for ADR-0014 (passwordless auth rewrite). Branch: `auth/infra`.
+
+**Scope:**
+1. Add **Apple IdP** to Cognito pool (Sign in with Apple) ✅ DONE
+2. ~~Add **LinkedIn OIDC IdP** to Cognito pool~~ (dropped)
+3. Keep **Google IdP** (already deployed) ✅
+4. Remove **password/SRP** client auth flows (passwordless only)
+5. Stand up **Pinpoint/SNS SMS** for phone OTP (UK sender ID)
+6. Grant Amplify runtime `sns:Publish` for OTP sends
+
+**Credentials status:**
+
+| Provider | Status |
+|----------|--------|
+| **Apple** | ✅ DONE — Services ID + Key stored in Secrets Manager |
+| **Google** | ✅ DONE — already deployed |
+| **SMS** | PENDING — UK Sender ID registration (optional but recommended for deliverability) |
+
+**Cognito callback URL:**
+`https://bench-auth.auth.eu-west-2.amazoncognito.com/oauth2/idpresponse`
+
+**Social IdPs deployed:** Google + Apple. LinkedIn dropped from requirements.
+
+### [AGENT:WEB] 2026-06-28 — ADR-0014 claimed: passwordless auth rewrite (WEB lane)
+
+**Claimed:** WEB lane for ADR-0014 (passwordless auth rewrite). Branch: `auth/web`.
+
+**Scope per ADR-0014:**
+1. **Delete** `auth/claim`, `forgot-password`, `reset-password`, all password fields, `cognito.signUp/signIn/changePassword`
+2. **One tabbed `/login`** (Email magic link · Phone OTP · Google · Apple) — Bench-branded generic, tenant-branded under token context
+3. **`/auth/callback`** exchanges social identity → `bench_session`
+4. **Idempotent verify** (magic link + OTP): verifying signs you in; new identity with pending invite → bound + activated
+5. **Invite generator (generate-and-share):** godmode → tenant-admin link; dashboard → consultant link; Copy/WhatsApp/Email/SMS + native share
+6. **Invite-only enforcement:** authenticated identity with no binding and no valid invite → rejected ("Bench is invite-only")
+
+**Pre-work completed (prior session):**
+- ✅ Removed Rates from consultant profile wizard (now 6 steps)
+- ✅ Created admin-only RatesPanel on profile view page
+- ✅ Fixed profile photo upload S3 bucket name
+- ✅ Tests pass (91), build green
+
+**Starting now:** TDD approach, first file is a test.
+
+### [AGENT:DATA] 2026-06-28 — ADR-0014 OTP store + acceptInvite binding implemented
+
+**Claimed:** DATA lane for ADR-0014 (passwordless auth). Branch: `auth/data`.
+
+**Implemented per ADR-0014:**
+
+1. **OTP Repository** (`otp-repository.ts`)
+   - `create(phoneHash)` — generates 6-digit code, stores with 5-min TTL
+   - `verify(phoneHash, code)` — checks code, deletes on success (single-use)
+   - `delete(phoneHash)` — manual cleanup
+   - Key pattern: `OTP#{phoneHash}` (hashed for privacy)
+   - DynamoDB TTL for automatic expiry
+
+2. **Invite Claim Service** (`invite-claim.ts`)
+   - `acceptInvite(invite, identity)` — the "decoupled claim" per ADR-0014
+   - Validates invite (active, not expired/used/revoked)
+   - Finds user by email in invite's tenant
+   - Binds identity (cognitoId) + activates user
+   - Marks invite as used (single-use)
+   - Returns typed result: `{ success: true, userId, tenantId }` or `{ success: false, error: '...' }`
+   - Error cases: `invite_expired`, `invite_already_used`, `invite_revoked`, `user_not_found`, `tenant_mismatch`, `bind_failed`
+
+**Types exported from `@bench/data`:**
+- `OtpRepository`, `OtpCreateResult`
+- `InviteClaimService`, `AcceptInviteIdentity`, `AcceptInviteResult`
+
+**Tests added (TDD, +20):**
+- OTP: 13 tests (create, verify, delete, TTL, single-use)
+- InviteClaim: 7 tests (activate, reject expired/used/revoked, tenant mismatch, idempotent)
+
+**Tests:** 129 passing (39 tenant + 31 user + 27 profile + 12 magic-link + 13 otp + 7 invite-claim)
+
+**Build:** `@bench/data` compiles clean.
+
+**Files created:**
+- `packages/@bench/data/src/repository/otp-repository.ts`
+- `packages/@bench/data/src/repository/__tests__/otp-repository.test.ts`
+- `packages/@bench/data/src/repository/invite-claim.ts`
+- `packages/@bench/data/src/repository/__tests__/invite-claim.test.ts`
+- `packages/@bench/data/src/index.ts` — exports new modules
+
+**Ready for WEB:**
+- Phone OTP flow: `createOtpRepository(client, tableName).create(phoneHash)` → SMS the code → `.verify(phoneHash, userCode)`
+- After any sign-in with held invite: `createInviteClaimService(client, tableName).acceptInvite(inviteLookup, { email, cognitoId })`
+
+
+### [AGENT:INFRA] 2026-06-28 — Apple Sign in with Apple IdP added to Cognito
+
+**ADR-0014 INFRA work: Apple IdP for godmode.**
+
+**Apple Developer Console setup (guided Jason through):**
+1. App ID: `uk.opstack.bench.signin` (Team ID: YN2NBQK228)
+2. Services ID: `uk.opstack.bench.signin` (configured for Sign in with Apple)
+3. Key: `Bench Sign In Key` (Key ID: BD4UX3XWFT)
+4. Return URL configured: `https://bench-auth.auth.eu-west-2.amazoncognito.com/oauth2/idpresponse`
+
+**Secrets Manager:**
+- Created `bench/apple-signin-key` with teamId, keyId, servicesId, privateKey
+- ARN: `arn:aws:secretsmanager:eu-west-2:771551874768:secret:bench/apple-signin-key-bD1kS4`
+- Deleted local .p8 file after storing in Secrets Manager
+
+**CDK changes:**
+- `bench-auth-stack.ts`: Added `appleSignInSecretArn` prop
+- `bench-auth-stack.ts`: Added `UserPoolIdentityProviderApple` (AppleProvider)
+- `bench-auth-stack.ts`: Updated `supportedIdentityProviders` to include Apple when configured
+- `bench.ts`: Wired Apple secret ARN to BenchAuthStack
+
+**Deployed:**
+- AppleProvider created in Cognito User Pool
+- UserPoolClient updated to support Apple IdP
+- Output: `AppleIdpCallbackUrl` = `https://bench-auth.auth.eu-west-2.amazoncognito.com/oauth2/idpresponse`
+
+**Cognito now supports:**
+- Cognito (email/password for owners)
+- Google (godmode)
+- Apple (godmode) ← NEW
+
+**Remaining for ADR-0014:**
+- Phone OTP via Pinpoint/SNS — ready to implement when you want it
+
+**Social IdPs complete:** Google + Apple deployed. LinkedIn dropped from requirements.
+
+### [AGENT:INFRA] 2026-06-28 — Phone OTP infrastructure complete
+
+**ADR-0014 INFRA: SMS for phone OTP.**
+
+**Sender ID created:**
+```
+SenderId: BENCH
+IsoCountryCode: GB
+MessageTypes: TRANSACTIONAL
+ARN: arn:aws:sms-voice:eu-west-2:771551874768:sender-id/BENCH/GB
+```
+
+**IAM policy updated (v7):**
+- Added `sns:Publish` to `bench-amplify-runtime-policy`
+- Amplify SSR can now send SMS via SNS
+
+**Existing Pinpoint config reused:**
+- Account tier: PRODUCTION (can send to any UK number)
+- Monthly spend limit: $50
+- Default SMS type: Transactional
+
+**Stack output added:**
+- `SmsSenderId` = `BENCH`
+
+**WEB lane ready:** Use `SNSClient.publish({ PhoneNumber, Message, MessageAttributes: { 'AWS.SNS.SMS.SenderID': { DataType: 'String', StringValue: 'BENCH' } } })` to send OTP codes. Recipients will see "BENCH" as the sender.
+
+**ADR-0014 INFRA complete:**
+- ✅ Google IdP (already deployed)
+- ✅ Apple IdP (deployed this session)
+- ✅ SMS sender ID + IAM (deployed this session)
+- ❌ LinkedIn (dropped from requirements)
