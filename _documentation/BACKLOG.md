@@ -103,7 +103,7 @@ SaaS-Factory) vs Bench today. ✅ have · 🟡 partial · ❌ missing.
 
 | # | Item | State |
 |---|------|-------|
-| CP6 | Tenant **settings/branding edit** (brand tokens / logo / instance name / domain per tenant — un-hardcode CC) | ❌ |
+| CP6 | Tenant **settings/branding edit** + **per-tenant brand resolution** (consume `brandTokens` at render; un-hardcode CC). Decision: **ADR-0013** (shared domain + context detection). Spec'd to DATA+WEB. | 🟡 building |
 | CP7 | User lifecycle — resend/revoke invite, deactivate vs delete, **ownership transfer**, last-login | 🟡 |
 | CP8 | Platform RBAC — multiple platform admins + a read-only **support** role; allowlist in DB/UI not env | ❌ |
 | CP9 | **SES** transactional email (= S2) — ✅ sends wired (apex `opstack.uk` identity + DKIM); per-tenant sender + bounce handling still ❌ | 🟡 |

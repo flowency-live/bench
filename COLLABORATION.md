@@ -629,6 +629,17 @@ Jason flagged: no "who am I logged in as", no account/password area, no tenant-u
 
 **Deferred (ADR-0013, do NOT build now):** per-tenant custom domains/subdomains; cross-tenant consultant identity (person→many profiles); per-tenant profile templates — but **keep the profile sections data-driven** so templates slot in later.
 
+### [CTO] 2026-06-27 — WCAG fix: accent foreground (CP6 quality). Heads-up, CTO-edited apps/web
+The `/auth/claim` page failed WCAG badly on a new tenant (default accent `#0f4c75`): the **button was dark-text-on-dark-accent (~1.3:1)**, the **tenant wordmark rendered in the raw accent** (dark-on-dark), and inputs still had **CC-lime focus rings**. Root cause: the brand system mapped `--color-accent` but had **no readable foreground** for it. Fixed at the root — **WEB: keep these, then finish the app-wide swap below.**
+- `lib/brand/resolve.ts` — added `readableOn(hex)` (picks white/near-black by contrast) and `brandStyle()` now sets **`--color-accent-foreground`** per tenant. `globals.css :root` has a global default (`#0a0a0a`, for CC lime) so it's never undefined outside a `BrandedWrapper`.
+- `TenantLogo` wordmark → `--color-text-primary` (never the accent). `auth/claim` button → `text-[var(--color-accent-foreground)]`; inputs → accent focus ring (lime removed).
+
+**WEB follow-through (do across the app):**
+1. Any accent button using `text-[var(--color-bg-primary)]` or `hover:text-[var(--color-bg-primary)]` on `bg-[var(--color-accent)]`/`hover:bg-[var(--color-accent)]` → swap to **`text-[var(--color-accent-foreground)]`** (AppHeader "+Add consultant", dashboard, /settings, /team, login/forgot/reset). Grep `--color-bg-primary` near `--color-accent`.
+2. Remove any remaining hardcoded **lime** (`186,235,91`) / CC colours from non-CC-specific components (auth forms especially).
+3. **Brand-settings UI must validate WCAG AA on input** (accent vs bg, text vs bg ≥ 4.5:1) so a tenant can't save an unreadable palette — and show the computed accent-foreground in the preview.
+- Acceptance: the Adaptavis (default-brand) claim page + any new tenant's buttons/wordmark are all ≥4.5:1.
+
 ### [AGENT:DATA] 2026-06-27 — CR1 + CR3 fixed; DATA lane complete
 
 **Fixed per CTO review:**
