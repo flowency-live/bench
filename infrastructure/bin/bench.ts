@@ -43,6 +43,9 @@ const authStack = new BenchAuthStack(app, 'BenchAuthStack', {
     '146111307675-a1dlf1drh7k5mmeb7323md8vice3hlpq.apps.googleusercontent.com',
   googleClientSecretArn:
     'arn:aws:secretsmanager:eu-west-2:771551874768:secret:bench/google-oauth-kmVTnT',
+  // Apple IdP for godmode sign-in (ADR-0014)
+  appleSignInSecretArn:
+    'arn:aws:secretsmanager:eu-west-2:771551874768:secret:bench/apple-signin-key-bD1kS4',
   // SES: enable domain identity (looks up hosted zone internally)
   enableSesIdentity: true,
 });

@@ -1,6 +1,12 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import * as React from 'react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CurrencyInput } from '../CurrencyInput';
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('CurrencyInput', () => {
   it('renders with placeholder when value is null', () => {

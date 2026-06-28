@@ -13,11 +13,10 @@ export const dynamic = 'force-dynamic';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; reset?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
-  const { error, reset } = await searchParams;
+  const { error } = await searchParams;
   const invalid = error === 'invalid';
-  const resetSuccess = reset === 'success';
 
   return (
     <main className="login-page relative min-h-screen flex items-center justify-center px-6 py-12 overflow-hidden">
@@ -56,7 +55,7 @@ export default async function LoginPage({
             <p className="mb-8 text-[15px] text-[#cbd5e1] leading-relaxed">
               Manage the collective and consultant profiles.
             </p>
-            <LoginForm invalid={invalid} resetSuccess={resetSuccess} />
+            <LoginForm invalid={invalid} />
           </div>
         </div>
 

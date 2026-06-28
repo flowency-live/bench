@@ -28,6 +28,13 @@ export interface BenchAuthStackProps extends cdk.StackProps {
    * When true, creates SES identity with DKIM and Route 53 records.
    */
   readonly enableSesIdentity?: boolean;
+  /**
+   * ARN of the Secrets Manager secret containing the Apple Sign in credentials.
+   * The secret should have JSON keys: teamId, keyId, servicesId, privateKey.
+   * If not provided, Apple IdP will not be configured.
+   * Required for godmode Apple sign-in (ADR-0014).
+   */
+  readonly appleSignInSecretArn?: string;
 }
 
 /**
@@ -156,13 +163,50 @@ export class BenchAuthStack extends cdk.Stack {
       );
     }
 
+    // Apple IdP for godmode sign-in (ADR-0014)
+    // Only configured if appleSignInSecretArn is provided
+    let appleProvider: cognito.UserPoolIdentityProviderApple | undefined;
+    if (props.appleSignInSecretArn) {
+      const appleSecret = secretsmanager.Secret.fromSecretCompleteArn(
+        this,
+        'AppleSignInSecret',
+        props.appleSignInSecretArn
+      );
+
+      appleProvider = new cognito.UserPoolIdentityProviderApple(
+        this,
+        'AppleProvider',
+        {
+          userPool: this.userPool,
+          clientId: appleSecret
+            .secretValueFromJson('servicesId')
+            .unsafeUnwrap(),
+          teamId: appleSecret.secretValueFromJson('teamId').unsafeUnwrap(),
+          keyId: appleSecret.secretValueFromJson('keyId').unsafeUnwrap(),
+          privateKeyValue: appleSecret.secretValueFromJson('privateKey'),
+          scopes: ['email', 'name'],
+          attributeMapping: {
+            email: cognito.ProviderAttribute.APPLE_EMAIL,
+            fullname: cognito.ProviderAttribute.APPLE_NAME,
+          },
+        }
+      );
+    }
+
     // Determine supported identity providers
-    const supportedIdentityProviders = googleProvider
-      ? [
-          cognito.UserPoolClientIdentityProvider.COGNITO,
-          cognito.UserPoolClientIdentityProvider.GOOGLE,
-        ]
-      : [cognito.UserPoolClientIdentityProvider.COGNITO];
+    const supportedIdentityProviders: cognito.UserPoolClientIdentityProvider[] =
+      [cognito.UserPoolClientIdentityProvider.COGNITO];
+
+    if (googleProvider) {
+      supportedIdentityProviders.push(
+        cognito.UserPoolClientIdentityProvider.GOOGLE
+      );
+    }
+    if (appleProvider) {
+      supportedIdentityProviders.push(
+        cognito.UserPoolClientIdentityProvider.APPLE
+      );
+    }
 
     this.userPoolClient = this.userPool.addClient('WebClient', {
       userPoolClientName: 'bench-web',
@@ -199,9 +243,12 @@ export class BenchAuthStack extends cdk.Stack {
       preventUserExistenceErrors: true,
     });
 
-    // Ensure client depends on Google provider if configured
+    // Ensure client depends on identity providers if configured
     if (googleProvider) {
       this.userPoolClient.node.addDependency(googleProvider);
+    }
+    if (appleProvider) {
+      this.userPoolClient.node.addDependency(appleProvider);
     }
 
     // SES Email Identity for sending emails (Phase 4, ADR-0012)
@@ -223,8 +270,8 @@ export class BenchAuthStack extends cdk.Stack {
       });
 
       new cdk.CfnOutput(this, 'SesSenderEmail', {
-        value: `no-reply@${domainName}`,
-        description: 'SES sender email address',
+        value: 'noreply@opstack.uk',
+        description: 'SES sender email address (apex domain)',
       });
     }
 
@@ -236,19 +283,19 @@ export class BenchAuthStack extends cdk.Stack {
       {
         managedPolicyName: 'bench-amplify-runtime-policy',
         description:
-          'Grants Amplify SSR runtime permissions for SES email and Cognito auth (ADR-0012)',
+          'Grants Amplify SSR runtime permissions for SES email, SMS OTP, and Cognito auth (ADR-0012/ADR-0014)',
         statements: [
-          // SES: Send emails from bench.opstack.uk
+          // SES: Send emails from noreply@opstack.uk (verified apex domain)
           new iam.PolicyStatement({
             sid: 'SesSendEmail',
             effect: iam.Effect.ALLOW,
             actions: ['ses:SendEmail', 'ses:SendRawEmail'],
             resources: [
-              `arn:aws:ses:${this.region}:${this.account}:identity/${domainName}`,
+              `arn:aws:ses:${this.region}:${this.account}:identity/opstack.uk`,
             ],
             conditions: {
               StringEquals: {
-                'ses:FromAddress': `no-reply@${domainName}`,
+                'ses:FromAddress': 'noreply@opstack.uk',
               },
             },
           }),
@@ -280,6 +327,22 @@ export class BenchAuthStack extends cdk.Stack {
               'cognito-idp:AdminDeleteUser',
             ],
             resources: [this.userPool.userPoolArn],
+          }),
+          // S3: Tenant logo uploads (CP6 per-tenant branding, ADR-0013)
+          new iam.PolicyStatement({
+            sid: 'S3TenantLogoUpload',
+            effect: iam.Effect.ALLOW,
+            actions: ['s3:PutObject', 's3:DeleteObject'],
+            resources: [
+              `arn:aws:s3:::bench-assets-${this.account}/tenants/*`,
+            ],
+          }),
+          // SMS: Phone OTP via SNS (ADR-0014 passwordless auth)
+          new iam.PolicyStatement({
+            sid: 'SnsSmsSend',
+            effect: iam.Effect.ALLOW,
+            actions: ['sns:Publish'],
+            resources: ['*'], // SNS Publish for SMS requires * resource
           }),
         ],
       }
@@ -328,10 +391,37 @@ export class BenchAuthStack extends cdk.Stack {
         'Google IdP callback URL - configure this in Google Cloud Console as Authorized redirect URI',
     });
 
+    // Apple IdP callback URL (already configured in Apple Developer Console)
+    new cdk.CfnOutput(this, 'AppleIdpCallbackUrl', {
+      value: `https://${this.userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com/oauth2/idpresponse`,
+      description:
+        'Apple IdP callback URL - configure this in Apple Developer Console as Return URL',
+    });
+
     // Godmode callback URL
     new cdk.CfnOutput(this, 'GodmodeCallbackUrl', {
       value: `https://${domainName}/godmode/auth/callback`,
       description: 'Godmode auth callback URL',
+    });
+
+    // Tenant assets pipeline outputs (CP6 per-tenant branding, ADR-0013)
+    new cdk.CfnOutput(this, 'AssetsBucketName', {
+      value: `bench-assets-${this.account}`,
+      description: 'S3 bucket for tenant assets (logos, etc.)',
+      exportName: 'BenchAssetsBucket',
+    });
+
+    new cdk.CfnOutput(this, 'AssetsCdnDomain', {
+      value: `assets.${domainName}`,
+      description: 'CloudFront CDN domain for tenant assets',
+      exportName: 'BenchAssetsCdnDomain',
+    });
+
+    // SMS sender ID for phone OTP (ADR-0014)
+    new cdk.CfnOutput(this, 'SmsSenderId', {
+      value: 'BENCH',
+      description: 'SMS sender ID for phone OTP (UK)',
+      exportName: 'BenchSmsSenderId',
     });
   }
 }

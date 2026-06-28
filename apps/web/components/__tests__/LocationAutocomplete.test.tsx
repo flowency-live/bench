@@ -1,4 +1,6 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import * as React from 'react';
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LocationAutocomplete } from '../LocationAutocomplete';
 import type { ProfileLocation } from '@/lib/types';
@@ -23,6 +25,10 @@ beforeAll(() => {
 
 afterAll(() => {
   delete (globalThis as unknown as { google?: unknown }).google;
+});
+
+afterEach(() => {
+  cleanup();
 });
 
 describe('LocationAutocomplete', () => {

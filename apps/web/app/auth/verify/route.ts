@@ -84,19 +84,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const email = emailPart.trim().toLowerCase();
   if (!email) return invalid();
 
-  // Look up the user to check if they have a Cognito identity.
+  // Look up the user to verify they exist in this tenant.
   const users = getUserRepository();
   const user = await users.getByEmail(email);
 
-  // If user exists in this tenant but has NO cognitoId, redirect to claim page
-  // so they can set their password (ADR-0012: first-time password registration).
-  if (user && user.tenantId === lookup.tenantId && !user.cognitoId) {
-    // Don't burn the link yet — the claim page will validate and burn it.
-    return NextResponse.redirect(`${origin}/auth/claim?token=${encodeURIComponent(token)}`);
-  }
-
-  // User has cognitoId (returning user) or doesn't exist — proceed with magic link login.
-  // Activate the user on claim (status pending → active) if they exist.
+  // ADR-0014: Passwordless. Magic link = direct sign-in.
+  // Activate the user on first claim (status pending → active).
   if (user && user.tenantId === lookup.tenantId && user.status === 'pending') {
     await users.setStatus(lookup.tenantId, user.id, 'active');
   }

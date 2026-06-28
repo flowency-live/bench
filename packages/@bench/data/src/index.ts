@@ -88,3 +88,18 @@ export {
   type MagicLinkStatus,
   type CreateMagicLinkInput,
 } from './repository/magic-link-repository.js';
+
+// OTP repository (ADR-0014: phone OTP for passwordless auth)
+export {
+  createOtpRepository,
+  type OtpRepository,
+  type OtpCreateResult,
+} from './repository/otp-repository.js';
+
+// Invite claim service (ADR-0014: decoupled claim / acceptInvite)
+export {
+  createInviteClaimService,
+  type InviteClaimService,
+  type AcceptInviteIdentity,
+  type AcceptInviteResult,
+} from './repository/invite-claim.js';

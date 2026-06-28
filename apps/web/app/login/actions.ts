@@ -7,8 +7,6 @@ import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { getUserRepository } from '@/lib/data/user';
 import { getTenantRepository } from '@/lib/data/tenant';
 import { sendMagicLinkEmail } from '@/lib/email/send';
-import { signIn, CognitoError } from '@/lib/auth/cognito';
-import { createSession } from '@/lib/auth/session';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -103,72 +101,4 @@ export async function requestAdminLink(
   }
 
   return { ok: true };
-}
-
-/** State returned from password sign-in. */
-export interface PasswordSignInState {
-  readonly ok: boolean;
-  readonly error?: string;
-}
-
-/**
- * Sign in with email and password via Cognito.
- *
- * This is for returning users who have already claimed their account and set
- * a password (ADR-0012). New users without a cognitoId go through the magic
- * link → claim flow first.
- */
-export async function signInWithPassword(
-  _prev: PasswordSignInState,
-  formData: FormData,
-): Promise<PasswordSignInState> {
-  const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  const password = String(formData.get('password') ?? '');
-
-  if (!EMAIL_RE.test(email)) {
-    return { ok: false, error: 'Please enter a valid email address.' };
-  }
-  if (!password) {
-    return { ok: false, error: 'Please enter your password.' };
-  }
-
-  // Look up the user by email to get their tenant context.
-  const users = getUserRepository();
-  const user = await users.getByEmail(email);
-
-  // User must exist and have a cognitoId to use password login.
-  if (!user || !user.cognitoId) {
-    // Generic error to avoid revealing if email exists.
-    return { ok: false, error: 'Incorrect email or password.' };
-  }
-
-  // User must be an admin to access the admin login.
-  if (user.role !== 'admin') {
-    return { ok: false, error: 'Incorrect email or password.' };
-  }
-
-  try {
-    // Authenticate with Cognito.
-    await signIn(email, password);
-
-    // Create session.
-    await createSession({
-      kind: 'admin',
-      tenantId: user.tenantId,
-      email,
-      role: 'owner',
-    });
-  } catch (err) {
-    if (err instanceof CognitoError) {
-      if (err.code === 'INVALID_CREDENTIALS' || err.code === 'USER_NOT_FOUND') {
-        return { ok: false, error: 'Incorrect email or password.' };
-      }
-      return { ok: false, error: err.message };
-    }
-    console.error('[password-login-error]', err);
-    return { ok: false, error: 'An unexpected error occurred. Please try again.' };
-  }
-
-  // Redirect to dashboard (must be outside try/catch).
-  redirect('/dashboard');
 }
