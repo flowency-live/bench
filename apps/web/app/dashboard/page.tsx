@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/AppHeader';
+import { BrandedWrapper } from '@/components/BrandedWrapper';
 import { DashboardClient, type DashboardRow } from '@/app/dashboard/DashboardClient';
 import { getRepository } from '@/lib/data/repository';
 import { computeCompletion } from '@/lib/profile-completion';
@@ -52,7 +53,7 @@ export default async function DashboardPage() {
         );
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
+    <BrandedWrapper tenant={tenant} className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <AppHeader />
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -81,7 +82,7 @@ export default async function DashboardPage() {
           )}
         </div>
       </main>
-    </div>
+    </BrandedWrapper>
   );
 }
 

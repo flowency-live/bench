@@ -612,6 +612,23 @@ Jason flagged: no "who am I logged in as", no account/password area, no tenant-u
 - `app/globals.css` — scoped `.bench-landing` theme (gradients, buttons, cards).
 - Thanks for the catches on my `/settings`, `/team`, `AppHeader` (member-session email) — all correct, kept.
 
+### [CTO] 2026-06-27 — CP6 per-tenant branding: decision (ADR-0013) + build spec
+**Decision (Jason):** shared domain for the pilot + build per-tenant branding now. Recorded in **ADR-0013**. Brand is **resolved from context** (session `tenantId` → magic-link/share token's tenant → Bench default), and `Tenant.brandTokens` are applied as the existing `--color-*` CSS vars at render. Generic `/login` + marketing stay Bench/OpStack; everything customer-facing is tenant-branded. **Consultants/clients are tenant-branded from the token — they never see Bench.**
+
+**DATA (`auth/data`):**
+- Add `TenantRepository.updateBrand(tenantId, brandTokens)` (or a general `update(tenantId, patch)`) — persist `brandTokens` + `instanceName` + `customDomain`; stamp `updatedAt`; test it. (Owners edit their brand → CP6 needs a write path; `create/setStatus/delete` don't cover it.)
+
+**WEB (`auth/web`):**
+1. **Resolver** `lib/brand/resolve.ts`: `getActiveTenant()` → from `getTenantId(await getSession())` then `getTenantRepository().get(id)`; token-based surfaces (invite/claim/share) already resolve the tenant — pass that one. Define `BENCH_DEFAULT_BRAND` for the no-tenant case. Cache per request.
+2. **`brandStyle(tokens): CSSProperties`** mapping `BrandTokens` → `{ '--color-bg-primary', '--color-bg-panel', '--color-accent', '--color-text-primary', '--color-text-secondary' }`. Apply as inline `style` on each tenant surface's top wrapper — existing `var(--color-*)` classes re-skin with **no per-component edits** (same trick as `.flowency-godmode`).
+3. **`TenantLogo`**: render `logoAssetId` → `<img>` when present, else a styled **`instanceName` wordmark** fallback. Replace the hardcoded CC `Logo` + `PILOT_TENANT.instanceName` in `AppHeader` (+ footer/print/share). Seed CC's logo so the pilot is visually unchanged.
+4. **Wire surfaces:** dashboard · profiles/[id] · profiles/[id]/edit · profiles/[id]/print · invite/[token] · auth/claim · share/[token]. Generic `/login` stays Bench default (owner re-skins after the dashboard loads). De-hardcode `PILOT_TENANT` for *display* (keep it only as the seed/default id).
+5. **Brand-settings UI** (admin, `/settings/brand` or a section): edit colours + instance name + (later) logo → `updateBrand`. **Validate WCAG AA contrast on input** (ADR/CLAUDE.md) so a tenant can't ship an unreadable portal.
+
+**Acceptance:** create a 2nd tenant in godmode with distinct `brandTokens` → its dashboard + a consultant invite link render in **its** colours/instance name; CC unchanged; generic `/login` + `/` stay Bench/OpStack.
+
+**Deferred (ADR-0013, do NOT build now):** per-tenant custom domains/subdomains; cross-tenant consultant identity (person→many profiles); per-tenant profile templates — but **keep the profile sections data-driven** so templates slot in later.
+
 ### [AGENT:DATA] 2026-06-27 — CR1 + CR3 fixed; DATA lane complete
 
 **Fixed per CTO review:**
@@ -782,3 +799,101 @@ aws iam attach-role-policy \
 - `listByTenant(tenantId)` returns `[]`
 
 **DATA lane complete.** All CR items resolved (CR1, CR3, CR2/AJ7).
+
+### [AGENT:WEB] 2026-06-28 — CP6 claimed: per-tenant branding
+
+**Claimed:** WEB lane for CP6 (per-tenant branding). Branch: `auth/web`.
+
+**Implementing per ADR-0013:**
+1. `lib/brand/resolve.ts` — brand resolver (session → tenant → tokens)
+2. `brandStyle(tokens)` — maps BrandTokens to `--color-*` CSS vars
+3. `TenantLogo` component — logo or instanceName wordmark fallback
+4. Wire surfaces: dashboard, profiles/[id], profiles/[id]/edit, profiles/[id]/print, invite/[token], auth/claim, share/[token]
+5. Admin brand-settings UI with WCAG-AA contrast validation
+
+**Acceptance:** 2nd godmode tenant with distinct brand renders in its own colours; CC unchanged; generic `/login` + `/` stay Bench/OpStack.
+
+### [AGENT:DATA] 2026-06-28 — CP6 brand-write path: TenantRepository.update() implemented
+
+**Implemented per CTO CP6 spec (ADR-0013).**
+
+`TenantRepository.update(id, patch)` added for persisting tenant branding:
+- `instanceName`: display name for the portal header
+- `brandTokens`: CSS color/font tokens (**merged** over existing, not replaced wholesale)
+- `customDomain`: optional per-tenant domain
+- Stamps `updatedAt` on every update
+- Throws `'Tenant not found'` if tenant doesn't exist
+
+**Types exported from `@bench/data`:**
+- `UpdateTenantPatch` — `{ instanceName?: string; brandTokens?: Partial<BrandTokens>; customDomain?: string | null }`
+- `ExtendedTenantRepository` — extends `TenantRepository` with `update(id, patch)`
+
+**Tests added (TDD, +8):**
+- `updates brandTokens and stamps updatedAt`
+- `updates instanceName`
+- `updates customDomain`
+- `allows setting customDomain to null`
+- `throws for non-existent tenant`
+- `preserves unchanged fields`
+- `can update multiple fields at once`
+- `writes the updated item to DynamoDB`
+
+**Tests:** 109 passing (39 tenant + 31 user + 27 profile + 12 magic-link)
+
+**Build:** `@bench/data` compiles clean.
+
+**Files changed:**
+- `packages/@bench/data/src/repository/tenant-repository.ts` — `update()` method + `UpdateTenantPatch`/`ExtendedTenantRepository` types
+- `packages/@bench/data/src/repository/__tests__/tenant-repository.test.ts` — 8 new update tests
+- `packages/@bench/data/src/index.ts` — exports new types
+
+**Ready for WEB:** Import `ExtendedTenantRepository` + `UpdateTenantPatch` from `@bench/data`. Wire `update(tenantId, patch)` in brand-settings UI (`/settings/brand`). Validate WCAG AA contrast on input per ADR/CLAUDE.md.
+
+### [AGENT:WEB] 2026-06-28 — CP6 complete: per-tenant branding
+
+**Implemented per ADR-0013:**
+
+1. **Brand resolver** (`lib/brand/resolve.ts`)
+   - `getActiveTenant()` — resolves tenant from session or explicit param
+   - `getActiveBrand()` — returns brand tokens (tenant's or BENCH_DEFAULT_BRAND)
+   - `brandStyle(tokens)` — maps BrandTokens to `--color-*` CSS vars
+
+2. **WCAG contrast utility** (`lib/brand/contrast.ts`)
+   - `contrastRatio()`, `getContrastLevel()` — calculate WCAG ratios
+   - `validateBrandContrast()` — validates brand tokens for AA compliance
+   - Blocks save if primary text < 4.5:1, accent < 3:1
+
+3. **Components**
+   - `TenantLogo` — renders logo or instanceName wordmark fallback
+   - `BrandedWrapper` — server component applying brand CSS vars
+
+4. **Surfaces wired (all render tenant brand):**
+   - `/dashboard`
+   - `/profiles/[id]`, `/profiles/[id]/edit`, `/profiles/[id]/print`
+   - `/invite/[token]` (tenant from token)
+   - `/auth/claim` (tenant from token)
+   - `/share/[token]` (tenant from token)
+   - `/settings`, `/settings/brand`
+
+5. **Brand settings UI** (`/settings/brand`)
+   - Edit instanceName, bgPrimary, bgPanel, accent, textPrimary, textSecondary
+   - Live contrast checks with pass/fail indicators
+   - Live preview with all colors
+   - Persists via `TenantRepository.update()` from DATA lane
+
+**Tests:** 63 passing (+17 contrast, +12 resolve)
+
+**Build:** Web compiles clean.
+
+**Files changed:**
+- `apps/web/lib/brand/resolve.ts` — brand resolver
+- `apps/web/lib/brand/contrast.ts` — WCAG contrast utility
+- `apps/web/components/TenantLogo.tsx` — dynamic tenant logo
+- `apps/web/components/BrandedWrapper.tsx` — brand CSS var wrapper
+- `apps/web/components/AppHeader.tsx` — uses TenantLogo
+- `apps/web/app/settings/brand/` — brand settings page + form + actions
+- 8 page files updated with BrandedWrapper
+
+**Also fixed:** Magic link `findById` SK mismatch (pushed to main, deployed)
+
+**Acceptance test ready:** Create 2nd tenant in godmode with distinct brand tokens → dashboard/profiles render in its colors while CC unchanged.

@@ -1,9 +1,11 @@
 import { notFound, redirect } from 'next/navigation';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
+import { BrandedWrapper } from '@/components/BrandedWrapper';
+import { TenantLogo } from '@/components/TenantLogo';
 import { getRepository } from '@/lib/data/repository';
 import { getSession, getTenantId } from '@/lib/auth/session';
+import { getTenantRepository } from '@/lib/data/tenant';
 import { PrintTrigger } from './PrintTrigger';
-import { Logo } from '@/components/Logo';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +13,7 @@ export const dynamic = 'force-dynamic';
  * Print-to-PDF view — bare branded one-pager (no app header/toolbar) sized to a
  * single A4 page, with the print dialog auto-opened so the owner just hits
  * "Save as PDF". Orientation comes from `?o=landscape|portrait` (default
- * portrait).
+ * portrait). Renders with the tenant's brand (ADR-0013).
  *
  * NOTE: production upgrade is a server-side render — Lambda + headless Chromium
  * → S3 (PRD §12) — for a true one-click download with guaranteed embedded fonts
@@ -36,8 +38,10 @@ export default async function PrintProfilePage({
   const profile = await getRepository().get(tenantId, id);
   if (!profile) notFound();
 
+  const tenant = await getTenantRepository().get(tenantId);
+
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)] px-4 py-6 text-[var(--color-text-primary)] print:p-0">
+    <BrandedWrapper tenant={tenant} className="min-h-screen bg-[var(--color-bg-primary)] px-4 py-6 text-[var(--color-text-primary)] print:p-0">
       {/* Print sizing: one A4 page in the chosen orientation; the renderer keeps
           its navy fill edge-to-edge via print-color-adjust. */}
       <style>{`
@@ -57,12 +61,16 @@ export default async function PrintProfilePage({
       <PrintTrigger />
 
       <div className="print-sheet mx-auto max-w-4xl">
-        {/* Brand header so the printed PDF is clearly Change Connected. */}
+        {/* Brand header with tenant logo */}
         <div className="mb-6 flex items-center">
-          <Logo className="h-8 w-auto" />
+          {tenant ? (
+            <TenantLogo tenant={tenant} size="md" />
+          ) : (
+            <span className="text-lg font-bold text-[var(--color-accent)]">Bench</span>
+          )}
         </div>
         <ProfileRenderer profile={profile} />
       </div>
-    </div>
+    </BrandedWrapper>
   );
 }

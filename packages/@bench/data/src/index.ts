@@ -40,8 +40,12 @@ export {
 // Profile repository - implementation
 export { createProfileRepository } from './repository/profile-repository.js';
 
-// Tenant repository - implementation
-export { createTenantRepository } from './repository/tenant-repository.js';
+// Tenant repository - implementation + extended types
+export {
+  createTenantRepository,
+  type UpdateTenantPatch,
+  type ExtendedTenantRepository,
+} from './repository/tenant-repository.js';
 
 // User repository - implementation
 export { createUserRepository } from './repository/user-repository.js';

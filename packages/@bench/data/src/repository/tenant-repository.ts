@@ -23,6 +23,32 @@ import { DEFAULT_BRAND_TOKENS } from '@bench/types';
 import { tenantPK, tenantSK } from '../keys.js';
 
 /**
+ * Patch input for updating a tenant's branding/display settings.
+ * All fields are optional - only provided fields are updated.
+ * brandTokens is merged over existing (not replaced wholesale).
+ */
+export interface UpdateTenantPatch {
+  readonly instanceName?: string;
+  readonly brandTokens?: Partial<BrandTokens>;
+  readonly customDomain?: string | null;
+}
+
+/**
+ * Extended TenantRepository interface with update method.
+ * The base TenantRepository from @bench/types doesn't include update yet.
+ */
+export interface ExtendedTenantRepository extends TenantRepository {
+  /**
+   * Update a tenant's branding/display settings.
+   * - instanceName: the display name shown in the portal header
+   * - brandTokens: CSS color/font tokens (merged over existing)
+   * - customDomain: optional custom domain for the tenant
+   * Stamps updatedAt. Throws if tenant not found.
+   */
+  update(id: string, patch: UpdateTenantPatch): Promise<Tenant>;
+}
+
+/**
  * DynamoDB item shape for a Tenant.
  */
 interface TenantItem {
@@ -79,7 +105,7 @@ function itemToTenant(item: TenantItem): Tenant {
 export function createTenantRepository(
   client: DynamoDBDocumentClient,
   tableName: string,
-): TenantRepository {
+): ExtendedTenantRepository {
   return {
     /**
      * List all tenants (godmode cross-tenant operation).
@@ -203,6 +229,61 @@ export function createTenantRepository(
         brandTokens: existing.brandTokens,
         customDomain: existing.customDomain,
         status,
+        trialEndsAt: existing.trialEndsAt,
+        createdAt: existing.createdAt,
+        updatedAt: now,
+      };
+
+      await client.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: item,
+        }),
+      );
+
+      return itemToTenant(item);
+    },
+
+    /**
+     * Update a tenant's branding/display settings.
+     * - instanceName: the display name shown in the portal header
+     * - brandTokens: CSS color/font tokens (merged over existing, not replaced)
+     * - customDomain: optional custom domain for the tenant
+     * Stamps updatedAt. Throws if tenant not found.
+     */
+    async update(id: string, patch: UpdateTenantPatch): Promise<Tenant> {
+      // Fetch existing tenant
+      const existing = await this.get(id);
+      if (!existing) {
+        throw new Error('Tenant not found');
+      }
+
+      const now = new Date().toISOString();
+
+      // Merge brandTokens: partial patch over existing
+      const brandTokens: BrandTokens =
+        patch.brandTokens !== undefined
+          ? { ...existing.brandTokens, ...patch.brandTokens }
+          : existing.brandTokens;
+
+      // Apply patch, preserving unchanged fields
+      const item: TenantItem = {
+        PK: tenantPK(id),
+        SK: tenantSK(id),
+        entityType: 'TENANT',
+        id: existing.id,
+        name: existing.name,
+        instanceName:
+          patch.instanceName !== undefined
+            ? patch.instanceName.trim()
+            : existing.instanceName,
+        slug: existing.slug,
+        brandTokens,
+        customDomain:
+          patch.customDomain !== undefined
+            ? patch.customDomain
+            : existing.customDomain,
+        status: existing.status,
         trialEndsAt: existing.trialEndsAt,
         createdAt: existing.createdAt,
         updatedAt: now,

@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/AppHeader';
+import { BrandedWrapper } from '@/components/BrandedWrapper';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
 import { getRepository } from '@/lib/data/repository';
 import { getSession, getTenantId } from '@/lib/auth/session';
+import { getTenantRepository } from '@/lib/data/tenant';
 import { ShareLinkButton } from './ShareLinkButton';
 import { SendInviteButton } from './SendInviteButton';
 import { StatusControls } from './StatusControls';
@@ -23,11 +25,12 @@ export default async function ProfilePage({
   const profile = await getRepository().get(tenantId, id);
   if (!profile) notFound();
 
+  const tenant = await getTenantRepository().get(tenantId);
   const isActive = profile.status === 'active';
   const canInvite = profile.status === 'no_profile' || profile.status === 'in_progress';
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
+    <BrandedWrapper tenant={tenant} className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <AppHeader />
       <main className="mx-auto max-w-4xl px-6 py-8">
         {/* Owner toolbar */}
@@ -102,6 +105,6 @@ export default async function ProfilePage({
 
         <ProfileRenderer profile={profile} />
       </main>
-    </div>
+    </BrandedWrapper>
   );
 }

@@ -1,12 +1,13 @@
 import Link from 'next/link';
-import { PILOT_TENANT } from '@/lib/tenant';
-import { getSession } from '@/lib/auth/session';
-import { Logo } from '@/components/Logo';
+import { getSession, getTenantId } from '@/lib/auth/session';
+import { getTenantRepository } from '@/lib/data/tenant';
+import { TenantLogo } from '@/components/TenantLogo';
+import { getActiveTenant } from '@/lib/brand/resolve';
 
 /**
- * Branded portal header — reads as an extension of the tenant's site
- * (navy / lime / Poppins). For the pilot that's Change Connected's "Change Hub".
+ * Branded portal header (ADR-0013).
  *
+ * Dynamically renders the tenant's logo/wordmark and name.
  * Always surfaces WHO is signed in and a way out: an admin shows their email
  * (linking to account settings); a switched-in platform (godmode) session shows
  * a "godmode" badge and a way back. Sign out is always present.
@@ -19,14 +20,18 @@ export async function AppHeader() {
   // Only admin sessions have email (members use profileId, platform is handled separately)
   const email = isAdmin ? session.email : null;
 
+  // Resolve tenant for branding
+  const tenant = await getActiveTenant();
+
   return (
     <header className="sticky top-0 z-20 border-b border-white/10 bg-[var(--color-bg-primary)]/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <Logo className="h-7 w-auto" />
-          <span className="hidden border-l border-white/15 pl-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)] sm:block">
-            {PILOT_TENANT.instanceName}
-          </span>
+          {tenant ? (
+            <TenantLogo tenant={tenant} size="sm" />
+          ) : (
+            <span className="text-lg font-bold text-[var(--color-accent)]">Bench</span>
+          )}
         </Link>
 
         <nav className="flex items-center gap-5 text-sm">

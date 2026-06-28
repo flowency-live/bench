@@ -366,6 +366,147 @@ describe('TenantRepository', () => {
     });
   });
 
+  describe('update', () => {
+    const existingItem = {
+      PK: 'TENANT#acme-inc',
+      SK: 'TENANT#acme-inc',
+      entityType: 'TENANT',
+      id: 'acme-inc',
+      name: 'Acme Inc',
+      instanceName: 'Acme Portal',
+      slug: 'acme-inc',
+      brandTokens: {
+        bgPrimary: '#001930',
+        bgPanel: '#002e52',
+        accent: '#baeb5b',
+        textPrimary: '#ffffff',
+        textSecondary: '#9dadc8',
+        fontDisplay: 'Poppins',
+        fontBody: 'Poppins',
+        logoAssetId: null,
+      },
+      customDomain: null,
+      status: 'active',
+      trialEndsAt: null,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    };
+
+    it('updates brandTokens and stamps updatedAt', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: existingItem });
+      ddbMock.on(PutCommand).resolves({});
+
+      const before = new Date().toISOString();
+      const result = await repo.update('acme-inc', {
+        brandTokens: {
+          bgPrimary: '#ff0000',
+          accent: '#00ff00',
+        },
+      });
+      const after = new Date().toISOString();
+
+      // Updated values (merged over existing)
+      expect(result.brandTokens.bgPrimary).toBe('#ff0000');
+      expect(result.brandTokens.accent).toBe('#00ff00');
+      // Preserved values
+      expect(result.brandTokens.bgPanel).toBe('#002e52');
+      expect(result.brandTokens.textPrimary).toBe('#ffffff');
+      // Timestamps
+      expect(result.updatedAt >= before).toBe(true);
+      expect(result.updatedAt <= after).toBe(true);
+    });
+
+    it('updates instanceName', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: existingItem });
+      ddbMock.on(PutCommand).resolves({});
+
+      const result = await repo.update('acme-inc', {
+        instanceName: 'New Portal Name',
+      });
+
+      expect(result.instanceName).toBe('New Portal Name');
+      expect(result.name).toBe('Acme Inc'); // Unchanged
+    });
+
+    it('updates customDomain', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: existingItem });
+      ddbMock.on(PutCommand).resolves({});
+
+      const result = await repo.update('acme-inc', {
+        customDomain: 'portal.acme.com',
+      });
+
+      expect(result.customDomain).toBe('portal.acme.com');
+    });
+
+    it('allows setting customDomain to null', async () => {
+      const itemWithDomain = { ...existingItem, customDomain: 'old.acme.com' };
+      ddbMock.on(GetCommand).resolves({ Item: itemWithDomain });
+      ddbMock.on(PutCommand).resolves({});
+
+      const result = await repo.update('acme-inc', {
+        customDomain: null,
+      });
+
+      expect(result.customDomain).toBeNull();
+    });
+
+    it('throws for non-existent tenant', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: undefined });
+
+      await expect(
+        repo.update('non-existent', { instanceName: 'Test' })
+      ).rejects.toThrow('Tenant not found');
+    });
+
+    it('preserves unchanged fields', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: existingItem });
+      ddbMock.on(PutCommand).resolves({});
+
+      const result = await repo.update('acme-inc', {
+        instanceName: 'Updated Name',
+      });
+
+      expect(result.id).toBe('acme-inc');
+      expect(result.name).toBe('Acme Inc');
+      expect(result.slug).toBe('acme-inc');
+      expect(result.status).toBe('active');
+      expect(result.createdAt).toBe('2024-01-01T00:00:00.000Z');
+      expect(result.brandTokens.bgPrimary).toBe('#001930'); // Unchanged
+    });
+
+    it('can update multiple fields at once', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: existingItem });
+      ddbMock.on(PutCommand).resolves({});
+
+      const result = await repo.update('acme-inc', {
+        instanceName: 'New Hub',
+        customDomain: 'hub.acme.com',
+        brandTokens: { accent: '#ff5500' },
+      });
+
+      expect(result.instanceName).toBe('New Hub');
+      expect(result.customDomain).toBe('hub.acme.com');
+      expect(result.brandTokens.accent).toBe('#ff5500');
+      expect(result.brandTokens.bgPrimary).toBe('#001930'); // Preserved
+    });
+
+    it('writes the updated item to DynamoDB', async () => {
+      ddbMock.on(GetCommand).resolves({ Item: existingItem });
+      ddbMock.on(PutCommand).resolves({});
+
+      await repo.update('acme-inc', { instanceName: 'Test Hub' });
+
+      const putCalls = ddbMock.commandCalls(PutCommand);
+      expect(putCalls).toHaveLength(1);
+
+      const item = putCalls[0].args[0].input.Item;
+      expect(item?.PK).toBe('TENANT#acme-inc');
+      expect(item?.SK).toBe('TENANT#acme-inc');
+      expect(item?.instanceName).toBe('Test Hub');
+    });
+  });
+
   describe('delete', () => {
     it('removes the tenant item', async () => {
       // Mock: tenant item exists (returned by Query on PK = TENANT#{id})

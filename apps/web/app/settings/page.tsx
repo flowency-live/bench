@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/AppHeader';
-import { PILOT_TENANT } from '@/lib/tenant';
-import { getSession } from '@/lib/auth/session';
+import { BrandedWrapper } from '@/components/BrandedWrapper';
+import { getSession, getTenantId } from '@/lib/auth/session';
+import { getTenantRepository } from '@/lib/data/tenant';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,16 +60,20 @@ export default async function SettingsPage() {
     redirect('/login');
   }
 
+  const tenantId = getTenantId(session);
+  if (!tenantId) redirect('/login');
+
+  const tenant = await getTenantRepository().get(tenantId);
   const email = session.email;
   const roleLabel = 'Owner / Admin';
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
+    <BrandedWrapper tenant={tenant} className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <AppHeader />
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="text-3xl font-black tracking-tight">Account</h1>
         <p className="mt-2 text-[var(--color-text-secondary)]">
-          Your sign-in details for {PILOT_TENANT.instanceName}.
+          Your sign-in details for {tenant?.instanceName ?? 'your portal'}.
         </p>
 
         {/* Identity */}
@@ -94,8 +99,22 @@ export default async function SettingsPage() {
             Change password
           </Link>
         </section>
+
+        {/* Branding */}
+        <section className="mt-6 rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-6">
+          <h2 className="text-lg font-black">Branding</h2>
+          <p className="mt-1.5 text-sm text-[var(--color-text-secondary)]">
+            Customize your portal&rsquo;s appearance with your brand colors and logo.
+          </p>
+          <Link
+            href="/settings/brand"
+            className="mt-4 inline-block rounded-full border border-[var(--color-accent)] px-5 py-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
+          >
+            Customize branding
+          </Link>
+        </section>
       </main>
-    </div>
+    </BrandedWrapper>
   );
 }
 
