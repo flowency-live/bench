@@ -19,7 +19,10 @@ const CLIENT_ID = '7c6m3ubjne0u3adejpn58ou8cr';
  * The callback route verifies the state and exchanges the code for tokens.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const origin = request.nextUrl.origin;
+  // In Amplify SSR, nextUrl.origin returns localhost. Read actual host from headers.
+  const host = request.headers.get('host') ?? request.headers.get('x-forwarded-host') ?? 'localhost:3000';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  const origin = `${protocol}://${host}`;
   const redirectUri = `${origin}/godmode/auth/callback`;
 
   // Generate and store CSRF state
