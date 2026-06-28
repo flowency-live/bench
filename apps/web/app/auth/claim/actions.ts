@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { getUserRepository } from '@/lib/data/user';
 import { createSession } from '@/lib/auth/session';
-import { signUp, getUserSub, CognitoError } from '@/lib/auth/cognito';
+import { signUp, CognitoError } from '@/lib/auth/cognito';
 
 /** Sentinel profile id under which admin (owner) magic links are stored. */
 const ADMIN_PROFILE_ID = 'ADMIN';
@@ -97,11 +97,9 @@ export async function completeClaim(
   const { email, tenantId, linkId } = validated;
 
   try {
-    // Register with Cognito
-    await signUp(email, password);
-
-    // Get the Cognito user sub for bindIdentity
-    const cognitoSub = await getUserSub(email);
+    // Register with Cognito - signUp returns the userSub directly
+    const signUpResult = await signUp(email, password);
+    const cognitoSub = signUpResult.userSub;
     if (!cognitoSub) {
       return { ok: false, error: 'Failed to retrieve user identity. Please try again.' };
     }
