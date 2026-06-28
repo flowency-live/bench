@@ -8,11 +8,9 @@ import { getTenantRepository } from '@/lib/data/tenant';
 export const dynamic = 'force-dynamic';
 
 /**
- * Account settings — the signed-in owner's identity + password management.
+ * Account settings — the signed-in owner's identity management.
  *
- * Password change today routes through the verified reset flow (email a code →
- * set a new password). An in-app current→new change (no email round-trip) is a
- * WEB fast-follow using `cognito.changePassword`.
+ * ADR-0014: passwordless auth — no password management section.
  */
 export default async function SettingsPage() {
   const session = await getSession();
@@ -82,22 +80,6 @@ export default async function SettingsPage() {
           <div className="mt-4 border-t border-white/5 pt-4">
             <Field label="Role" value={roleLabel} />
           </div>
-        </section>
-
-        {/* Password */}
-        <section className="mt-6 rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-6">
-          <h2 className="text-lg font-black">Password</h2>
-          <p className="mt-1.5 text-sm text-[var(--color-text-secondary)]">
-            We&rsquo;ll email a verification code to <span className="text-white">{email}</span>,
-            then you set a new password. Must be at least 12 characters with upper and lower case,
-            a number, and a symbol.
-          </p>
-          <Link
-            href="/forgot-password"
-            className="mt-4 inline-block rounded-full border border-[var(--color-accent)] px-5 py-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
-          >
-            Change password
-          </Link>
         </section>
 
         {/* Branding */}

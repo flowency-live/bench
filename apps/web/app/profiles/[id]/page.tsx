@@ -9,6 +9,7 @@ import { getTenantRepository } from '@/lib/data/tenant';
 import { ShareLinkButton } from './ShareLinkButton';
 import { SendInviteButton } from './SendInviteButton';
 import { StatusControls } from './StatusControls';
+import { RatesPanel } from './RatesPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,9 @@ export default async function ProfilePage({
   const tenant = await getTenantRepository().get(tenantId);
   const isActive = profile.status === 'active';
   const canInvite = profile.status === 'no_profile' || profile.status === 'in_progress';
+
+  // Rates panel is only visible to tenant admins and platform admins
+  const canViewRates = session?.kind === 'admin' || session?.kind === 'platform';
 
   return (
     <BrandedWrapper tenant={tenant} className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
@@ -104,6 +108,16 @@ export default async function ProfilePage({
         )}
 
         <ProfileRenderer profile={profile} />
+
+        {/* Rates panel - admin only */}
+        {canViewRates && (
+          <div className="mt-8">
+            <RatesPanel
+              profileId={profile.id}
+              rates={profile.ratesAndPreferences}
+            />
+          </div>
+        )}
       </main>
     </BrandedWrapper>
   );
