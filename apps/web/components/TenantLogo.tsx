@@ -75,10 +75,12 @@ export function TenantLogo({ tenant, className = '', size = 'md' }: TenantLogoPr
     );
   }
 
-  // Fallback to text wordmark
+  // Fallback to text wordmark — render in the primary text colour (always legible
+  // on the brand background); the accent is reserved for buttons/highlights so the
+  // wordmark never fails contrast when an accent is dark (ADR-0013 / WCAG).
   return (
     <span
-      className={`${config.wordmarkClass} text-[var(--color-accent)] ${className}`}
+      className={`${config.wordmarkClass} text-[var(--color-text-primary)] ${className}`}
       style={{ fontFamily: tenant.brandTokens.fontDisplay }}
     >
       {tenant.instanceName}

@@ -9,6 +9,10 @@
 :root {
   --font-display: var(--font-poppins), 'Poppins', system-ui, sans-serif;
   --font-body: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+  /* Legible text colour on the accent (CC lime is light → dark text). Per-tenant
+     surfaces override this via brandStyle() with a value computed from the
+     tenant's accent, so accent buttons stay WCAG AA for any brand (ADR-0013). */
+  --color-accent-foreground: #0a0a0a;
 }
 
 html {

@@ -67,11 +67,40 @@ export async function getActiveBrand(
   return tenant?.brandTokens ?? BENCH_DEFAULT_BRAND;
 }
 
+/** WCAG relative luminance of a #rrggbb (or #rgb) colour. */
+function relLuminance(hex: string): number {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const ch = (i: number) => {
+    const c = parseInt(full.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * ch(0) + 0.7152 * ch(2) + 0.0722 * ch(4);
+}
+
+/**
+ * Pick the foreground (text) colour that reads best ON a given background —
+ * white or near-black, whichever gives higher contrast. Used so an accent
+ * button is always legible regardless of the tenant's accent (WCAG, ADR-0013).
+ */
+export function readableOn(hex: string): string {
+  try {
+    const L = relLuminance(hex);
+    const onWhite = 1.05 / (L + 0.05);
+    const onBlack = (L + 0.05) / 0.05;
+    return onWhite >= onBlack ? '#ffffff' : '#0a0a0a';
+  } catch {
+    return '#ffffff';
+  }
+}
+
 /**
  * Map BrandTokens to CSS custom properties for inline styling.
  *
  * Apply as `style` on the tenant surface wrapper - existing `var(--color-*)`
  * classes re-skin with no per-component edits (same technique as .flowency-godmode).
+ * Also derives `--color-accent-foreground` (a legible text colour on the accent)
+ * so accent buttons stay WCAG AA for any tenant accent.
  *
  * @param tokens - The brand tokens to convert
  * @returns CSS properties object suitable for React style prop
@@ -81,6 +110,7 @@ export function brandStyle(tokens: BrandTokens): CSSProperties {
     '--color-bg-primary': tokens.bgPrimary,
     '--color-bg-panel': tokens.bgPanel,
     '--color-accent': tokens.accent,
+    '--color-accent-foreground': readableOn(tokens.accent),
     '--color-text-primary': tokens.textPrimary,
     '--color-text-secondary': tokens.textSecondary,
     '--font-display': tokens.fontDisplay,

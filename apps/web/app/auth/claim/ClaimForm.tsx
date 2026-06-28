@@ -46,7 +46,7 @@ export function ClaimForm({ token, email }: { token: string; email: string }) {
           minLength={8}
           autoComplete="new-password"
           placeholder="At least 8 characters"
-          className="w-full rounded-[10px] border border-white/10 bg-[rgba(0,12,24,0.6)] px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 transition-all hover:border-white/20 focus:border-[rgba(186,235,91,0.5)] focus:bg-[rgba(0,12,24,0.9)] focus:shadow-[0_0_0_3px_rgba(186,235,91,0.1)]"
+          className="w-full rounded-[10px] border border-white/10 bg-[rgba(0,12,24,0.6)] px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 transition-all hover:border-white/20 focus:border-[var(--color-accent)] focus:bg-[rgba(0,12,24,0.9)] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.10)]"
         />
       </div>
 
@@ -66,7 +66,7 @@ export function ClaimForm({ token, email }: { token: string; email: string }) {
           minLength={8}
           autoComplete="new-password"
           placeholder="Re-enter your password"
-          className="w-full rounded-[10px] border border-white/10 bg-[rgba(0,12,24,0.6)] px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 transition-all hover:border-white/20 focus:border-[rgba(186,235,91,0.5)] focus:bg-[rgba(0,12,24,0.9)] focus:shadow-[0_0_0_3px_rgba(186,235,91,0.1)]"
+          className="w-full rounded-[10px] border border-white/10 bg-[rgba(0,12,24,0.6)] px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 transition-all hover:border-white/20 focus:border-[var(--color-accent)] focus:bg-[rgba(0,12,24,0.9)] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.10)]"
         />
       </div>
 
@@ -88,7 +88,7 @@ export function ClaimForm({ token, email }: { token: string; email: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 w-full rounded-full bg-[var(--color-accent)] py-3 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-2 w-full rounded-full bg-[var(--color-accent)] py-3 text-sm font-black uppercase tracking-wide text-[var(--color-accent-foreground)] shadow-lg shadow-black/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? 'Creating account…' : 'Create account'}
       </button>

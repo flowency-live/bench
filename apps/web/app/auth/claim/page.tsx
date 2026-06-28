@@ -45,7 +45,7 @@ export default async function ClaimPage({
               <TenantLogo tenant={tenant} size="md" />
             </div>
           ) : (
-            <span className="mx-auto mb-6 block text-xl font-bold text-[var(--color-accent)]">Bench</span>
+            <span className="mx-auto mb-6 block text-xl font-bold text-[var(--color-text-primary)]">Bench</span>
           )}
           <h1 className="text-2xl font-black text-white">Set your password</h1>
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
