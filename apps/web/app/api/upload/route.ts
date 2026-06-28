@@ -3,7 +3,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
 import { getSession, getTenantId } from '@/lib/auth/session';
 
-const BUCKET_NAME = process.env.ASSETS_BUCKET ?? 'bench-assets';
+const BUCKET_NAME = process.env.ASSETS_BUCKET ?? 'bench-assets-771551874768';
 const REGION = process.env.AWS_REGION ?? 'eu-west-2';
 const CLOUDFRONT_DOMAIN = process.env.ASSETS_CDN_DOMAIN ?? 'assets.bench.opstack.uk';
 

@@ -1,24 +1,20 @@
 'use client';
 
-import { useState, useTransition, useCallback } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
 import { HeadshotUpload } from '@/components/HeadshotUpload';
-import { CurrencyInput } from '@/components/CurrencyInput';
-import { LocationAutocomplete } from '@/components/LocationAutocomplete';
 import { saveProfile, submitForReview } from '@/app/actions';
 import type {
   Profile,
   Skill,
   Story,
   Testimonial,
-  RatesAndPreferences,
-  EmploymentType,
-  IR35Status,
 } from '@/lib/types';
 
-const STEPS = ['Identity', 'Positioning', 'Skills', 'Impact', 'Testimonial', 'Rates', 'Review'] as const;
+// Rates are managed separately by tenant admins, not part of consultant profile wizard
+const STEPS = ['Identity', 'Positioning', 'Skills', 'Impact', 'Testimonial', 'Review'] as const;
 const uid = () => Math.random().toString(36).slice(2, 9);
 
 const field =
@@ -44,17 +40,8 @@ export function WizardClient({ profile }: { profile: Profile }) {
   const [testimonial, setTestimonial] = useState<Testimonial>(
     profile.testimonial ?? { quote: '', authorName: '', authorRole: '', authorCompany: '' },
   );
-  const [ratesAndPreferences, setRatesAndPreferences] = useState<RatesAndPreferences>(
-    profile.ratesAndPreferences ?? {
-      minDayRatePence: null,
-      salaryPence: null,
-      employmentTypes: [],
-      ir35Statuses: [],
-      hasLtdCo: false,
-      location: null,
-    },
-  );
 
+  // Rates are managed separately by tenant admins - not included in wizard patch
   const buildPatch = () => ({
     name: name.trim(),
     role: role.trim() || null,
@@ -64,13 +51,6 @@ export function WizardClient({ profile }: { profile: Profile }) {
     skills: skills.map((s, i) => ({ ...s, order: i })),
     stories: stories.map((s, i) => ({ ...s, order: i })),
     testimonial: hasTestimonial && testimonial.quote.trim() ? testimonial : null,
-    ratesAndPreferences:
-      ratesAndPreferences.minDayRatePence !== null ||
-      ratesAndPreferences.salaryPence !== null ||
-      ratesAndPreferences.employmentTypes.length > 0 ||
-      ratesAndPreferences.location !== null
-        ? ratesAndPreferences
-        : null,
   });
 
   const preview: Profile = {
@@ -83,13 +63,6 @@ export function WizardClient({ profile }: { profile: Profile }) {
     skills: skills.map((s, i) => ({ ...s, order: i })),
     stories: stories.map((s, i) => ({ ...s, order: i })),
     testimonial: hasTestimonial && testimonial.quote ? testimonial : null,
-    ratesAndPreferences:
-      ratesAndPreferences.minDayRatePence !== null ||
-      ratesAndPreferences.salaryPence !== null ||
-      ratesAndPreferences.employmentTypes.length > 0 ||
-      ratesAndPreferences.location !== null
-        ? ratesAndPreferences
-        : null,
   };
 
   const save = (then?: () => void) =>
@@ -328,124 +301,6 @@ export function WizardClient({ profile }: { profile: Profile }) {
         )}
 
         {step === 5 && (
-          <Section title="Rates &amp; Preferences" intro="Your rate expectations, working preferences, and location.">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <CurrencyInput
-                label="Min Day Rate"
-                value={ratesAndPreferences.minDayRatePence}
-                onChange={(v) => setRatesAndPreferences((r) => ({ ...r, minDayRatePence: v }))}
-                placeholder="e.g. 750.00"
-              />
-              <CurrencyInput
-                label="Target Salary"
-                value={ratesAndPreferences.salaryPence}
-                onChange={(v) => setRatesAndPreferences((r) => ({ ...r, salaryPence: v }))}
-                placeholder="e.g. 95,000.00"
-              />
-            </div>
-
-            <div className="mt-6">
-              <span className={label}>Employment Type</span>
-              <div className="mt-2 flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input
-                    type="checkbox"
-                    checked={ratesAndPreferences.employmentTypes.includes('contract')}
-                    onChange={(e) => {
-                      setRatesAndPreferences((r) => ({
-                        ...r,
-                        employmentTypes: e.target.checked
-                          ? [...r.employmentTypes, 'contract' as EmploymentType]
-                          : r.employmentTypes.filter((t) => t !== 'contract'),
-                      }));
-                    }}
-                    className="h-4 w-4 rounded border-white/30 bg-[var(--color-bg-primary)] text-[var(--color-accent)]"
-                  />
-                  Contract
-                </label>
-                <label className="flex items-center gap-2 text-sm text-white/80">
-                  <input
-                    type="checkbox"
-                    checked={ratesAndPreferences.employmentTypes.includes('permanent')}
-                    onChange={(e) => {
-                      setRatesAndPreferences((r) => ({
-                        ...r,
-                        employmentTypes: e.target.checked
-                          ? [...r.employmentTypes, 'permanent' as EmploymentType]
-                          : r.employmentTypes.filter((t) => t !== 'permanent'),
-                      }));
-                    }}
-                    className="h-4 w-4 rounded border-white/30 bg-[var(--color-bg-primary)] text-[var(--color-accent)]"
-                  />
-                  Permanent
-                </label>
-              </div>
-            </div>
-
-            {ratesAndPreferences.employmentTypes.includes('contract') && (
-              <div className="mt-4">
-                <span className={label}>IR35 Status</span>
-                <div className="mt-2 flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2 text-sm text-white/80">
-                    <input
-                      type="checkbox"
-                      checked={ratesAndPreferences.ir35Statuses.includes('inside')}
-                      onChange={(e) => {
-                        setRatesAndPreferences((r) => ({
-                          ...r,
-                          ir35Statuses: e.target.checked
-                            ? [...r.ir35Statuses, 'inside' as IR35Status]
-                            : r.ir35Statuses.filter((s) => s !== 'inside'),
-                        }));
-                      }}
-                      className="h-4 w-4 rounded border-white/30 bg-[var(--color-bg-primary)] text-[var(--color-accent)]"
-                    />
-                    Inside IR35
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-white/80">
-                    <input
-                      type="checkbox"
-                      checked={ratesAndPreferences.ir35Statuses.includes('outside')}
-                      onChange={(e) => {
-                        setRatesAndPreferences((r) => ({
-                          ...r,
-                          ir35Statuses: e.target.checked
-                            ? [...r.ir35Statuses, 'outside' as IR35Status]
-                            : r.ir35Statuses.filter((s) => s !== 'outside'),
-                        }));
-                      }}
-                      className="h-4 w-4 rounded border-white/30 bg-[var(--color-bg-primary)] text-[var(--color-accent)]"
-                    />
-                    Outside IR35
-                  </label>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4">
-              <label className="flex items-center gap-2 text-sm text-white/80">
-                <input
-                  type="checkbox"
-                  checked={ratesAndPreferences.hasLtdCo}
-                  onChange={(e) => setRatesAndPreferences((r) => ({ ...r, hasLtdCo: e.target.checked }))}
-                  className="h-4 w-4 rounded border-white/30 bg-[var(--color-bg-primary)] text-[var(--color-accent)]"
-                />
-                Operating via Ltd Co
-              </label>
-            </div>
-
-            <div className="mt-6">
-              <LocationAutocomplete
-                label="Location"
-                value={ratesAndPreferences.location}
-                onChange={(loc) => setRatesAndPreferences((r) => ({ ...r, location: loc }))}
-                placeholder="Start typing a UK city..."
-              />
-            </div>
-          </Section>
-        )}
-
-        {step === 6 && (
           <Section title="Review &amp; submit" intro="This is exactly how your profile will look.">
             <div className="-mx-2">
               <ProfileRenderer profile={preview} />
