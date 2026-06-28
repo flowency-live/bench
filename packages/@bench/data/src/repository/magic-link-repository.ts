@@ -23,8 +23,11 @@ import {
 
 /**
  * Magic link type
+ * - invite: New user accepting an invite (requires identity verification)
+ * - signin: Returning user requesting a sign-in link (email proves identity)
+ * - share: Client viewing a published profile
  */
-export type MagicLinkType = 'invite' | 'share';
+export type MagicLinkType = 'invite' | 'signin' | 'share';
 
 /**
  * Magic link scope
@@ -125,6 +128,16 @@ export interface MagicLinkRepository {
    * @param linkId - Magic link UUID
    */
   markAsRevoked(tenantId: string, profileId: string, linkId: string): Promise<void>;
+
+  /**
+   * List all share links for a profile.
+   * Used by the UI to show current active share link and history.
+   *
+   * @param tenantId - Tenant ID
+   * @param profileId - Profile ID
+   * @returns All share links for the profile (active, revoked, expired)
+   */
+  listSharesByProfile(tenantId: string, profileId: string): Promise<readonly MagicLink[]>;
 }
 
 /**
@@ -284,6 +297,27 @@ export function createMagicLinkRepository(
     async markAsRevoked(tenantId: string, profileId: string, linkId: string): Promise<void> {
       validateTenantId(tenantId);
       await updateStatus(client, tableName, tenantId, profileId, linkId, 'revoked');
+    },
+
+    async listSharesByProfile(tenantId: string, profileId: string): Promise<readonly MagicLink[]> {
+      validateTenantId(tenantId);
+
+      const result = await client.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+          ExpressionAttributeValues: {
+            ':pk': profilePK(tenantId, profileId),
+            ':skPrefix': 'LINK#share#',
+          },
+        })
+      );
+
+      if (!result.Items || result.Items.length === 0) {
+        return [];
+      }
+
+      return result.Items.map((item) => itemToMagicLink(item as MagicLinkItem));
     },
   };
 }

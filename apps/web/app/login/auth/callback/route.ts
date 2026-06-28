@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getOAuthStateStore } from '@/lib/data/oauth-state';
-import { getUserRepository } from '@/lib/data/user';
-import { createSession } from '@/lib/auth/session';
+import { completeAuthentication, getAuthErrorMessage } from '@/lib/auth/complete-auth';
 
 /**
  * Cognito configuration for tenant user social sign-in (ADR-0014).
@@ -101,11 +100,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(`${origin}/login?error=no_id_token`);
   }
 
-  // Decode the ID token to get the email
+  // Decode the ID token to get the email and verify claims
   let email: string;
+  let emailVerified: boolean;
   try {
     const claims = decodeJwtPayload(tokens.id_token);
     email = String(claims.email ?? '').trim().toLowerCase();
+    // email_verified is a boolean claim from Cognito/IdP
+    emailVerified = claims.email_verified === true || claims.email_verified === 'true';
   } catch (err) {
     console.error('[login-auth] Failed to decode ID token:', err);
     return NextResponse.redirect(`${origin}/login?error=invalid_token`);
@@ -116,23 +118,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(`${origin}/login?error=no_email`);
   }
 
-  // Look up the user by email
-  const userRepo = getUserRepository();
-  const user = await userRepo.getByEmail(email);
-
-  if (!user) {
-    console.error('[login-auth] No user found for email:', email);
-    return NextResponse.redirect(`${origin}/login?error=user_not_found`);
+  // SECURITY: Require email_verified from IdP (ADR-0014)
+  // Google/Apple should always verify emails, but we check anyway.
+  if (!emailVerified) {
+    console.error('[login-auth] Email not verified by IdP:', email);
+    return NextResponse.redirect(`${origin}/login?error=email_not_verified`);
   }
 
-  // Create admin session
-  await createSession({
-    kind: 'admin',
-    tenantId: user.tenantId,
-    email: user.email,
-    role: 'owner',
-  });
+  // Complete authentication using shared handler (handles pending invites, user lookup, etc.)
+  const result = await completeAuthentication(email);
 
-  // Redirect to dashboard
-  return NextResponse.redirect(`${origin}/dashboard`);
+  if (!result.success) {
+    console.error('[login-auth] Auth completion failed:', result.error, email);
+    // Map error to user-friendly message via URL param
+    const errorMessage = encodeURIComponent(getAuthErrorMessage(result.error));
+    return NextResponse.redirect(`${origin}/login?error=auth_failed&message=${errorMessage}`);
+  }
+
+  // Redirect to the determined destination (dashboard or profile edit)
+  return NextResponse.redirect(`${origin}${result.redirectTo}`);
 }

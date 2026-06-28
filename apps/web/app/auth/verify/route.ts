@@ -4,6 +4,7 @@ import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { getUserRepository } from '@/lib/data/user';
 import { createSession } from '@/lib/auth/session';
 import { isPlatformAdmin } from '@/lib/auth/platform';
+import { setPendingInvite } from '@/lib/auth/pending-invite';
 
 /** Sentinel profile id under which admin (owner) magic links are stored. */
 const ADMIN_PROFILE_ID = 'ADMIN';
@@ -40,7 +41,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!lookup) return invalid();
   if (lookup.status !== 'active') return invalid();
   if (new Date(lookup.expiresAt).getTime() <= Date.now()) return invalid();
-  if (lookup.type !== 'invite') return invalid();
+  // Accept both 'invite' (shareable onboarding) and 'signin' (returning user magic link)
+  if (lookup.type !== 'invite' && lookup.type !== 'signin') return invalid();
   if (lookup.scope !== 'edit') return invalid();
 
   // ── Platform (godmode) branch — NOT tenant-bound (ADR-0010). ──────────────
@@ -88,21 +90,59 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const users = getUserRepository();
   const user = await users.getByEmail(email);
 
-  // ADR-0014: Passwordless. Magic link = direct sign-in.
-  // Activate the user on first claim (status pending → active).
-  if (user && user.tenantId === lookup.tenantId && user.status === 'pending') {
-    await users.setStatus(lookup.tenantId, user.id, 'active');
+  // Verify user exists in this tenant
+  if (!user || user.tenantId !== lookup.tenantId) {
+    return invalid();
   }
 
-  await createSession({
-    kind: 'admin',
+  // ── ADR-0014: Invite ≠ Authentication ──────────────────────────────────────
+  // An invite link does NOT create a session by itself. It holds the invite
+  // in a signed cookie and redirects to /login for identity verification.
+  // The token is burned ONLY after successful identity binding.
+  //
+  // For type='signin' links (returning users who requested a magic link from
+  // /login), the email delivery itself proves identity, so we can create
+  // a session directly. But type='invite' (shareable onboarding links) must
+  // require identity verification first.
+
+  if (lookup.type === 'signin') {
+    // Sign-in link: email delivery proves identity. Create session directly.
+    // User must be active and an admin for admin sign-in links.
+    if (user.status !== 'active') {
+      // Pending or inactive users should use invite flow, not signin
+      return invalid();
+    }
+    if (user.role !== 'admin') {
+      // Non-admin users can't sign in via the admin path
+      // (they would use consultant magic links for their profile)
+      return invalid();
+    }
+
+    await createSession({
+      kind: 'admin',
+      tenantId: lookup.tenantId,
+      email,
+      role: 'owner',
+    });
+
+    // Burn the sign-in link (single-use).
+    await links.markAsUsed(lookup.tenantId, ADMIN_PROFILE_ID, lookup.id);
+
+    return NextResponse.redirect(`${origin}/dashboard`);
+  }
+
+  // For invite links: hold the invite, require identity verification.
+  // DO NOT burn the token yet — re-clicks should work until auth succeeds.
+  await setPendingInvite({
     tenantId: lookup.tenantId,
+    profileId: ADMIN_PROFILE_ID,
+    role: 'admin',
+    tokenHash,
+    linkId: lookup.id,
+    expiresAt: lookup.expiresAt,
     email,
-    role: 'owner',
   });
 
-  // Single-use: burn the link so the URL can't be replayed.
-  await links.markAsUsed(lookup.tenantId, ADMIN_PROFILE_ID, lookup.id);
-
-  return NextResponse.redirect(`${origin}/dashboard`);
+  // Redirect to login for identity verification
+  return NextResponse.redirect(`${origin}/login?pending=admin`);
 }

@@ -3,7 +3,7 @@
  * DynamoDB single-table design (GSI3 token lookup per ADR-0008).
  */
 
-export type MagicLinkType = 'invite' | 'share';
+export type MagicLinkType = 'invite' | 'signin' | 'share';
 export type MagicLinkScope = 'edit' | 'view';
 export type MagicLinkStatus = 'active' | 'used' | 'expired' | 'revoked';
 
@@ -44,12 +44,16 @@ export interface MagicLink extends MagicLinkLookup {
  *  - lookupByTokenHash (resolve token → tenant context, the one global read)
  *  - findById (read the full link, incl. `createdBy`, within tenant context)
  *  - markAsUsed (single-use enforcement after a successful claim/verify)
+ *  - markAsRevoked (deactivate a share link)
+ *  - listSharesByProfile (get all share links for a profile)
  */
 export interface MagicLinkRepository {
   create(tenantId: string, input: CreateMagicLinkInput): Promise<{ id: string }>;
   lookupByTokenHash(tokenHash: string): Promise<MagicLinkLookup | null>;
   findById(tenantId: string, profileId: string, linkId: string): Promise<MagicLink | null>;
   markAsUsed(tenantId: string, profileId: string, linkId: string): Promise<void>;
+  markAsRevoked(tenantId: string, profileId: string, linkId: string): Promise<void>;
+  listSharesByProfile(tenantId: string, profileId: string): Promise<readonly MagicLink[]>;
 }
 
 let instance: MagicLinkRepository | null = null;
@@ -73,6 +77,8 @@ export function getMagicLinkRepository(): MagicLinkRepository {
     lookupByTokenHash: (tokenHash) => repo.lookupByTokenHash(tokenHash),
     findById: (tenantId, profileId, linkId) => repo.findById(tenantId, profileId, linkId),
     markAsUsed: (tenantId, profileId, linkId) => repo.markAsUsed(tenantId, profileId, linkId),
+    markAsRevoked: (tenantId, profileId, linkId) => repo.markAsRevoked(tenantId, profileId, linkId),
+    listSharesByProfile: (tenantId, profileId) => repo.listSharesByProfile(tenantId, profileId),
   };
 
   return instance;

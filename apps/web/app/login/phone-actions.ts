@@ -1,8 +1,11 @@
 'use server';
 
 import { createHash } from 'node:crypto';
+import { redirect } from 'next/navigation';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { getOtpRepository } from '@/lib/data/otp';
+import { getPendingInvite } from '@/lib/auth/pending-invite';
+import { completeAuthentication, getAuthErrorMessage } from '@/lib/auth/complete-auth';
 
 /** UK phone number regex: +44 or 07 prefix, 10-11 digits total */
 const UK_PHONE_RE = /^(?:\+44|0)7\d{9}$/;
@@ -111,8 +114,11 @@ export async function requestPhoneOtp(
 /**
  * Verify a phone OTP code.
  *
- * Checks the code against the stored OTP. On success, returns verified: true.
- * Note: Session creation requires phone to be added to the user model.
+ * Checks the code against the stored OTP. On success:
+ * - If pending invite: completes auth using the invite's email
+ * - If no pending invite: returns error (phone-only auth not yet supported)
+ *
+ * ADR-0014: Phone OTP proves identity, pending invite provides email context.
  */
 export async function verifyPhoneOtp(
   prev: PhoneOtpState,
@@ -145,17 +151,40 @@ export async function verifyPhoneOtp(
       };
     }
 
-    // Code verified successfully
-    // TODO: When phone field is added to TenantUser, look up user and create session
-    // For now, just return verified: true
+    // Code verified - check for pending invite to get email context
+    const pendingInvite = await getPendingInvite();
 
-    return {
-      step: 'verify',
-      ok: true,
-      phone,
-      verified: true,
-    };
+    if (!pendingInvite) {
+      // No pending invite - phone-only sign-in not yet supported
+      // (would need phone field on TenantUser + GSI lookup)
+      return {
+        step: 'verify',
+        ok: false,
+        phone,
+        error: 'Phone sign-in requires an invite link. Please click your invite first.',
+      };
+    }
+
+    // Complete authentication using the email from the pending invite
+    const result = await completeAuthentication(pendingInvite.email);
+
+    if (!result.success) {
+      return {
+        step: 'verify',
+        ok: false,
+        phone,
+        error: getAuthErrorMessage(result.error),
+      };
+    }
+
+    // Redirect to the determined destination
+    // Note: redirect() expects typed routes, but we have a dynamic path
+    redirect(result.redirectTo as '/dashboard');
   } catch (err) {
+    // Handle redirect error (Next.js throws on redirect)
+    if (err instanceof Error && err.message === 'NEXT_REDIRECT') {
+      throw err;
+    }
     console.error('[phone-otp] Verification error:', err);
     return {
       step: 'verify',

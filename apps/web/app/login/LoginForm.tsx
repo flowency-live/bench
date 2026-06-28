@@ -340,10 +340,22 @@ function AuthTabs({
  * - Email magic link (active)
  * - Phone OTP (active)
  * - Social sign-in with Google/Apple (active)
+ *
+ * When `pendingEmail` is provided, the user clicked an invite link and must
+ * verify their identity. The email field is pre-filled and messaging is
+ * adjusted to guide them through identity verification.
  */
-export function LoginForm({ invalid }: { invalid?: boolean }) {
+export function LoginForm({
+  invalid,
+  pendingEmail,
+}: {
+  invalid?: boolean;
+  /** Email from pending invite (user must verify identity with this email). */
+  pendingEmail?: string;
+}) {
   const [activeTab, setActiveTab] = useState<AuthMethod>('email');
   const [state, action] = useActionState(requestAdminLink, magicLinkInitial);
+  const hasPendingInvite = Boolean(pendingEmail);
 
   // Magic link sent confirmation
   if (state.ok) {
@@ -410,12 +422,27 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
       {/* Email magic link panel */}
       {activeTab === 'email' && (
         <form action={action} className="flex flex-col gap-5">
+          {hasPendingInvite && (
+            <div className="flex items-start gap-3 px-4 py-3.5 rounded-[10px] bg-[rgba(186,235,91,0.08)] border border-[rgba(186,235,91,0.2)] text-[#baeb5b] text-[13px] leading-relaxed">
+              <svg
+                className="flex-shrink-0 mt-0.5 w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+              </svg>
+              <span>
+                Verify your identity using <strong>{pendingEmail}</strong> to activate your account.
+              </span>
+            </div>
+          )}
+
           <div className="flex flex-col">
             <label
               htmlFor="email"
               className="mb-2 text-[11px] font-bold tracking-[0.12em] uppercase text-[#cbd5e1]"
             >
-              Admin email
+              {hasPendingInvite ? 'Your email' : 'Admin email'}
             </label>
             <input
               id="email"
@@ -423,6 +450,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
               type="email"
               required
               autoComplete="email"
+              defaultValue={pendingEmail ?? ''}
               placeholder="you@changeconnected.co.uk"
               className="login-input w-full px-4 py-3.5 rounded-[10px] border border-white/10
                          bg-[rgba(0,12,24,0.6)] text-[15px] text-white outline-none
@@ -437,7 +465,9 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
           <MagicLinkButton />
 
           <p className="m-0 text-xs text-[#94a3b8] text-center leading-relaxed">
-            We will email a secure, single-use link. No password to remember.
+            {hasPendingInvite
+              ? 'We will send a verification link to confirm your identity.'
+              : 'We will email a secure, single-use link. No password to remember.'}
           </p>
         </form>
       )}

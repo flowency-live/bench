@@ -43,6 +43,12 @@ Rules (must be airtight — this is the security boundary now that passwords are
 
 Controls: godmode/admin can **resend a sign-in link** to a bound user (convenience/recovery) and **revoke/deactivate** a user (removes the binding → every method stops working). Optional per-tenant hardening (CP4): require MFA, restrict to a verified email domain, or social-only.
 
+**Flow rules — the exact defects in the *current* code this rewrite must fix (2026-06-27 review):**
+The deployed `auth/verify/route.ts` treats **clicking any magic link as instant authentication** — it mints an admin session and burns the token on the first GET. That is wrong for a **generate-and-share invite link** (copied / sent via WhatsApp): *possessing the link becomes full admin with zero identity check.* Required corrections:
+- **An invite link NEVER creates a session by itself.** It is *enrolment*, not a credential. Clicking it lands on a sign-in screen; the user must complete an **auth method** (email magic link to *their* inbox / Google / Apple / phone OTP); on success the invite **binds their verified identity** to the tenant + role. Only then is the invite consumed.
+- **"Click = signed in" applies ONLY to a sign-in link delivered to a verified inbox** (only the owner receives it) — never to a shared invite.
+- **Burn on success, not on click.** Keep the token valid until auth completes; **do not consume it on a bare GET** (email scanners / link-preview bots pre-fetch URLs and would otherwise lock the real user out). Require an explicit action / POST to consume; re-clicks before success keep working.
+
 ## What is removed
 `auth/claim` set-password, `cognito.signUp/signIn/changePassword`, the password fields on `/login`, and **`/forgot-password` + `/reset-password`** (nothing to reset). The Cognito **pool stays** (ADR-0012) as the social-federation broker.
 

@@ -62,11 +62,13 @@ export async function requestAdminLink(
   const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
   // Create link scoped to the user's tenant (multi-tenant).
+  // type: 'signin' because this is a returning user who requested a sign-in link.
+  // Email delivery itself proves identity, so verify route can create session directly.
   const links = getMagicLinkRepository();
   await links.create(user.tenantId, {
     id: randomUUID(),
     profileId: ADMIN_PROFILE_ID,
-    type: 'invite',
+    type: 'signin',
     scope: 'edit',
     tokenHash,
     expiresAt: new Date(Date.now() + ADMIN_LINK_TTL_MS).toISOString(),

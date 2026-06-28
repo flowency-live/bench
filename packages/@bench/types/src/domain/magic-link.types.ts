@@ -1,9 +1,10 @@
 /**
  * Magic link types
- * - invite: Consultant editing their profile
+ * - invite: New user accepting an invite (requires identity verification)
+ * - signin: Returning user requesting a sign-in link (email proves identity)
  * - share: Client viewing a published profile
  */
-export type MagicLinkType = 'invite' | 'share';
+export type MagicLinkType = 'invite' | 'signin' | 'share';
 
 /**
  * Magic link status

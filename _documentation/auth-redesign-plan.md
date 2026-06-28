@@ -65,3 +65,74 @@ Net: the **password flow is the problem**. It is brittle, contradicts the pool, 
 - **Passwords: dropped entirely.** Fully passwordless. Remove the claim/forgot/reset/password surface.
 - **Phone OTP: included** (full bndy parity → Pinpoint/SNS SMS).
 - **Methods:** Email magic link · **Phone OTP** · Google · Apple (reuse bndy Service ID) · LinkedIn (OIDC). All converge on `bench_session`; all invite-only.
+
+---
+
+## 7. Implementation Plan (2026-06-28 Security Audit Follow-up)
+
+### Critical Bugs Found in Audit
+
+| Issue | Severity | Location |
+|-------|----------|----------|
+| Click = admin session without identity check | CRITICAL | `auth/verify/route.ts` |
+| Token burned on GET (email scanners kill links) | HIGH | `auth/verify/route.ts:105` |
+| Social auth hardcodes `role: 'owner'` | HIGH | `login/auth/callback/route.ts:129` |
+| Social auth doesn't check `email_verified` | HIGH | `login/auth/callback/route.ts` |
+| Phone OTP doesn't create session | MEDIUM | `login/phone-actions.ts:149` |
+
+### Target Flow
+
+```
+invite click → hold pending invite → redirect to /login
+                                          ↓
+                            user proves identity (email/phone/social)
+                                          ↓
+                            verify pending invite still valid
+                                          ↓
+                            bind verified identity to tenant
+                                          ↓
+                            burn invite token
+                                          ↓
+                            create session with ACTUAL role
+                                          ↓
+                                      dashboard
+```
+
+### Phase 1: Core Invite/Auth Separation
+
+| Task | File | Change |
+|------|------|--------|
+| Create pending invite cookie | `lib/auth/pending-invite.ts` | NEW: `setPendingInvite`, `getPendingInvite`, `clearPendingInvite` |
+| Modify verify route | `auth/verify/route.ts` | Hold invite, redirect to `/login?pending=admin` instead of creating session |
+| Update login page | `login/page.tsx` | Show "Complete your setup" when `?pending=` present |
+
+### Phase 2: Fix Identity Verification Paths
+
+| Task | File | Change |
+|------|------|--------|
+| Create shared auth completion | `lib/auth/complete-auth.ts` | NEW: Single entry point after identity verified |
+| Fix social auth callback | `login/auth/callback/route.ts` | Use actual `user.role`, check `email_verified`, call `completeAuthentication()` |
+| Fix phone OTP | `login/phone-actions.ts` | Call `completeAuthentication()` after OTP verified |
+| Differentiate link types | `login/actions.ts` | `type: 'signin'` for existing users, `type: 'invite'` for new |
+
+### Phase 3: Invite Binding
+
+| Task | File | Change |
+|------|------|--------|
+| Wire up InviteClaimService | `lib/data/invite-claim.ts` | NEW: Expose `@bench/data` service to web app |
+| Use transactional binding | `lib/auth/complete-auth.ts` | Use `claimService.acceptInvite()` for atomic bind+burn |
+
+### Phase 4: Cleanup
+
+- Remove old direct-session code from verify route
+- Add audit logging for auth events
+- Document rate limiting needs
+
+### Security Invariants
+
+1. **Invite link NEVER creates session by itself**
+2. **Identity must be verified before granting access**
+3. **Token burned only after successful identity binding**
+4. **Session role comes from user record, never hardcoded**
+5. **email_verified must be true for social auth**
+6. **user.status must be active for returning users**

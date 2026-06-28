@@ -1,6 +1,7 @@
 import { PILOT_TENANT } from '@/lib/tenant';
 import { LoginForm } from './LoginForm';
 import { Logo } from '@/components/Logo';
+import { getPendingInvite } from '@/lib/auth/pending-invite';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,14 +10,22 @@ export const dynamic = 'force-dynamic';
  *
  * Full-screen navy with the Change Connected logo. `?error=invalid` (set by the
  * verify route on a bad/expired link) surfaces an inline notice.
+ *
+ * When `?pending=admin` is present (user clicked an invite link), shows
+ * "Complete your setup" and requires identity verification before granting
+ * access (ADR-0014: invite ≠ authentication).
  */
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; pending?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, pending } = await searchParams;
   const invalid = error === 'invalid';
+
+  // Check for pending invite in cookie (set by /auth/verify when clicking invite link)
+  const pendingInvite = pending ? await getPendingInvite() : null;
+  const isPendingSetup = pending === 'admin' && pendingInvite !== null;
 
   return (
     <main className="login-page relative min-h-screen flex items-center justify-center px-6 py-12 overflow-hidden">
@@ -50,12 +59,17 @@ export default async function LoginPage({
           />
           <div className="login-card__inner rounded-[20px] p-8 sm:p-10">
             <h1 className="mb-1 text-[1.75rem] font-black text-white tracking-tight">
-              Admin sign-in
+              {isPendingSetup ? 'Complete your setup' : 'Admin sign-in'}
             </h1>
             <p className="mb-8 text-[15px] text-[#cbd5e1] leading-relaxed">
-              Manage the collective and consultant profiles.
+              {isPendingSetup
+                ? 'Verify your identity to activate your admin account.'
+                : 'Manage the collective and consultant profiles.'}
             </p>
-            <LoginForm invalid={invalid} />
+            <LoginForm
+              invalid={invalid}
+              pendingEmail={pendingInvite?.email}
+            />
           </div>
         </div>
 
