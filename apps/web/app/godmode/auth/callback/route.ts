@@ -42,6 +42,12 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
  * 5. Creates a platform session and redirects to godmode
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  // In Amplify SSR, request.url/nextUrl.origin returns localhost.
+  // Read actual host from headers for all redirects.
+  const host = request.headers.get('host') ?? request.headers.get('x-forwarded-host') ?? 'localhost:3000';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  const origin = `${protocol}://${host}`;
+
   const { searchParams } = request.nextUrl;
   const code = searchParams.get('code');
   const state = searchParams.get('state');
@@ -50,16 +56,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // Handle OAuth errors
   if (error) {
     console.error('[godmode-auth] OAuth error:', error, searchParams.get('error_description'));
-    return NextResponse.redirect(
-      new URL('/godmode/login?error=oauth_error', request.url),
-    );
+    return NextResponse.redirect(`${origin}/godmode/login?error=oauth_error`);
   }
 
   // Validate required parameters
   if (!code || !state) {
-    return NextResponse.redirect(
-      new URL('/godmode/login?error=missing_params', request.url),
-    );
+    return NextResponse.redirect(`${origin}/godmode/login?error=missing_params`);
   }
 
   // Verify CSRF state
@@ -67,16 +69,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const stateData = await stateStore.verify(state);
   if (!stateData) {
     console.error('[godmode-auth] Invalid or expired state token');
-    return NextResponse.redirect(
-      new URL('/godmode/login?error=invalid_state', request.url),
-    );
+    return NextResponse.redirect(`${origin}/godmode/login?error=invalid_state`);
   }
 
   // Build the redirect URI (must match exactly what was sent in the authorize request)
-  // In Amplify SSR, nextUrl.origin returns localhost. Read actual host from headers.
-  const host = request.headers.get('host') ?? request.headers.get('x-forwarded-host') ?? 'localhost:3000';
-  const protocol = host.startsWith('localhost') ? 'http' : 'https';
-  const origin = `${protocol}://${host}`;
   const redirectUri = `${origin}/godmode/auth/callback`;
 
   // Exchange code for tokens
@@ -96,9 +92,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!tokenResponse.ok) {
     const errorText = await tokenResponse.text();
     console.error('[godmode-auth] Token exchange failed:', tokenResponse.status, errorText);
-    return NextResponse.redirect(
-      new URL('/godmode/login?error=token_exchange_failed', request.url),
-    );
+    return NextResponse.redirect(`${origin}/godmode/login?error=token_exchange_failed`);
   }
 
   const tokens = (await tokenResponse.json()) as {
@@ -109,9 +103,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (!tokens.id_token) {
     console.error('[godmode-auth] No ID token in response');
-    return NextResponse.redirect(
-      new URL('/godmode/login?error=no_id_token', request.url),
-    );
+    return NextResponse.redirect(`${origin}/godmode/login?error=no_id_token`);
   }
 
   // Decode the ID token to get the email
@@ -121,24 +113,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     email = String(claims.email ?? '').trim().toLowerCase();
   } catch (err) {
     console.error('[godmode-auth] Failed to decode ID token:', err);
-    return NextResponse.redirect(
-      new URL('/godmode/login?error=invalid_token', request.url),
-    );
+    return NextResponse.redirect(`${origin}/godmode/login?error=invalid_token`);
   }
 
   if (!email) {
     console.error('[godmode-auth] No email in ID token');
-    return NextResponse.redirect(
-      new URL('/godmode/login?error=no_email', request.url),
-    );
+    return NextResponse.redirect(`${origin}/godmode/login?error=no_email`);
   }
 
   // Assert email domain
   if (!email.endsWith(ALLOWED_EMAIL_DOMAIN)) {
     console.error('[godmode-auth] Email domain not allowed:', email);
-    return NextResponse.redirect(
-      new URL('/godmode/login?error=unauthorized_domain', request.url),
-    );
+    return NextResponse.redirect(`${origin}/godmode/login?error=unauthorized_domain`);
   }
 
   // Create platform session
@@ -148,5 +134,5 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   });
 
   // Redirect to godmode dashboard
-  return NextResponse.redirect(new URL('/godmode', request.url));
+  return NextResponse.redirect(`${origin}/godmode`);
 }
