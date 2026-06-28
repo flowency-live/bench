@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/AppHeader';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
 import { getRepository } from '@/lib/data/repository';
-import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { getSession, getTenantId } from '@/lib/auth/session';
 import { ShareLinkButton } from './ShareLinkButton';
 import { SendInviteButton } from './SendInviteButton';
 import { StatusControls } from './StatusControls';
@@ -15,8 +15,12 @@ export default async function ProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getSession();
+  const tenantId = getTenantId(session);
+  if (!tenantId) redirect('/login');
+
   const { id } = await params;
-  const profile = await getRepository().get(PILOT_TENANT_ID, id);
+  const profile = await getRepository().get(tenantId, id);
   if (!profile) notFound();
 
   const isActive = profile.status === 'active';
@@ -77,7 +81,12 @@ export default async function ProfilePage({
             {/* Send invite: while profile is no_profile or in_progress. Mints a
                 14-day edit-scoped magic link the consultant uses to claim and
                 build their own profile. */}
-            {canInvite && <SendInviteButton profileId={profile.id} />}
+            {canInvite && (
+              <SendInviteButton
+                profileId={profile.id}
+                consultantName={profile.name}
+              />
+            )}
 
             {/* Share link: only for active profiles. Mints a no-auth,
                 view-only link to this one profile. */}

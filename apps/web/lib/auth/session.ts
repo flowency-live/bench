@@ -78,3 +78,20 @@ export async function clearSession(): Promise<void> {
     maxAge: 0,
   });
 }
+
+/**
+ * Extract the active tenant ID from any session type.
+ *
+ * Used to replace hardcoded PILOT_TENANT_ID with session-derived tenant scoping.
+ * Per ADR-0010 / auth-journey-build-plan.md Phase 1.
+ *
+ * - AdminSession/MemberSession: returns the bound `tenantId`
+ * - PlatformSession: returns `activeTenantId` (set when godmode switches into a tenant)
+ * - null/invalid: returns null
+ */
+export function getTenantId(session: Session | null): string | null {
+  if (!session) return null;
+  if (session.kind === 'platform') return session.activeTenantId ?? null;
+  if (session.kind === 'admin' || session.kind === 'member') return session.tenantId;
+  return null;
+}

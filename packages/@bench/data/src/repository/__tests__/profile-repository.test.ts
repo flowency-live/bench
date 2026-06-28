@@ -46,7 +46,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'draft',
+          status: 'no_profile',
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -81,7 +81,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'published',
+          status: 'active',
           positioning: { headline: 'Expert', bio: 'Bio text' },
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -131,7 +131,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'published',
+          status: 'active',
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -172,7 +172,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'published',
+          status: 'active',
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -213,7 +213,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Bob',
           consultantEmail: 'bob@example.com',
           role: 'Consultant',
-          status: 'draft',
+          status: 'no_profile',
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -273,7 +273,7 @@ describe('ProfileRepository', () => {
           tenantId: tenantA,
           consultantName: 'Alice',
           role: 'Dev',
-          status: 'draft',
+          status: 'no_profile',
           headshotAssetId: null,
           updatedAt: '2024-01-01',
         },
@@ -282,7 +282,7 @@ describe('ProfileRepository', () => {
           tenantId: tenantA,
           consultantName: 'Carol',
           role: 'PM',
-          status: 'published',
+          status: 'active',
           headshotAssetId: null,
           updatedAt: '2024-01-02',
         },
@@ -307,7 +307,7 @@ describe('ProfileRepository', () => {
           tenantId: tenantA,
           consultantName: 'Alice',
           role: 'Dev',
-          status: 'draft',
+          status: 'no_profile',
           headshotAssetId: null,
           updatedAt: '2024-01-01',
         },
@@ -319,7 +319,7 @@ describe('ProfileRepository', () => {
           tenantId: tenantA,
           consultantName: 'Bob',
           role: 'PM',
-          status: 'published',
+          status: 'active',
           headshotAssetId: null,
           updatedAt: '2024-01-02',
         },
@@ -351,7 +351,8 @@ describe('ProfileRepository', () => {
 
       expect(result.tenantId).toBe(tenantA);
       expect(result.consultantName).toBe('New User');
-      expect(result.status).toBe('draft');
+      expect(result.status).toBe('no_profile');
+      expect(result.availability).toEqual({ status: 'available' });
       expect(result.skills).toEqual([]);
       expect(result.stories).toEqual([]);
       expect(result.testimonial).toBeNull();
@@ -400,7 +401,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'draft',
+          status: 'no_profile',
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -433,7 +434,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'draft',
+          status: 'no_profile',
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -478,7 +479,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'draft',
+          status: 'no_profile',
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -519,7 +520,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'draft',
+          status: 'no_profile',
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -593,7 +594,7 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'draft',
+          status: 'no_profile',
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -671,27 +672,24 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'draft',
+          status: 'in_progress',
+          availability: { status: 'available' },
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
           updatedAt: '2024-01-01T00:00:00.000Z',
-          submittedAt: null,
-          publishedAt: null,
-          archivedAt: null,
         },
       ];
 
       ddbMock.on(QueryCommand).resolves({ Items: existingItems });
       ddbMock.on(TransactWriteCommand).resolves({});
 
-      const result = await repo.setStatus(tenantA, profileId, 'submitted');
+      const result = await repo.setStatus(tenantA, profileId, 'active');
 
-      expect(result.status).toBe('submitted');
-      expect(result.submittedAt).toBeDefined();
+      expect(result.status).toBe('active');
     });
 
-    it('stamps publishedAt when transitioning to published', async () => {
+    it('transitions to removed', async () => {
       const existingItems = [
         {
           PK: `TENANT#${tenantA}#PROFILE#${profileId}`,
@@ -702,31 +700,56 @@ describe('ProfileRepository', () => {
           consultantName: 'Alice',
           consultantEmail: 'alice@example.com',
           role: 'Consultant',
-          status: 'submitted',
+          status: 'active',
+          availability: { status: 'available' },
           positioning: null,
           headshotAssetId: null,
           createdAt: '2024-01-01T00:00:00.000Z',
           updatedAt: '2024-01-01T00:00:00.000Z',
-          submittedAt: '2024-01-02T00:00:00.000Z',
-          publishedAt: null,
-          archivedAt: null,
         },
       ];
 
       ddbMock.on(QueryCommand).resolves({ Items: existingItems });
       ddbMock.on(TransactWriteCommand).resolves({});
 
-      const result = await repo.setStatus(tenantA, profileId, 'published');
+      const result = await repo.setStatus(tenantA, profileId, 'removed');
 
-      expect(result.status).toBe('published');
-      expect(result.publishedAt).toBeDefined();
+      expect(result.status).toBe('removed');
+    });
+
+    it('preserves availability across a status change', async () => {
+      const existingItems = [
+        {
+          PK: `TENANT#${tenantA}#PROFILE#${profileId}`,
+          SK: `PROFILE#${profileId}`,
+          entityType: 'PROFILE',
+          id: profileId,
+          tenantId: tenantA,
+          consultantName: 'Alice',
+          consultantEmail: 'alice@example.com',
+          role: 'Consultant',
+          status: 'in_progress',
+          availability: { status: 'engaged', endDate: '2026-09-30' },
+          positioning: null,
+          headshotAssetId: null,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      ];
+
+      ddbMock.on(QueryCommand).resolves({ Items: existingItems });
+      ddbMock.on(TransactWriteCommand).resolves({});
+
+      const result = await repo.setStatus(tenantA, profileId, 'active');
+
+      expect(result.availability).toEqual({ status: 'engaged', endDate: '2026-09-30' });
     });
 
     it('throws when profile not found', async () => {
       ddbMock.on(QueryCommand).resolves({ Items: [] });
 
       await expect(
-        repo.setStatus(tenantA, profileId, 'submitted')
+        repo.setStatus(tenantA, profileId, 'active')
       ).rejects.toThrow('Profile not found');
     });
   });

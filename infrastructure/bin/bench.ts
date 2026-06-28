@@ -38,6 +38,13 @@ const authStack = new BenchAuthStack(app, 'BenchAuthStack', {
   description: 'Bench Auth - Cognito User Pool with tenant support',
   tags: commonTags,
   table: dataStack.table,
+  // Google IdP for godmode sign-in (ADR-0012)
+  googleClientId:
+    '146111307675-a1dlf1drh7k5mmeb7323md8vice3hlpq.apps.googleusercontent.com',
+  googleClientSecretArn:
+    'arn:aws:secretsmanager:eu-west-2:771551874768:secret:bench/google-oauth-kmVTnT',
+  // SES: enable domain identity (looks up hosted zone internally)
+  enableSesIdentity: true,
 });
 authStack.addDependency(dataStack);
 

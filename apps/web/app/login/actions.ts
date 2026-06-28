@@ -1,9 +1,14 @@
 'use server';
 
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
-import { isAuthorizedAdmin } from '@/lib/auth/admins';
-import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { getUserRepository } from '@/lib/data/user';
+import { getTenantRepository } from '@/lib/data/tenant';
+import { sendMagicLinkEmail } from '@/lib/email/send';
+import { signIn, CognitoError } from '@/lib/auth/cognito';
+import { createSession } from '@/lib/auth/session';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -27,9 +32,12 @@ export interface AdminLinkState {
 /**
  * Request an admin sign-in link.
  *
- * SECURITY: the response is identical whether or not the email is an authorized
- * admin — we never reveal which emails exist. A link is only minted (and a
- * `devLink` surfaced) when the email is authorized AND we're not in production.
+ * SECURITY: the response is identical whether or not the email is a registered
+ * tenant admin — we never reveal which emails exist. A link is only minted (and
+ * a `devLink` surfaced) when the email belongs to an active admin TenantUser.
+ *
+ * Multi-tenant: resolves the user's tenant via UserRepository.getByEmail (GSI1
+ * EMAIL# lookup) and scopes the link to that tenant (ADR-0010 Phase 1).
  */
 export async function requestAdminLink(
   _prev: AdminLinkState,
@@ -37,8 +45,17 @@ export async function requestAdminLink(
 ): Promise<AdminLinkState> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
 
-  // Invalid input or not an admin → neutral success, no link minted.
-  if (!EMAIL_RE.test(email) || !isAuthorizedAdmin(email)) {
+  // Invalid input → neutral success, no link minted.
+  if (!EMAIL_RE.test(email)) {
+    return { ok: true };
+  }
+
+  // Look up the user by email to get their tenant context.
+  const users = getUserRepository();
+  const user = await users.getByEmail(email);
+
+  // No user found or not an admin → neutral success, no link minted.
+  if (!user || user.role !== 'admin') {
     return { ok: true };
   }
 
@@ -46,8 +63,9 @@ export async function requestAdminLink(
   const rawToken = randomBytes(32).toString('base64url');
   const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
+  // Create link scoped to the user's tenant (multi-tenant).
   const links = getMagicLinkRepository();
-  await links.create(PILOT_TENANT_ID, {
+  await links.create(user.tenantId, {
     id: randomUUID(),
     profileId: ADMIN_PROFILE_ID,
     type: 'invite',
@@ -61,12 +79,96 @@ export async function requestAdminLink(
 
   const verifyPath = `/auth/verify?token=${rawToken}`;
 
-  // TODO(SES): send this link by email in production (Amazon SES). For now we
-  // only surface it in dev so the flow works with no email service wired up.
+  // Get the origin to construct the full URL for the email.
+  const headersList = await headers();
+  const host = headersList.get('host') ?? 'localhost:3000';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  const verifyUrl = `${protocol}://${host}${verifyPath}`;
 
+  // Get tenant name for the email.
+  const tenant = await getTenantRepository().get(user.tenantId);
+  const tenantName = tenant?.instanceName ?? tenant?.name ?? 'Bench';
+
+  // Send the magic link email (skipped in non-production, logs instead).
+  await sendMagicLinkEmail({
+    to: email,
+    subject: `Sign in to ${tenantName}`,
+    verifyUrl,
+    tenantName,
+  });
+
+  // In dev, also surface the link directly for testing.
   if (process.env.NODE_ENV !== 'production') {
     return { ok: true, devLink: verifyPath };
   }
 
   return { ok: true };
+}
+
+/** State returned from password sign-in. */
+export interface PasswordSignInState {
+  readonly ok: boolean;
+  readonly error?: string;
+}
+
+/**
+ * Sign in with email and password via Cognito.
+ *
+ * This is for returning users who have already claimed their account and set
+ * a password (ADR-0012). New users without a cognitoId go through the magic
+ * link → claim flow first.
+ */
+export async function signInWithPassword(
+  _prev: PasswordSignInState,
+  formData: FormData,
+): Promise<PasswordSignInState> {
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
+
+  if (!EMAIL_RE.test(email)) {
+    return { ok: false, error: 'Please enter a valid email address.' };
+  }
+  if (!password) {
+    return { ok: false, error: 'Please enter your password.' };
+  }
+
+  // Look up the user by email to get their tenant context.
+  const users = getUserRepository();
+  const user = await users.getByEmail(email);
+
+  // User must exist and have a cognitoId to use password login.
+  if (!user || !user.cognitoId) {
+    // Generic error to avoid revealing if email exists.
+    return { ok: false, error: 'Incorrect email or password.' };
+  }
+
+  // User must be an admin to access the admin login.
+  if (user.role !== 'admin') {
+    return { ok: false, error: 'Incorrect email or password.' };
+  }
+
+  try {
+    // Authenticate with Cognito.
+    await signIn(email, password);
+
+    // Create session.
+    await createSession({
+      kind: 'admin',
+      tenantId: user.tenantId,
+      email,
+      role: 'owner',
+    });
+  } catch (err) {
+    if (err instanceof CognitoError) {
+      if (err.code === 'INVALID_CREDENTIALS' || err.code === 'USER_NOT_FOUND') {
+        return { ok: false, error: 'Incorrect email or password.' };
+      }
+      return { ok: false, error: err.message };
+    }
+    console.error('[password-login-error]', err);
+    return { ok: false, error: 'An unexpected error occurred. Please try again.' };
+  }
+
+  // Redirect to dashboard (must be outside try/catch).
+  redirect('/dashboard');
 }

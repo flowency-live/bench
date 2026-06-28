@@ -53,6 +53,11 @@ export const CHANGE_CONNECTED_BRAND_TOKENS: BrandTokens = {
 export interface Tenant {
   readonly id: string;
   readonly name: string;
+  /**
+   * Per-tenant display name for the instance (PRD §10 "instance display name"),
+   * e.g. Change Connected calls theirs the "Change Hub". Defaults to `name`.
+   */
+  readonly instanceName: string;
   readonly slug: string;
   readonly brandTokens: BrandTokens;
   readonly customDomain: string | null;
@@ -63,22 +68,13 @@ export interface Tenant {
 }
 
 /**
- * Tenant summary for listing
+ * Tenant summary for listing (godmode tenant list).
  */
 export interface TenantSummary {
   readonly id: string;
   readonly name: string;
+  readonly instanceName: string;
   readonly slug: string;
   readonly status: TenantStatus;
   readonly customDomain: string | null;
-}
-
-/**
- * Create tenant request
- */
-export interface CreateTenantRequest {
-  readonly name: string;
-  readonly slug: string;
-  readonly brandTokens?: Partial<BrandTokens>;
-  readonly customDomain?: string;
 }

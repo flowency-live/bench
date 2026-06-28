@@ -18,8 +18,10 @@ Format: lightweight [MADR](https://adr.github.io/madr/). Statuses: **Proposed**,
 | [0006](0006-app-hosting.md) | App hosting: Amplify vs OpenNext | Proposed | 2026-06-25 |
 | [0007](0007-domain-and-dns.md) | Domain & DNS strategy | Proposed | 2026-06-25 |
 | [0008](0008-revert-to-dynamodb.md) | **Revert data store to DynamoDB single-table** | Accepted | 2026-06-25 |
-| [0009](0009-admin-auth-magic-link.md) | Admin/owner auth: passwordless magic-link (V1) | Accepted | 2026-06-25 |
+| [0009](0009-admin-auth-magic-link.md) | Admin/owner auth: passwordless magic-link (V1) | ~~Superseded by 0012~~ | 2026-06-25 |
 | [0010](0010-multi-tenant-control-plane.md) | **Multi-tenant control plane** — godmode + tenant/user RBAC | Accepted | 2026-06-25 |
+| [0011](0011-profile-status-and-availability-model.md) | **Profile status model + availability axis** (V1 two-axis) | Accepted | 2026-06-25 |
+| [0012](0012-adopt-cognito-identity-v1.md) | **Adopt Cognito as V1 identity provider** (owners + godmode) | Accepted | 2026-06-27 |
 
 ## Conventions
 

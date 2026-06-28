@@ -1,8 +1,8 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/AppHeader';
 import { WizardClient } from '@/app/profiles/[id]/edit/WizardClient';
 import { getRepository } from '@/lib/data/repository';
-import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { getSession, getTenantId } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,8 +11,12 @@ export default async function EditProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getSession();
+  const tenantId = getTenantId(session);
+  if (!tenantId) redirect('/login');
+
   const { id } = await params;
-  const profile = await getRepository().get(PILOT_TENANT_ID, id);
+  const profile = await getRepository().get(tenantId, id);
   if (!profile) notFound();
 
   return (

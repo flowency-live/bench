@@ -1,7 +1,7 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
 import { getRepository } from '@/lib/data/repository';
-import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { getSession, getTenantId } from '@/lib/auth/session';
 import { PrintTrigger } from './PrintTrigger';
 import { Logo } from '@/components/Logo';
 
@@ -25,11 +25,15 @@ export default async function PrintProfilePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ o?: string }>;
 }) {
+  const session = await getSession();
+  const tenantId = getTenantId(session);
+  if (!tenantId) redirect('/login');
+
   const { id } = await params;
   const { o } = await searchParams;
   const orientation = o === 'landscape' ? 'landscape' : 'portrait';
 
-  const profile = await getRepository().get(PILOT_TENANT_ID, id);
+  const profile = await getRepository().get(tenantId, id);
   if (!profile) notFound();
 
   return (

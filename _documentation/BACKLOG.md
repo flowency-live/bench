@@ -11,7 +11,7 @@ The single source of truth for **work**: what's done, what's next, who owns it. 
 
 **Maintenance rule (non-negotiable):** this file is updated **in the same change that lands the work** — no separate "update the backlog" task. AGENT updates it on every commit that completes/moves an item; CTO updates it on every review and at the end of each working session. A stale backlog is treated as a bug.
 
-_Last updated: 2026-06-25._
+_Last updated: 2026-06-27._
 
 ---
 
@@ -45,10 +45,33 @@ The feature work is built in `apps/web` (fixture-backed, runs locally). Remainin
 | S5 | **Photo upload** (S3 presigned + Sharp crop/grayscale) wired to the wizard `headshotAssetId`; renderer resolves the asset URL. | AGENT | PRD §9/§12 |
 | S6 | CTO review of S1–S5 as they land. | CTO | gate |
 
+## Auth journey (ACTIVE) — plan: `auth-journey-build-plan.md`, decisions: ADR-0012
+
+The current focused push: godmode Google sign-in + tenant-owner login + an isolation proof, built by
+**parallel lanes** (CONTRACT/DATA/INFRA/WEB — see the plan + `COLLABORATION.md`). **Decisions resolved
+2026-06-27 (ADR-0012):** Cognito is the V1 identity layer for **owners + godmode** (owners = email/password,
+godmode = Google federation, ported from `bndy-serverless-api/auth-lambda`); consultants/clients stay on
+magic-link (ADR-0005). ADR-0009 superseded.
+
+**Status (2026-06-27):** **Auth journey functionally complete** — all phases built, **gate-green (179 tests, full monorepo build)**; AJ2a/AJ6/AJ7 + Phase 3 CTO-verified. Remaining: **deploy + run the isolation proof** — see `auth-journey-deploy-checklist.md` (env vars, smoke tests, AJ5 proof). Deferred hardening = the CP rows below.
+
+| # | Item | Lane / Owner | Status |
+|---|------|--------------|--------|
+| **AJ1** | **Phase 1 — close the loop.** Real `@bench/data` Tenant + User repos (GSI1 `EMAIL#`, `cognitoId`); `getTenantId()`; de-hardcode `PILOT_TENANT_ID`; verify-route `email\|tenantId` claim + user activation; login tenant resolution. | DATA + WEB | ✅ done (G3/G4a/CP1) |
+| **OA0** | **Phase 1.5 — Cognito user pool** (Google IdP + email/password). Pool `eu-west-2_QjvjE2Cvl`, client `7c6m3ubjne0u3adejpn58ou8cr`. | INFRA | ✅ deployed |
+| **AJ2** | **Phase 2 — godmode Google auth.** `godmode/auth/{google,callback}` routes; validate `@flowency.co.uk` → `platform` session. | WEB | ✅ routes built |
+| **AJ2a** | **Phase 2 PROD GAP — OAuth state store.** `apps/web/lib/data/oauth-state.ts` DynamoDB branch throws "not implemented" → godmode Google sign-in fails in production. Implement `OAUTH#state#{token}` + 300s TTL on `bench-main` (create/consume); add a real-path test. | WEB | ✅ done |
+| **OA1** | **Phase 3 — owner email/password** (Cognito): magic-link → `/auth/claim` set-password → `bindIdentity`; returning `/login` password sign-in; forgot/reset. CTO-reviewed ✅ (2 minor polish: W-P1 pw-policy match, W-P2 assert user on claim). | WEB | ✅ done |
+| **AJ4** | **Phase 4 — SES email.** Sends wired (owner login, godmode login, tenant onboarding). Sender `noreply@opstack.uk` (apex `opstack.uk` identity verified); IAM v2 on `bench-amplify-service-role`. | INFRA + WEB | ✅ done (S2) |
+| **AJ6** | **Consultant-invite share menu** — Copy / WhatsApp / Email / SMS + native share sheet. Client-only (shares the existing invite URL); brand + WCAG AA. | WEB | ✅ done |
+| **AJ5** | **Phase 5 — isolation proof.** 2nd tenant; prove separation in UI + DynamoDB `TENANT#` partitions. | CTO | ⏳ run on deploy (checklist) |
+| **AJ7** | **Tenant-delete cascade (CR2)** — `TenantRepository.delete` must purge the tenant partition; orphaned users still answer `getByEmail`. | DATA | ✅ done (cascade) |
+
 ## Multi-tenant control plane (ADR-0010) — godmode + tenant/user RBAC
 
 Turns the single-tenant app into a real multi-tenant SaaS with a platform super-admin. Decisions locked
-(ADR-0010); model ported from bndy-backstage.
+(ADR-0010); model ported from bndy-backstage. *(The auth-journey items above are the active execution of
+G3/G4a/G6/CP1 under ADR-0012; this table remains the fuller control-plane backlog.)*
 
 | # | Item | Owner |
 |---|------|-------|
@@ -59,6 +82,42 @@ Turns the single-tenant app into a real multi-tenant SaaS with a platform super-
 | G4a | **Close the loop** (the two blockers stopping a created tenant from working end-to-end): (1) **G3 de-hardcode** — replace 27× `PILOT_TENANT_ID` with `getTenantId()` from the session so switch-in actually scopes the dashboard; (2) **magic-link tenant binding** — verify route must read the link's `email\|tenantId` so a new tenant's admin can claim. | CTO |
 | G5 | Per-tenant user management (add portal user, role admin/viewer, send link) + role-gating (viewer read-only) + invite role-binding. | CTO |
 | G6 | **JASON:** register a Google OAuth app for godmode (until then godmode bootstraps via magic-link to jason@flowency.co.uk). | JASON |
+| G7 | Tenant **suspend/delete** + user **remove** (last-admin guard, type-name confirm, pilot-tenant guard, `[godmode-audit]` stubs). **CTO ✅** (fixture); real cascade + persisted audit-log = follow-ups. | CTO + AGENT |
+
+### Control-plane maturity — what should be there (prioritized)
+
+Standard production multi-tenant SaaS control-plane features (cf. Auth0/WorkOS/Clerk, Stripe/Vercel, AWS
+SaaS-Factory) vs Bench today. ✅ have · 🟡 partial · ❌ missing.
+
+**P0 — before any real multi-tenant use (safety + correctness):**
+
+| # | Item | State |
+|---|------|-------|
+| CP1 | Close the loop — G3 session-tenant + new-tenant admin claim + real `@bench/data` Tenant/User repos | ✅ done (gate-green) |
+| CP2 | Persisted **audit log** of every godmode/admin mutation (actor / action / target / before→after / ts / IP), queryable + exportable | ❌ console only |
+| CP3 | **Impersonation safety** — "viewing Tenant X as godmode" banner + one-click exit + audit; read-only by default | 🟡 switch-in only |
+| CP4 | **Auth hardening** — rate-limit magic-link request/verify; **MFA (or hard restriction) for godmode**; lockout; session revocation | ❌ |
+| CP5 | **Soft-delete + retention + restore** for tenants (today delete is an instant purge) | ❌ |
+
+**P1 — mature the admin:**
+
+| # | Item | State |
+|---|------|-------|
+| CP6 | Tenant **settings/branding edit** (brand tokens / logo / instance name / domain per tenant — un-hardcode CC) | ❌ |
+| CP7 | User lifecycle — resend/revoke invite, deactivate vs delete, **ownership transfer**, last-login | 🟡 |
+| CP8 | Platform RBAC — multiple platform admins + a read-only **support** role; allowlist in DB/UI not env | ❌ |
+| CP9 | **SES** transactional email (= S2) — ✅ sends wired (apex `opstack.uk` identity + DKIM); per-tenant sender + bounce handling still ❌ | 🟡 |
+| CP10 | **GDPR** (PRD §13) — per-tenant export, right-to-erasure, retention purge, consent records | ❌ |
+| CP11 | **Observability** — error monitoring (Sentry) + PRD §14 metrics (invite-completion, time-to-complete, share-open) | ❌ |
+| CP12 | Tenant metadata — plan/tier/limits, usage counts, status history, tags/notes | ❌ |
+
+**P2 — commercial / enterprise:**
+
+| # | Item | State |
+|---|------|-------|
+| CP13 | Billing — plans / Stripe / usage metering / quotas + self-serve signup | ❌ PRD P2 |
+| CP14 | Enterprise — SSO/SAML + SCIM; custom roles / granular permissions | ❌ |
+| CP15 | Data resilience — tested restore, export/import, real `TENANT#` cascade-purge | 🟡 |
 
 ## 🧩 Open code TODOs
 

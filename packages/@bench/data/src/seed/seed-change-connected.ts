@@ -3,6 +3,7 @@
  *
  * Creates:
  * - Tenant: Change Connected
+ * - User: Oliver Bradley (admin, owner)
  * - Profile 1: Oliver Bradley - Founder & Chief Connecting Officer
  * - Profile 2: Jason Jones - Delivery Execution and Flow Optimisation
  *
@@ -14,6 +15,9 @@ import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import {
   tenantPK,
   tenantSK,
+  userPK,
+  userSK,
+  emailGSI1PK,
   profilePK,
   profileSK,
   skillSK,
@@ -56,6 +60,7 @@ const tenantItem = {
   entityType: 'TENANT',
   id: TENANT_ID,
   name: 'Change Connected',
+  instanceName: 'Change Hub',
   slug: 'change-connected',
   brandTokens: BRAND_TOKENS,
   customDomain: 'changeconnected.co.uk',
@@ -63,6 +68,41 @@ const tenantItem = {
   trialEndsAt: null,
   createdAt: NOW,
   updatedAt: NOW,
+};
+
+// ============================================
+// User: Oliver Bradley (owner/admin)
+// ============================================
+
+const OLIVER_USER_ID = 'user-oliver-bradley';
+
+const oliverUserItem = {
+  PK: userPK(TENANT_ID, OLIVER_USER_ID),
+  SK: userSK(OLIVER_USER_ID),
+  GSI1PK: emailGSI1PK('oliver@changeconnected.co.uk'),
+  GSI1SK: userSK(OLIVER_USER_ID),
+  entityType: 'USER',
+  id: OLIVER_USER_ID,
+  tenantId: TENANT_ID,
+  email: 'oliver@changeconnected.co.uk',
+  name: 'Oliver Bradley',
+  role: 'admin',
+  status: 'active',
+  cognitoId: null, // Unbound until Phase 3 claim
+  createdAt: NOW,
+};
+
+const oliverUserListingItem = {
+  PK: tenantPK(TENANT_ID),
+  SK: userSK(OLIVER_USER_ID),
+  entityType: 'USER_LISTING',
+  id: OLIVER_USER_ID,
+  tenantId: TENANT_ID,
+  email: 'oliver@changeconnected.co.uk',
+  name: 'Oliver Bradley',
+  role: 'admin',
+  status: 'active',
+  createdAt: NOW,
 };
 
 // ============================================
@@ -75,14 +115,15 @@ const oliverProfile = {
   PK: profilePK(TENANT_ID, OLIVER_ID),
   SK: profileSK(OLIVER_ID),
   entityType: 'PROFILE',
-  GSI2PK: statusGSI2PK(TENANT_ID, 'published'),
+  GSI2PK: statusGSI2PK(TENANT_ID, 'active'),
   GSI2SK: OLIVER_ID,
   id: OLIVER_ID,
   tenantId: TENANT_ID,
   consultantName: 'Oliver Bradley',
   consultantEmail: 'oliver@changeconnected.co.uk',
   role: 'Founder & Chief Connecting Officer',
-  status: 'published',
+  status: 'active',
+  availability: { status: 'available' },
   positioning: {
     headline: 'Founder & Chief Connecting Officer',
     bio: 'Oliver founded Change Connected to bring together the best independent consultants and match them with organisations that need real expertise. With a background in transformation leadership and a passion for building genuine relationships, Oliver leads the network with energy and purpose.',
@@ -90,9 +131,6 @@ const oliverProfile = {
   headshotAssetId: null,
   createdAt: NOW,
   updatedAt: NOW,
-  submittedAt: NOW,
-  publishedAt: NOW,
-  archivedAt: null,
 };
 
 // Profile listing item (for tenant-scoped queries) - NO GSI2 keys
@@ -104,7 +142,8 @@ const oliverListingItem = {
   tenantId: TENANT_ID,
   consultantName: 'Oliver Bradley',
   role: 'Founder & Chief Connecting Officer',
-  status: 'published',
+  status: 'active',
+  availability: { status: 'available' },
   headshotAssetId: null,
   updatedAt: NOW,
 };
@@ -200,14 +239,15 @@ const jasonProfile = {
   PK: profilePK(TENANT_ID, JASON_ID),
   SK: profileSK(JASON_ID),
   entityType: 'PROFILE',
-  GSI2PK: statusGSI2PK(TENANT_ID, 'published'),
+  GSI2PK: statusGSI2PK(TENANT_ID, 'active'),
   GSI2SK: JASON_ID,
   id: JASON_ID,
   tenantId: TENANT_ID,
   consultantName: 'Jason Jones',
   consultantEmail: 'jason@changeconnected.co.uk',
   role: 'Delivery Execution & Flow Optimisation',
-  status: 'published',
+  status: 'active',
+  availability: { status: 'available' },
   positioning: {
     headline: 'Delivery Execution & Flow Optimisation',
     bio: 'Jason specialises in helping organisations achieve predictable delivery through flow optimisation, Agile/Lean practices, and practical DevOps adoption. With deep technical roots and hands-on leadership experience, Jason bridges the gap between strategy and execution.',
@@ -215,9 +255,6 @@ const jasonProfile = {
   headshotAssetId: null,
   createdAt: NOW,
   updatedAt: NOW,
-  submittedAt: NOW,
-  publishedAt: NOW,
-  archivedAt: null,
 };
 
 // Profile listing item (for tenant-scoped queries) - NO GSI2 keys
@@ -229,7 +266,8 @@ const jasonListingItem = {
   tenantId: TENANT_ID,
   consultantName: 'Jason Jones',
   role: 'Delivery Execution & Flow Optimisation',
-  status: 'published',
+  status: 'active',
+  availability: { status: 'available' },
   headshotAssetId: null,
   updatedAt: NOW,
 };
@@ -331,6 +369,23 @@ async function seedTenant(): Promise<void> {
   console.log('  ✓ Tenant created');
 }
 
+async function seedUser(): Promise<void> {
+  console.log('Seeding user: Oliver Bradley (admin)...');
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: oliverUserItem,
+    })
+  );
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: oliverUserListingItem,
+    })
+  );
+  console.log('  ✓ User created with GSI1 email lookup');
+}
+
 async function seedProfile(
   profile: Record<string, unknown>,
   listingItem: Record<string, unknown>,
@@ -362,6 +417,7 @@ async function main(): Promise<void> {
 
   try {
     await seedTenant();
+    await seedUser();
     await seedProfile(
       oliverProfile,
       oliverListingItem,
@@ -377,7 +433,8 @@ async function main(): Promise<void> {
 
     console.log('\n=== Seed complete ===\n');
     console.log('Summary:');
-    console.log('  • Tenant: Change Connected');
+    console.log('  • Tenant: Change Connected (Change Hub)');
+    console.log('  • Users: 1 (Oliver Bradley - admin)');
     console.log('  • Profiles: 2 (Oliver Bradley, Jason Jones)');
     console.log('  • Skills: 9 total');
     console.log('  • Stories: 7 total\n');

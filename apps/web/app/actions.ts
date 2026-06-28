@@ -5,8 +5,18 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getRepository } from '@/lib/data/repository';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
-import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { getSession, getTenantId } from '@/lib/auth/session';
 import type { Availability, FormState, ProfilePatch, ProfileStatus } from '@/lib/types';
+
+/** Get the current tenant ID from session, or throw if not authenticated. */
+async function requireTenantId(): Promise<string> {
+  const session = await getSession();
+  const tenantId = getTenantId(session);
+  if (!tenantId) {
+    throw new Error('Not authenticated');
+  }
+  return tenantId;
+}
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -19,11 +29,12 @@ export async function createConsultant(
   const email = String(formData.get('email') ?? '').trim();
   const role = String(formData.get('role') ?? '').trim();
 
-  if (name.length < 2) return { error: 'Please enter the consultant’s full name.' };
+  if (name.length < 2) return { error: 'Please enter the consultant full name.' };
   if (!EMAIL_RE.test(email)) return { error: 'Please enter a valid email address.' };
 
+  const tenantId = await requireTenantId();
   const repo = getRepository();
-  const profile = await repo.create(PILOT_TENANT_ID, {
+  const profile = await repo.create(tenantId, {
     name,
     email,
     role: role || undefined,
@@ -39,8 +50,9 @@ export async function changeStatus(formData: FormData): Promise<void> {
   const status = String(formData.get('status') ?? '') as ProfileStatus;
   if (!profileId || !status) return;
 
+  const tenantId = await requireTenantId();
   const repo = getRepository();
-  await repo.setStatus(PILOT_TENANT_ID, profileId, status);
+  await repo.setStatus(tenantId, profileId, status);
 
   revalidatePath('/dashboard');
   revalidatePath(`/profiles/${profileId}`);
@@ -48,8 +60,9 @@ export async function changeStatus(formData: FormData): Promise<void> {
 
 /** Save wizard edits to a profile. Called from the client wizard. */
 export async function saveProfile(profileId: string, patch: ProfilePatch) {
+  const tenantId = await requireTenantId();
   const repo = getRepository();
-  const updated = await repo.update(PILOT_TENANT_ID, profileId, patch);
+  const updated = await repo.update(tenantId, profileId, patch);
   revalidatePath(`/profiles/${profileId}`);
   revalidatePath('/dashboard');
   return updated;
@@ -57,16 +70,18 @@ export async function saveProfile(profileId: string, patch: ProfilePatch) {
 
 /** Consultant submits their completed profile for owner review. */
 export async function submitForReview(profileId: string) {
+  const tenantId = await requireTenantId();
   const repo = getRepository();
-  await repo.setStatus(PILOT_TENANT_ID, profileId, 'in_progress');
+  await repo.setStatus(tenantId, profileId, 'in_progress');
   revalidatePath(`/profiles/${profileId}`);
   revalidatePath('/dashboard');
 }
 
 /** Update a profile's availability (market position). */
 export async function setAvailability(profileId: string, availability: Availability) {
+  const tenantId = await requireTenantId();
   const repo = getRepository();
-  await repo.update(PILOT_TENANT_ID, profileId, { availability });
+  await repo.update(tenantId, profileId, { availability });
   revalidatePath(`/profiles/${profileId}`);
   revalidatePath('/dashboard');
 }
@@ -90,12 +105,14 @@ const SHARE_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
  * the opaque-token URL is the v1.
  */
 export async function createShareLink(profileId: string): Promise<string> {
+  const tenantId = await requireTenantId();
+
   // 32 bytes of entropy, URL-safe — the secret half of the share link.
   const rawToken = randomBytes(32).toString('base64url');
   const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
   const links = getMagicLinkRepository();
-  await links.create(PILOT_TENANT_ID, {
+  await links.create(tenantId, {
     id: randomUUID(),
     profileId,
     type: 'share',

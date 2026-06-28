@@ -13,8 +13,8 @@ export const dynamic = 'force-dynamic';
  * The `[token]` segment is the raw secret from the share link. We re-hash it
  * (SHA-256) and resolve it via GSI3 (`lookupByTokenHash`, ADR-0008) to recover
  * tenant context, then validate the link is live (active, unexpired, view scope)
- * and the underlying profile is published. Any failure — bad token, expired,
- * revoked, wrong scope, or an unpublished profile — falls through to the neutral
+ * and the underlying profile is active (ADR-0011 two-axis). Any failure — bad
+ * token, expired, revoked, wrong scope, or inactive profile — falls through to the neutral
  * `Unavailable` page so we never leak why.
  */
 export default async function SharePage({
@@ -39,7 +39,7 @@ export default async function SharePage({
 
   const profile = await getRepository().get(link.tenantId, link.profileId);
 
-  if (!profile || profile.status !== 'published') {
+  if (!profile || profile.status !== 'active') {
     return <Unavailable />;
   }
 

@@ -5,7 +5,9 @@
  * Provides tenant-scoped data access for consultant profiles.
  *
  * Per ADR-0008: The repository layer is the only path to the table.
- * Handlers/services never touch DynamoDBDocumentClient directly.
+ * Per ADR-0011: two-axis model — `status` (lifecycle) + `availability` (market
+ * position). The old single lifecycle (draft…archived + submitted/published/
+ * archived timestamps) is gone.
  *
  * Per data-contract.md:
  * - get() assembles children (skills, stories, testimonial)
@@ -19,6 +21,7 @@ import {
   type TransactWriteCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import type {
+  Availability,
   Profile,
   ProfileRepository,
   ProfileSummary,
@@ -40,6 +43,9 @@ import {
   validateTenantId,
 } from '../keys.js';
 
+/** Default availability for a freshly-created profile / legacy items missing it. */
+const DEFAULT_AVAILABILITY: Availability = { status: 'available' };
+
 /**
  * DynamoDB item types
  */
@@ -55,13 +61,11 @@ interface ProfileItem {
   consultantEmail: string;
   role: string | null;
   status: ProfileStatus;
+  availability: Availability;
   positioning: ProfilePositioning | null;
   headshotAssetId: string | null;
   createdAt: string;
   updatedAt: string;
-  submittedAt: string | null;
-  publishedAt: string | null;
-  archivedAt: string | null;
 }
 
 interface SkillItem {
@@ -105,6 +109,7 @@ interface ListingItem {
   consultantName: string;
   role: string | null;
   status: ProfileStatus;
+  availability: Availability;
   headshotAssetId: string | null;
   updatedAt: string;
 }
@@ -165,6 +170,7 @@ function assembleProfile(
     consultantEmail: profileItem.consultantEmail,
     role: profileItem.role,
     status: profileItem.status,
+    availability: profileItem.availability ?? DEFAULT_AVAILABILITY,
     positioning: profileItem.positioning,
     headshotAssetId: profileItem.headshotAssetId,
     skills,
@@ -172,9 +178,6 @@ function assembleProfile(
     testimonial,
     createdAt: profileItem.createdAt,
     updatedAt: profileItem.updatedAt,
-    submittedAt: profileItem.submittedAt,
-    publishedAt: profileItem.publishedAt,
-    archivedAt: profileItem.archivedAt,
   };
 }
 
@@ -188,6 +191,7 @@ function itemToSummary(item: ListingItem | ProfileItem): ProfileSummary {
     consultantName: item.consultantName,
     role: item.role,
     status: item.status,
+    availability: item.availability ?? DEFAULT_AVAILABILITY,
     headshotUrl: null, // Resolved by view layer from headshotAssetId
     updatedAt: item.updatedAt,
   };
@@ -198,22 +202,6 @@ function itemToSummary(item: ListingItem | ProfileItem): ProfileSummary {
  */
 function generateId(): string {
   return crypto.randomUUID();
-}
-
-/**
- * Get the timestamp attribute name for a status transition.
- */
-function getStatusTimestampAttr(status: ProfileStatus): keyof Profile | null {
-  switch (status) {
-    case 'submitted':
-      return 'submittedAt';
-    case 'published':
-      return 'publishedAt';
-    case 'archived':
-      return 'archivedAt';
-    default:
-      return null;
-  }
 }
 
 /**
@@ -298,7 +286,8 @@ export function createProfileRepository(
 
       const id = generateId();
       const now = new Date().toISOString();
-      const status: ProfileStatus = 'draft';
+      const status: ProfileStatus = 'no_profile';
+      const availability: Availability = DEFAULT_AVAILABILITY;
 
       const profileItem: ProfileItem = {
         PK: profilePK(tenantId, id),
@@ -312,13 +301,11 @@ export function createProfileRepository(
         consultantEmail: input.consultantEmail,
         role: input.role ?? null,
         status,
+        availability,
         positioning: null,
         headshotAssetId: null,
         createdAt: now,
         updatedAt: now,
-        submittedAt: null,
-        publishedAt: null,
-        archivedAt: null,
       };
 
       // Listing item (no GSI2 keys to avoid duplicates in findByStatus)
@@ -331,6 +318,7 @@ export function createProfileRepository(
         consultantName: input.consultantName,
         role: input.role ?? null,
         status,
+        availability,
         headshotAssetId: null,
         updatedAt: now,
       };
@@ -351,6 +339,7 @@ export function createProfileRepository(
         consultantEmail: input.consultantEmail,
         role: input.role ?? null,
         status,
+        availability,
         positioning: null,
         headshotAssetId: null,
         skills: [],
@@ -358,9 +347,6 @@ export function createProfileRepository(
         testimonial: null,
         createdAt: now,
         updatedAt: now,
-        submittedAt: null,
-        publishedAt: null,
-        archivedAt: null,
       };
     },
 
@@ -385,6 +371,10 @@ export function createProfileRepository(
         ...existing,
         consultantName: patch.consultantName ?? existing.consultantName,
         role: patch.role !== undefined ? patch.role : existing.role,
+        availability:
+          patch.availability !== undefined
+            ? patch.availability
+            : existing.availability,
         positioning:
           patch.positioning !== undefined
             ? patch.positioning
@@ -419,13 +409,11 @@ export function createProfileRepository(
         consultantEmail: updatedProfile.consultantEmail,
         role: updatedProfile.role,
         status: updatedProfile.status,
+        availability: updatedProfile.availability,
         positioning: updatedProfile.positioning,
         headshotAssetId: updatedProfile.headshotAssetId,
         createdAt: updatedProfile.createdAt,
         updatedAt: now,
-        submittedAt: updatedProfile.submittedAt,
-        publishedAt: updatedProfile.publishedAt,
-        archivedAt: updatedProfile.archivedAt,
       };
       transactItems.push({ Put: { TableName: tableName, Item: profileItem } });
 
@@ -439,6 +427,7 @@ export function createProfileRepository(
         consultantName: updatedProfile.consultantName,
         role: updatedProfile.role,
         status: updatedProfile.status,
+        availability: updatedProfile.availability,
         headshotAssetId: updatedProfile.headshotAssetId,
         updatedAt: now,
       };
@@ -558,18 +547,12 @@ export function createProfileRepository(
       }
 
       const now = new Date().toISOString();
-      const timestampAttr = getStatusTimestampAttr(status);
 
       // Build the updated profile
       const updatedProfile: Profile = {
         ...existing,
         status,
         updatedAt: now,
-        submittedAt:
-          timestampAttr === 'submittedAt' ? now : existing.submittedAt,
-        publishedAt:
-          timestampAttr === 'publishedAt' ? now : existing.publishedAt,
-        archivedAt: timestampAttr === 'archivedAt' ? now : existing.archivedAt,
       };
 
       const pk = profilePK(tenantId, profileId);
@@ -587,13 +570,11 @@ export function createProfileRepository(
         consultantEmail: updatedProfile.consultantEmail,
         role: updatedProfile.role,
         status,
+        availability: updatedProfile.availability,
         positioning: updatedProfile.positioning,
         headshotAssetId: updatedProfile.headshotAssetId,
         createdAt: updatedProfile.createdAt,
         updatedAt: now,
-        submittedAt: updatedProfile.submittedAt,
-        publishedAt: updatedProfile.publishedAt,
-        archivedAt: updatedProfile.archivedAt,
       };
 
       // Update listing item
@@ -606,6 +587,7 @@ export function createProfileRepository(
         consultantName: updatedProfile.consultantName,
         role: updatedProfile.role,
         status,
+        availability: updatedProfile.availability,
         headshotAssetId: updatedProfile.headshotAssetId,
         updatedAt: now,
       };

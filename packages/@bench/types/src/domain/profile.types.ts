@@ -1,14 +1,36 @@
 /**
- * Profile status state machine
- * Draft → Invited → In Progress → Submitted → Published → Archived
+ * Profile model — two independent axes (ADR-0011):
+ *   1. `status`       — admin-controlled lifecycle (is the profile ready?)
+ *   2. `availability` — market position (can we pitch this person, and when?)
  */
+
+/** Profile lifecycle status (axis 1). */
 export type ProfileStatus =
-  | 'draft'
-  | 'invited'
-  | 'in_progress'
-  | 'submitted'
-  | 'published'
-  | 'archived';
+  | 'no_profile' // record exists (name + email), nothing filled in
+  | 'in_progress' // consultant is completing the wizard
+  | 'active' // published, live, eligible for client share links
+  | 'removed'; // deactivated / archived; hidden, links dead, data retained
+
+/** Notice period for the `looking` availability state. */
+export type NoticePeriod =
+  | 'immediate'
+  | '1_week'
+  | '2_weeks'
+  | '1_month'
+  | '3_months'
+  | '6_months';
+
+/** Availability status (axis 2) — owner-internal; never shown on client views. */
+export type AvailabilityStatus = 'available' | 'looking' | 'engaged' | 'pitched';
+
+/** Availability details; the optional fields depend on `status`. */
+export interface Availability {
+  readonly status: AvailabilityStatus;
+  /** For `looking`: how soon they can start. */
+  readonly noticePeriod?: NoticePeriod;
+  /** For `engaged`: ISO date they roll off / become available. */
+  readonly endDate?: string;
+}
 
 /**
  * Positioning section of a profile
@@ -51,7 +73,7 @@ export interface ProfileTestimonial {
 }
 
 /**
- * Complete profile entity
+ * Complete profile entity (ADR-0011 two-axis model).
  */
 export interface Profile {
   readonly id: string;
@@ -60,6 +82,7 @@ export interface Profile {
   readonly consultantEmail: string;
   readonly role: string | null;
   readonly status: ProfileStatus;
+  readonly availability: Availability;
   readonly positioning: ProfilePositioning | null;
   readonly headshotAssetId: string | null;
   readonly skills: readonly ProfileSkill[];
@@ -67,13 +90,10 @@ export interface Profile {
   readonly testimonial: ProfileTestimonial | null;
   readonly createdAt: string;
   readonly updatedAt: string;
-  readonly submittedAt: string | null;
-  readonly publishedAt: string | null;
-  readonly archivedAt: string | null;
 }
 
 /**
- * Minimal profile for roster display
+ * Minimal profile for roster display.
  */
 export interface ProfileSummary {
   readonly id: string;
@@ -81,6 +101,7 @@ export interface ProfileSummary {
   readonly consultantName: string;
   readonly role: string | null;
   readonly status: ProfileStatus;
+  readonly availability: Availability;
   readonly headshotUrl: string | null;
   readonly updatedAt: string;
 }

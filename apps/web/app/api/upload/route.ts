@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
-import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { getSession, getTenantId } from '@/lib/auth/session';
 
 const BUCKET_NAME = process.env.ASSETS_BUCKET ?? 'bench-assets';
 const REGION = process.env.AWS_REGION ?? 'eu-west-2';
@@ -13,6 +13,15 @@ const CLOUDFRONT_DOMAIN = process.env.ASSETS_CDN_DOMAIN ?? 'assets.bench.opstack
  */
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    const tenantId = getTenantId(session);
+    if (!tenantId) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const profileId = formData.get('profileId') as string | null;
@@ -29,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     // Generate unique key
     const assetId = randomUUID();
-    const key = `tenants/${PILOT_TENANT_ID}/profiles/${profileId}/headshot-${assetId}.jpg`;
+    const key = `tenants/${tenantId}/profiles/${profileId}/headshot-${assetId}.jpg`;
 
     // Upload to S3
     const client = new S3Client({ region: REGION });

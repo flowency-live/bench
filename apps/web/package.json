@@ -9,10 +9,15 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf .next out"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1075.0",
+    "@aws-sdk/client-dynamodb": "^3.1075.0",
     "@aws-sdk/client-s3": "^3.1075.0",
+    "@aws-sdk/client-ses": "^3.1075.0",
     "@bench/data": "workspace:*",
     "@bench/domain": "workspace:*",
     "@bench/types": "workspace:*",
@@ -24,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.0.0",
+    "vitest": "^3.2.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

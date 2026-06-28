@@ -2,7 +2,7 @@
 
 **Product:** Bench *(working name)* — a multi-tenant, white-label platform for consultancies to build, manage, and share branded consultant profiles.
 **Author:** Jason Jones
-**Status:** Draft v0.5
+**Status:** Draft v0.6
 **Platform:** AWS, single account, `eu-west-2` (London) for UK data residency
 **Last updated:** 25 June 2026
 
@@ -29,7 +29,7 @@ Bench turns the profile into structured data, lets the consultant fill it in the
 ## 3. Non-goals (this version)
 
 - **Self-serve tenant sign-up and billing** — the platform is **multi-tenant by design** (see §12); Change Connected is the first pilot tenant. Tenants are onboarded manually during the pilot. Public sign-up, plans, and billing are deferred (P2/V3). The multi-tenant *foundation* — tenant scoping, isolation, per-tenant branding — is in scope from v1.
-- **Consultant marketplace / availability / rates** — not a staffing exchange. No booking, no day-rate logic.
+- **Consultant marketplace / public availability / rates** — not a staffing exchange. No public availability feed, no booking, no day-rate or billing logic, no client-facing availability. *Note:* V1 does track availability **internally** for the owner's own talent-pool management (the `availability` axis — see §5 and ADR-0011); that data is owner-only and never appears on a client share view. The non-goal is the *marketplace*, not the internal field.
 - **Client accounts** — clients view via link only. No client login, dashboards, or shortlists in v1.
 - **CRM / ATS integration** — no sync to Salesforce, Bullhorn, etc. Manual for now.
 - **E-signature, contracting, or DOR­A/compliance attestations** on profiles — out of scope; this is a presentation tool, not a contracting one.
@@ -41,34 +41,42 @@ Bench turns the profile into structured data, lets the consultant fill it in the
 |---|---|---|---|
 | Log in to portal | ✅ | ❌ | ❌ |
 | See all profiles | ✅ | ❌ | ❌ |
-| Add / archive a consultant | ✅ | ❌ | ❌ |
+| Add / remove a consultant | ✅ | ❌ | ❌ |
 | Edit any profile | ✅ | own only | ❌ |
 | Complete profile via wizard | ✅ | own only | ❌ |
-| Approve / publish a profile | ✅ | ❌ | ❌ |
+| Publish a profile (set Active) | ✅ | ❌ | ❌ |
+| Set a consultant's availability | ✅ | own only | ❌ |
 | Generate invite link | ✅ | ❌ | ❌ |
 | Generate / revoke client share link | ✅ | ❌ | ❌ |
-| View a published profile | ✅ | own only | ✅ (scoped) |
+| View an Active profile | ✅ | own only | ✅ (scoped) |
 
 Consultant and Client are **link-scoped sessions**, not user accounts — a magic link grants a short-lived session limited to one profile and one action.
 
 ## 5. Profile lifecycle
 
+A profile is modelled on **two independent axes** (see ADR-0011): a `status` lifecycle (is the profile ready?) and an `availability` position (can we pitch this person, and when?). They move independently — a profile can be **Active** + **Engaged**, or **In progress** + **Available**.
+
+### Axis 1 — Status (profile lifecycle)
+
 ```
-Draft ──invite sent──▶ Invited ──opens link──▶ In progress ──submits──▶ Submitted
-                                                                            │
-                                                          owner reviews ◀───┘
-                                                                            │
-                                              edits & approves ──▶ Published ──▶ Archived
+No profile ──opens wizard──▶ In progress ──owner publishes──▶ Active ──owner removes──▶ Removed
 ```
 
-- **Draft** — owner created the record (name + email), nothing else.
-- **Invited** — an invite link exists and has been sent; not yet opened.
-- **In progress** — consultant has opened the wizard; auto-saving.
-- **Submitted** — consultant marked it complete; locked to consultant, open to owner.
-- **Published** — owner approved; eligible for client share links.
-- **Archived** — hidden from the active Collective, links dead, data retained.
+- **No profile** — owner created the record (name + email), nothing filled in.
+- **In progress** — consultant has opened the wizard and is filling it in; auto-saving.
+- **Active** — owner has published it; live, visible in the Collective, and eligible for client share links.
+- **Removed** — deactivated / archived; hidden from the Collective, links dead, data retained.
 
-Client share links can only be created against a **Published** profile.
+Whether an invite link exists is a property of the **link** (`MagicLink`), not the profile, so there is no separate "Invited" status. Client share links can only be created against an **Active** profile.
+
+### Axis 2 — Availability (market position — owner-internal)
+
+Owner/associate-set, never shown on client share views.
+
+- **Available** — free to be pitched now.
+- **Looking** — open but currently committed; a **notice period** (immediate / 1 week / 2 weeks / 1 month / 3 months / 6 months) says how soon they can move.
+- **Engaged** — on an assignment; an **end date** says when they roll off.
+- **Pitched** — put forward on an opportunity; awaiting outcome.
 
 ## 6. User stories
 
@@ -76,7 +84,8 @@ Client share links can only be created against a **Published** profile.
 - As the **owner**, I want to log in and see every consultant profile with its status, so I know at a glance what's done, in progress, or stalled.
 - As the **owner**, I want to add a consultant with just their name and email, so I can get them started in seconds.
 - As the **owner**, I want to send a consultant a link to complete their own profile, so I'm not transcribing their CV into a deck.
-- As the **owner**, I want to review and edit a submitted profile before it goes out, so nothing off-brand or wrong reaches a client.
+- As the **owner**, I want to review and edit a profile before publishing it, so nothing off-brand or wrong reaches a client.
+- As the **owner**, I want to mark each consultant's availability (available, looking with a notice period, engaged with an end date, or pitched), so I know at a glance who I can put forward and when.
 - As the **owner**, I want to generate a link to share one specific profile with one specific client, so I control who sees whom.
 - As the **owner**, I want to set an expiry on a client link and revoke it, so a profile can't circulate indefinitely.
 - As the **owner**, I want to see whether a client link has been opened, so I can follow up at the right moment.
@@ -111,16 +120,16 @@ Client share links can only be created against a **Published** profile.
 - Acceptance: Given any consultant or client opening a link, when the page loads, then it sits on the tenant's brand domain (Change Connected → `changeconnected.co.uk`), shows that tenant's logo and footer, and is visually indistinguishable from an extension of their main site.
 
 **Collective Dashboard**
-- The owner's view of the Collective — the tenant's talent pool / portfolio. List of all profiles showing headshot, name, role, status, last updated; search by name; filter by status.
-- Acceptance: Given profiles in mixed states, when the owner opens the dashboard, then each profile shows its current status and the list is searchable and filterable.
+- The owner's view of the Collective — the tenant's talent pool / portfolio. List of all profiles showing headshot, name, role, **status** (lifecycle), **availability** (with notice period / end date), last updated; search by name; filter by status.
+- Acceptance: Given profiles in mixed states, when the owner opens the dashboard, then each profile shows its current status and availability, and the list is searchable and filterable by status.
 
 **Add consultant**
-- Owner creates a profile with name + email (role optional). Creates a Draft.
-- Acceptance: Given valid name and email, when the owner submits, then a Draft profile is created and appears in the Collective; duplicate email warns but doesn't block.
+- Owner creates a profile with name + email (role optional). Creates a **No-profile** record.
+- Acceptance: Given valid name and email, when the owner submits, then a No-profile record is created and appears in the Collective; duplicate email warns but doesn't block.
 
 **Invite magic link (owner → consultant)**
 - Owner generates an invite link scoped to one profile; system can email it via the consultant's address; link is resumable until submit or expiry.
-- Acceptance: Given a Draft, when the owner generates an invite, then a single-purpose tokenised URL is produced and the profile moves to Invited; opening it starts/resumes the wizard scoped to that profile only.
+- Acceptance: Given a No-profile record, when the owner generates an invite, then a single-purpose tokenised URL is produced; opening it starts/resumes the wizard scoped to that profile only and moves the profile to **In progress**.
 
 **Completion wizard (consultant)**
 - Stepwise form mapping to the profile sections (see §9), with auto-save, inline guidance, photo upload, live preview, and submit.
@@ -131,12 +140,12 @@ Client share links can only be created against a **Published** profile.
 - Acceptance: Given a complete profile, when rendered, then it matches the brand (navy/lime/gradient, logo, Fredoka/Poppins) and prints to a single A4 page in both orientations; all text meets WCAG 2.1 AA contrast.
 
 **Owner review & publish**
-- Owner can edit any field of a Submitted profile and publish it.
-- Acceptance: Given a Submitted profile, when the owner edits and publishes, then status → Published and the profile becomes shareable.
+- Owner can edit any field of a profile and publish it. (Submitting the wizard notifies the owner it's ready; the owner edits freely and decides when to publish — there is no separate locked "submitted" status.)
+- Acceptance: Given an In-progress profile, when the owner edits and publishes, then status → Active and the profile becomes shareable.
 
 **Client share link (owner → client)**
-- Owner generates a share link against a Published profile, with an expiry and a revoke control; opening it shows the read-only profile.
-- Acceptance: Given a Published profile, when the owner creates a share link with a 30-day expiry, then the client sees the profile until expiry or revoke; after either, the link shows a neutral unavailable page.
+- Owner generates a share link against an Active profile, with an expiry and a revoke control; opening it shows the read-only profile. The client view never exposes the consultant's availability (owner-internal).
+- Acceptance: Given an Active profile, when the owner creates a share link with a 30-day expiry, then the client sees the profile (without availability) until expiry or revoke; after either, the link shows a neutral unavailable page.
 
 **Audit trail**
 - Record link creation, send, first open, and revoke for invite and share links.
@@ -200,14 +209,14 @@ Steps map one-to-one to the rendered profile. Counts are ranges so the layout st
 - [ ] Photo upload accepts JPG/PNG, enforces a min resolution, and shows the cropped brand-treated result.
 - [ ] Skills and stories enforce min/max counts and reorder by drag.
 - [ ] The live preview reflects current data and the active brand at all times.
-- [ ] Submit locks the profile to the consultant and notifies the owner.
+- [ ] Submit notifies the owner the profile is ready to review; the owner can still edit and is the one who publishes it to Active (no locked "submitted" state).
 - [ ] An expired link shows a clear "request a new link" path, not an error.
 
 ## 10. Data model (entities)
 
 - **Tenant** — id, name, **instance display name** (e.g. "Change Hub"), brand tokens (colours, logo asset, fonts), custom domain, **terminology overrides** (labels for the CM / admin roles), default profile template, status. **Every other entity below carries a `tenant_id`** and is isolated by it. Change Connected is the first tenant row. *(Isolation in §12.)*
 - **User** — tenant-scoped owner(s)/CHA; id, email, auth provider.
-- **Profile** — id, tenant id, consultant name, email, role, status, headshot asset, positioning (headline, bio), timestamps.
+- **Profile** — id, tenant id, consultant name, email, role, **status** (`no_profile` / `in_progress` / `active` / `removed`), **availability** (`{ status: available | looking | engaged | pitched, noticePeriod?, endDate? }` — owner-internal, never on client views), headshot asset, positioning (headline, bio), timestamps. *(Status + availability model: ADR-0011; canonical enums in `apps/web/lib/types.ts`.)*
 - **Skill** — id, profile id, title, body, order.
 - **Story** — id, profile id, client tag, title, body, order.
 - **Testimonial** — id, profile id, quote, author name, author role, author company.
@@ -306,6 +315,8 @@ Resolved since v0.1: email → **SES**; PDF → **Lambda headless Chromium**; re
 
 V1 is a **shop window**: branded profiles, with consultants as link-scoped, account-less contributors. V2 turns it into a **managed talent hub** — supply (who's available, with what skills) meets demand (roles to fill) through search and AI-assisted matching. The profile becomes the public face of an operational backend.
 
+> **Already pulled forward into V1 (ADR-0011).** The **two-axis model** (§17.3) and a **basic availability field** (§17.2) now ship in V1: a `status` lifecycle plus an owner-internal `availability` axis (available / looking + notice period / engaged + end date / pitched). What remains V2 is the *operational depth* around them — the freshness loop (last-confirmed, reconfirm nudges, staleness exclusion), CM self-service dashboards, the coming-available timeline, and search / AI matching. The references below to "V1 had a single status field" are superseded by ADR-0011.
+
 Terminology is formalised in V2. These are **Change Connected's labels** for their Bench instance (per-tenant configurable — another tenant would set their own):
 
 - **Change Maker (CM)** — the consultant. Now an account holder, not a link-scoped session.
@@ -348,7 +359,7 @@ This is the feature that makes it a Hub rather than a directory, so it's the cen
 
 ### 17.3 CHA pipeline (two axes)
 
-V1 had a single status field; V2 needs **two independent axes**, and conflating them is how these tools turn to mush.
+V1 already splits this into **two independent axes** (ADR-0011); conflating them is how these tools turn to mush. V2 deepens each axis into a fuller pipeline:
 
 - **Profile-state:** draft → invited → claimed → complete → published → in-review.
 - **Availability-state:** available / coming available / on engagement / not looking.

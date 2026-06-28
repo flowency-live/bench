@@ -2,12 +2,15 @@
 
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { getTenantRepository } from '@/lib/data/tenant';
-import { getUserRepository } from '@/lib/data/user';
+import { getTenantRepository, type TenantStatus } from '@/lib/data/tenant';
+import { getUserRepository, type TenantUserRole } from '@/lib/data/user';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { getPlatformSession } from '@/lib/auth/platform';
 import { createSession } from '@/lib/auth/session';
+import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { sendOnboardingEmail } from '@/lib/email/send';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -101,10 +104,24 @@ export async function createTenant(
 
   const verifyPath = `/auth/verify?token=${rawToken}`;
 
+  // Get the origin to construct the full URL for the email.
+  const headersList = await headers();
+  const host = headersList.get('host') ?? 'localhost:3000';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  const verifyUrl = `${protocol}://${host}${verifyPath}`;
+
+  // Send the onboarding email (skipped in non-production, logs instead).
+  await sendOnboardingEmail({
+    to: adminEmail,
+    tenantName: tenant.instanceName ?? tenant.name,
+    verifyUrl,
+    invitedBy: platform.email,
+  });
+
   // Refresh the tenant list shown on the godmode dashboard.
   revalidatePath('/godmode');
 
-  // TODO(SES): email this onboarding link to the admin in production.
+  // In dev, also surface the link directly for testing.
   if (process.env.NODE_ENV !== 'production') {
     return {
       ok: true,
@@ -149,4 +166,194 @@ export async function switchTenant(formData: FormData): Promise<void> {
   });
 
   redirect('/dashboard');
+}
+
+/** State returned to the godmode tenant-management controls. */
+export interface TenantActionState {
+  readonly ok: boolean;
+  readonly error?: string;
+}
+
+/**
+ * Suspend or reactivate a tenant — ADR-0010 §control-plane.
+ * Godmode-only; a suspended tenant's users cannot sign in (enforced elsewhere).
+ */
+export async function setTenantStatus(
+  formData: FormData,
+): Promise<TenantActionState> {
+  const platform = await getPlatformSession();
+  if (!platform) {
+    redirect('/godmode/login');
+  }
+
+  const tenantId = String(formData.get('tenantId') ?? '').trim();
+  const status = String(formData.get('status') ?? '').trim();
+  if (!tenantId) {
+    return { ok: false, error: 'Tenant is required.' };
+  }
+  if (status !== 'active' && status !== 'suspended') {
+    return { ok: false, error: 'Invalid status.' };
+  }
+
+  const tenants = getTenantRepository();
+  await tenants.setStatus(tenantId, status as TenantStatus);
+
+  // TODO(audit): record { actor: platform.email, action, tenantId, target, at }
+  console.info('[godmode-audit]', {
+    actor: platform.email,
+    action: status === 'suspended' ? 'tenant.suspend' : 'tenant.reactivate',
+    tenantId,
+    target: tenantId,
+    at: new Date().toISOString(),
+  });
+
+  revalidatePath('/godmode');
+  return { ok: true };
+}
+
+/**
+ * Hard-delete a tenant and cascade-remove its users — ADR-0010 §control-plane.
+ *
+ * Guardrails (godmode-only):
+ *  - requires `confirmName` to exactly match the tenant's name (type-to-confirm),
+ *  - refuses to delete the pilot `change-connected` tenant unless `force` is set
+ *    (guards against fat-fingering the live tenant).
+ */
+export async function deleteTenant(
+  formData: FormData,
+): Promise<TenantActionState> {
+  const platform = await getPlatformSession();
+  if (!platform) {
+    redirect('/godmode/login');
+  }
+
+  const tenantId = String(formData.get('tenantId') ?? '').trim();
+  const confirmName = String(formData.get('confirmName') ?? '');
+  const force = String(formData.get('force') ?? '').trim() !== '';
+  if (!tenantId) {
+    return { ok: false, error: 'Tenant is required.' };
+  }
+
+  const tenants = getTenantRepository();
+  const tenant = await tenants.get(tenantId);
+  if (!tenant) {
+    return { ok: false, error: 'Tenant not found.' };
+  }
+
+  if (confirmName.trim() !== tenant.name) {
+    return { ok: false, error: 'Name did not match.' };
+  }
+
+  if (tenant.id === PILOT_TENANT_ID && !force) {
+    return {
+      ok: false,
+      error:
+        'Refusing to delete the pilot change-connected tenant. This is the live ' +
+        'tenant — set the force flag to override.',
+    };
+  }
+
+  const users = getUserRepository();
+  await users.removeByTenant(tenantId);
+  // TODO(@bench/data): also purge the tenant's profiles + magic links.
+  await tenants.delete(tenantId);
+
+  // TODO(audit): record { actor: platform.email, action, tenantId, target, at }
+  console.info('[godmode-audit]', {
+    actor: platform.email,
+    action: 'tenant.delete',
+    tenantId,
+    target: tenant.name,
+    at: new Date().toISOString(),
+  });
+
+  revalidatePath('/godmode');
+  return { ok: true };
+}
+
+/**
+ * Remove a single user from a tenant — ADR-0010 §control-plane.
+ * Surfaces the repository's last-active-admin guard as a form error rather than
+ * throwing, so the operator sees why the removal was refused.
+ */
+export async function removeTenantUser(
+  formData: FormData,
+): Promise<TenantActionState> {
+  const platform = await getPlatformSession();
+  if (!platform) {
+    redirect('/godmode/login');
+  }
+
+  const tenantId = String(formData.get('tenantId') ?? '').trim();
+  const userId = String(formData.get('userId') ?? '').trim();
+  if (!tenantId || !userId) {
+    return { ok: false, error: 'Tenant and user are required.' };
+  }
+
+  const users = getUserRepository();
+  try {
+    await users.remove(tenantId, userId);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Could not remove user.',
+    };
+  }
+
+  // TODO(audit): record { actor: platform.email, action, tenantId, target, at }
+  console.info('[godmode-audit]', {
+    actor: platform.email,
+    action: 'tenant-user.remove',
+    tenantId,
+    target: userId,
+    at: new Date().toISOString(),
+  });
+
+  revalidatePath('/godmode');
+  return { ok: true };
+}
+
+/**
+ * Change a tenant user's role (admin/viewer) — ADR-0010 §control-plane.
+ * Godmode-only.
+ */
+export async function setTenantUserRole(
+  formData: FormData,
+): Promise<TenantActionState> {
+  const platform = await getPlatformSession();
+  if (!platform) {
+    redirect('/godmode/login');
+  }
+
+  const tenantId = String(formData.get('tenantId') ?? '').trim();
+  const userId = String(formData.get('userId') ?? '').trim();
+  const role = String(formData.get('role') ?? '').trim();
+  if (!tenantId || !userId) {
+    return { ok: false, error: 'Tenant and user are required.' };
+  }
+  if (role !== 'admin' && role !== 'viewer') {
+    return { ok: false, error: 'Invalid role.' };
+  }
+
+  const users = getUserRepository();
+  try {
+    await users.setRole(tenantId, userId, role as TenantUserRole);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Could not change role.',
+    };
+  }
+
+  // TODO(audit): record { actor: platform.email, action, tenantId, target, at }
+  console.info('[godmode-audit]', {
+    actor: platform.email,
+    action: 'tenant-user.set-role',
+    tenantId,
+    target: `${userId}:${role}`,
+    at: new Date().toISOString(),
+  });
+
+  revalidatePath('/godmode');
+  return { ok: true };
 }

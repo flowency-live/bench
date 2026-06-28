@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
+import { getUserRepository } from '@/lib/data/user';
 import { createSession } from '@/lib/auth/session';
 import { isPlatformAdmin } from '@/lib/auth/platform';
-import { PILOT_TENANT_ID } from '@/lib/tenant';
 
 /** Sentinel profile id under which admin (owner) magic links are stored. */
 const ADMIN_PROFILE_ID = 'ADMIN';
@@ -66,18 +66,45 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL('/godmode', request.url));
   }
 
-  // ── Admin (tenant owner) branch — unchanged. ──────────────────────────────
-  if (lookup.tenantId !== PILOT_TENANT_ID) return invalid();
+  // ── Admin (tenant owner) branch — multi-tenant (ADR-0010 §Phase 1). ────────
+  // Trust lookup.tenantId from GSI3 resolution — no PILOT_TENANT_ID restriction.
   if (lookup.profileId !== ADMIN_PROFILE_ID) return invalid();
 
   // Read the full link to recover the admin email it was minted for.
   const link = await links.findById(lookup.tenantId, ADMIN_PROFILE_ID, lookup.id);
   if (!link || !link.createdBy) return invalid();
 
+  // Parse createdBy: godmode links use "email|tenantId" format, regular login
+  // links use just "email". Extract the email portion.
+  const createdByParts = link.createdBy.split('|');
+  const emailPart = createdByParts[0];
+  if (!emailPart) return invalid();
+  const email = emailPart.trim().toLowerCase();
+  if (!email) return invalid();
+
+  // Look up the user to check if they have a Cognito identity.
+  const users = getUserRepository();
+  const user = await users.getByEmail(email);
+
+  // If user exists in this tenant but has NO cognitoId, redirect to claim page
+  // so they can set their password (ADR-0012: first-time password registration).
+  if (user && user.tenantId === lookup.tenantId && !user.cognitoId) {
+    // Don't burn the link yet — the claim page will validate and burn it.
+    return NextResponse.redirect(
+      new URL(`/auth/claim?token=${encodeURIComponent(token)}`, request.url),
+    );
+  }
+
+  // User has cognitoId (returning user) or doesn't exist — proceed with magic link login.
+  // Activate the user on claim (status pending → active) if they exist.
+  if (user && user.tenantId === lookup.tenantId && user.status === 'pending') {
+    await users.setStatus(lookup.tenantId, user.id, 'active');
+  }
+
   await createSession({
     kind: 'admin',
     tenantId: lookup.tenantId,
-    email: link.createdBy,
+    email,
     role: 'owner',
   });
 

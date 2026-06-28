@@ -1,6 +1,6 @@
 # ADR-0009: Admin/owner authentication — passwordless magic-link (V1)
 
-- **Status:** Accepted
+- **Status:** ~~Accepted~~ **Superseded by [ADR-0012](0012-adopt-cognito-identity-v1.md)** (2026-06-27). The magic-link owner path it describes is retained as a *fallback* under 0012, but Cognito (Google federation + email/password) is now the primary owner/godmode identity provider.
 - **Date:** 2026-06-25
 - **Deciders:** Jason Jones (founder), CTO
 - **Amends:** [ADR-0005](0005-magic-link-sessions.md) (the owner-auth portion), PRD §7 "Owner authentication"

@@ -37,6 +37,7 @@ export function toViewProfile(d: DomainProfile): Profile {
     email: d.consultantEmail,
     role: d.role,
     status: d.status,
+    availability: d.availability,
     headline: d.positioning?.headline ?? null,
     bio: d.positioning?.bio ?? null,
     headshotUrl: resolveHeadshotUrl(d.headshotAssetId),
@@ -67,6 +68,7 @@ export function toViewSummary(d: DomainSummary): ProfileSummary {
     name: d.consultantName,
     role: d.role,
     status: d.status,
+    availability: d.availability,
     headshotUrl: d.headshotUrl ?? null,
     updatedAt: d.updatedAt,
   };
@@ -84,6 +86,7 @@ export function toPatch(p: ProfilePatch): DomainPatch {
   return {
     ...(p.name !== undefined ? { consultantName: p.name } : {}),
     ...('role' in p ? { role: p.role ?? null } : {}),
+    ...(p.availability !== undefined ? { availability: p.availability } : {}),
     ...('headline' in p || 'bio' in p
       ? { positioning: { headline: p.headline ?? '', bio: p.bio ?? '' } }
       : {}),

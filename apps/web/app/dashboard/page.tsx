@@ -1,21 +1,33 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/AppHeader';
 import { DashboardClient, type DashboardRow } from '@/app/dashboard/DashboardClient';
 import { getRepository } from '@/lib/data/repository';
 import { computeCompletion } from '@/lib/profile-completion';
-import { PILOT_TENANT, PILOT_TENANT_ID } from '@/lib/tenant';
+import { getSession, getTenantId } from '@/lib/auth/session';
+import { getTenantRepository } from '@/lib/data/tenant';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
+  const session = await getSession();
+  const tenantId = getTenantId(session);
+
+  if (!tenantId) {
+    redirect('/login');
+  }
+
   const repo = getRepository();
-  const summaries = await repo.list(PILOT_TENANT_ID);
+  const summaries = await repo.list(tenantId);
 
   // Summaries lack the fields needed to score completion, so load the full
   // profiles. N+1 reads are fine at pilot scale (single tenant, small pool).
   const fullProfiles = await Promise.all(
-    summaries.map((s) => repo.get(PILOT_TENANT_ID, s.id)),
+    summaries.map((s) => repo.get(tenantId, s.id)),
   );
+
+  // Load tenant for display name
+  const tenant = await getTenantRepository().get(tenantId);
 
   const profiles: DashboardRow[] = summaries.map((summary, i) => {
     const full = fullProfiles[i];
@@ -49,7 +61,7 @@ export default async function DashboardPage() {
               The <span className="text-[var(--color-accent)]">Collective</span>
             </h1>
             <p className="mt-2 max-w-xl text-[var(--color-text-secondary)]">
-              {PILOT_TENANT.name}&rsquo;s talent pool: every Change Maker, their
+              {tenant?.name ?? 'Your'}&rsquo;s talent pool: every Change Maker, their
               status, and what they&rsquo;re ready to take on.
             </p>
           </div>

@@ -4,41 +4,28 @@
  * Mirrors `getRepository()` env-gating: a zero-dependency in-memory fixture by
  * default (so godmode runs locally with no AWS), or the real `@bench/data`
  * DynamoDB `TenantRepository` when `DATA_BACKEND=dynamodb`.
- *
- * The real DynamoDB `TenantRepository` is the VS agent's job — the dynamodb
- * branch here is a clearly-marked stub. See `// TODO(@bench/data)` below.
  */
 
+import type {
+  Tenant,
+  TenantStatus,
+  BrandTokens,
+  TenantRepository,
+  CreateTenantInput,
+} from '@bench/types';
+import {
+  DEFAULT_BRAND_TOKENS,
+  CHANGE_CONNECTED_BRAND_TOKENS,
+} from '@bench/types';
+import { createTenantRepository as createDynamoTenantRepo, createClient } from '@bench/data';
 import { PILOT_TENANT } from '@/lib/tenant';
 
-export type TenantStatus = 'active' | 'suspended';
-
-/** A tenant (a customer organisation) in the control plane. */
-export interface Tenant {
-  readonly id: string;
-  readonly name: string;
-  readonly slug: string;
-  readonly instanceName: string;
-  readonly status: TenantStatus;
-  readonly createdAt: string;
-}
-
-/** Input for creating a tenant — id/slug/status are derived. */
-export interface CreateTenantInput {
-  readonly name: string;
-  readonly instanceName?: string;
-}
-
-/** The slice of the tenant contract godmode needs. */
-export interface TenantRepository {
-  list(): Promise<Tenant[]>;
-  get(id: string): Promise<Tenant | null>;
-  create(input: CreateTenantInput): Promise<Tenant>;
-}
+// Re-export types from @bench/types for consumers that previously imported from here
+export type { Tenant, TenantStatus, BrandTokens, TenantRepository, CreateTenantInput };
 
 /**
- * Slugify a company name → a stable, URL-safe id.
- * Lowercase, non-alphanumerics → single hyphen, trimmed of leading/trailing
+ * Slugify a company name -> a stable, URL-safe id.
+ * Lowercase, non-alphanumerics -> single hyphen, trimmed of leading/trailing
  * hyphens. Empty results fall back to a timestamped id so create never fails.
  */
 export function slugify(name: string): string {
@@ -53,11 +40,19 @@ export function slugify(name: string): string {
 let instance: TenantRepository | null = null;
 
 /**
+ * Reset the singleton instance (for testing only).
+ * @internal
+ */
+export function _resetTenantRepositoryInstance(): void {
+  instance = null;
+}
+
+/**
  * Resolve the active tenant repository.
  *
- * - DATA_BACKEND=dynamodb → the real DynamoDB layer (ADR-0008/0010). Requires
+ * - DATA_BACKEND=dynamodb -> the real DynamoDB layer (ADR-0008/0010). Requires
  *   BENCH_TABLE_NAME (and AWS creds in the runtime's environment/role).
- * - otherwise → an in-memory fixture on `globalThis`, so godmode runs locally
+ * - otherwise -> an in-memory fixture on `globalThis`, so godmode runs locally
  *   with no AWS.
  */
 export function getTenantRepository(): TenantRepository {
@@ -77,23 +72,14 @@ export function getTenantRepository(): TenantRepository {
 }
 
 /**
- * DynamoDB-backed tenant repository — thin adapter over `@bench/data`.
- *
- * TODO(@bench/data): TenantRepository — the real `createTenantRepository` does
- * not exist yet. This is the VS agent's job (ADR-0010 §Build split → AGENT).
- * When it lands it should expose `list`/`get`/`create` in the shapes above
- * (PK/SK `TENANT#{id}`); wire it here exactly like `dynamo-repository.ts`.
+ * DynamoDB-backed tenant repository - wired to `@bench/data`.
  */
 function createDynamoTenantRepository(
   tableName: string,
   region: string | undefined,
 ): TenantRepository {
-  void tableName;
-  void region;
-  throw new Error(
-    'TenantRepository (DynamoDB) is not implemented yet — TODO(@bench/data). ' +
-      'Run godmode with DATA_BACKEND unset to use the local fixture.',
-  );
+  const client = createClient({ region: region ?? 'eu-west-2' });
+  return createDynamoTenantRepo(client, tableName);
 }
 
 /**
@@ -111,13 +97,18 @@ function fixtureStore(): FixtureStore {
   };
   if (!g.__benchTenants__) {
     const byId = new Map<string, Tenant>();
+    const now = '2026-06-20T09:00:00.000Z';
     const seeded: Tenant = {
       id: PILOT_TENANT.id,
       name: PILOT_TENANT.name,
       slug: PILOT_TENANT.id,
       instanceName: PILOT_TENANT.instanceName,
+      brandTokens: CHANGE_CONNECTED_BRAND_TOKENS,
+      customDomain: null,
       status: 'active',
-      createdAt: '2026-06-20T09:00:00.000Z',
+      trialEndsAt: null,
+      createdAt: now,
+      updatedAt: now,
     };
     byId.set(seeded.id, seeded);
     g.__benchTenants__ = { byId };
@@ -138,16 +129,47 @@ function createFixtureTenantRepository(): TenantRepository {
     async create(input) {
       const store = fixtureStore();
       const id = slugify(input.name);
+      const now = new Date().toISOString();
+
+      // Merge provided brandTokens over defaults
+      const brandTokens: BrandTokens = input.brandTokens
+        ? { ...DEFAULT_BRAND_TOKENS, ...input.brandTokens }
+        : DEFAULT_BRAND_TOKENS;
+
       const tenant: Tenant = {
         id,
         name: input.name.trim(),
         slug: id,
         instanceName: input.instanceName?.trim() || input.name.trim(),
+        brandTokens,
+        customDomain: input.customDomain ?? null,
         status: 'active',
-        createdAt: new Date().toISOString(),
+        trialEndsAt: null,
+        createdAt: now,
+        updatedAt: now,
       };
       store.byId.set(id, tenant);
       return tenant;
+    },
+    async setStatus(id, status) {
+      const store = fixtureStore();
+      const tenant = store.byId.get(id);
+      if (!tenant) {
+        throw new Error(`Tenant ${id} not found`);
+      }
+      const updated: Tenant = {
+        ...tenant,
+        status,
+        updatedAt: new Date().toISOString(),
+      };
+      store.byId.set(id, updated);
+      return updated;
+    },
+    async delete(id) {
+      // TODO(@bench/data): cascade-purge all items under TENANT#{id} (profiles,
+      // users, magic links); production should SOFT-delete with a retention
+      // window, not hard-purge.
+      fixtureStore().byId.delete(id);
     },
   };
 }

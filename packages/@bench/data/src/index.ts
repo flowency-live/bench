@@ -40,8 +40,15 @@ export {
 // Profile repository - implementation
 export { createProfileRepository } from './repository/profile-repository.js';
 
+// Tenant repository - implementation
+export { createTenantRepository } from './repository/tenant-repository.js';
+
+// User repository - implementation
+export { createUserRepository } from './repository/user-repository.js';
+
 // Re-export types from @bench/types (canonical contract)
 export type {
+  // Profile types
   ProfileRepository,
   CreateConsultantInput,
   ProfilePatch,
@@ -52,6 +59,18 @@ export type {
   ProfileSkill,
   ProfileStory,
   ProfileTestimonial,
+  // Tenant types
+  TenantRepository,
+  CreateTenantInput,
+  Tenant,
+  TenantStatus,
+  BrandTokens,
+  // User types
+  UserRepository,
+  CreateTenantUserInput,
+  TenantUser,
+  TenantUserRole,
+  TenantUserStatus,
 } from '@bench/types';
 
 // Magic link repository

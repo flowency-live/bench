@@ -1,9 +1,11 @@
 'use server';
 
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
+import { headers } from 'next/headers';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { isPlatformAdmin } from '@/lib/auth/platform';
 import { PILOT_TENANT_ID } from '@/lib/tenant';
+import { sendMagicLinkEmail } from '@/lib/email/send';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -68,9 +70,21 @@ export async function requestPlatformLink(
 
   const verifyPath = `/auth/verify?token=${rawToken}`;
 
-  // TODO(SES): send this link by email in production (Amazon SES). For now we
-  // only surface it in dev so the flow works with no email service wired up.
+  // Get the origin to construct the full URL for the email.
+  const headersList = await headers();
+  const host = headersList.get('host') ?? 'localhost:3000';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  const verifyUrl = `${protocol}://${host}${verifyPath}`;
 
+  // Send the magic link email (skipped in non-production, logs instead).
+  await sendMagicLinkEmail({
+    to: email,
+    subject: 'Sign in to Bench Platform',
+    verifyUrl,
+    tenantName: 'Bench Platform',
+  });
+
+  // In dev, also surface the link directly for testing.
   if (process.env.NODE_ENV !== 'production') {
     return { ok: true, devLink: verifyPath };
   }
