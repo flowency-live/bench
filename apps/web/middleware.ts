@@ -62,6 +62,10 @@ function isProtected(pathname: string): boolean {
     pathname.startsWith('/dashboard/') ||
     pathname.startsWith('/profiles/') ||
     pathname.startsWith('/admin/') ||
+    pathname === '/settings' ||
+    pathname.startsWith('/settings/') ||
+    pathname === '/team' ||
+    pathname.startsWith('/team/') ||
     isGodmode(pathname)
   );
 }
@@ -175,6 +179,8 @@ export const config = {
     '/dashboard/:path*',
     '/profiles/:path*',
     '/admin/:path*',
+    '/settings/:path*',
+    '/team/:path*',
     '/godmode',
     '/godmode/:path*',
   ],

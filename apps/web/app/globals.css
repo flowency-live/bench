@@ -134,3 +134,61 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 0 3px rgba(194, 114, 78, 0.18);
   background: #0d1119;
 }
+
+/* ============================================================================
+   Bench public landing — the product's own (OpStack-family) brand, scoped to
+   .bench-landing so it never touches tenant or godmode surfaces. Brand: opstack.uk
+   (deep navy #060d23, purple/violet gradients, amber highlight, Plus Jakarta Sans).
+   ============================================================================ */
+
+.bench-landing {
+  --b-bg: #060d23;
+  --b-bg-2: #0f172e;
+  --b-card: rgba(15, 23, 46, 0.6);
+  --b-border: #1a264d;
+  --b-text: #fafafa;
+  --b-muted: #a7afbe;
+  --b-purple: #8570eb;
+  --b-amber: #f59e0b;
+  color: var(--b-text);
+  font-family: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -10%, rgba(94, 68, 228, 0.22) 0%, transparent 60%),
+    linear-gradient(180deg, #060d23 0%, #0a1230 55%, #060d23 100%);
+}
+.bench-landing ::selection { background: rgba(133, 112, 235, 0.35); }
+
+.bench-landing .b-grad-text {
+  background: linear-gradient(120deg, #a78bfa 0%, #8570eb 45%, #b152e0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.bench-landing .b-btn-primary {
+  background: linear-gradient(135deg, #5e44e4 0%, #8570eb 100%);
+  color: #ffffff;
+  box-shadow: 0 0 40px rgba(94, 68, 228, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.bench-landing .b-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 60px rgba(94, 68, 228, 0.55);
+}
+.bench-landing .b-btn-ghost {
+  border: 1px solid var(--b-border);
+  color: var(--b-text);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.bench-landing .b-btn-ghost:hover {
+  border-color: rgba(133, 112, 235, 0.6);
+  background: rgba(133, 112, 235, 0.08);
+}
+.bench-landing .b-card {
+  background: var(--b-card);
+  border: 1px solid var(--b-border);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.bench-landing .b-card:hover {
+  border-color: rgba(133, 112, 235, 0.45);
+  transform: translateY(-2px);
+}

@@ -27,6 +27,14 @@ export type {
 let instance: UserRepository | null = null;
 
 /**
+ * Reset the singleton instance (for testing only).
+ * @internal
+ */
+export function _resetUserRepositoryInstance(): void {
+  instance = null;
+}
+
+/**
  * Get the DynamoDB user repository.
  */
 export function getUserRepository(): UserRepository {

@@ -37,6 +37,14 @@ export interface OAuthStateStore {
 
 let instance: OAuthStateStore | null = null;
 
+/**
+ * Reset the singleton instance (for testing only).
+ * @internal
+ */
+export function _resetOAuthStateStoreInstance(): void {
+  instance = null;
+}
+
 /** State TTL in seconds (5 minutes). */
 const STATE_TTL_SECONDS = 300;
 

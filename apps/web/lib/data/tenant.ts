@@ -32,6 +32,14 @@ export function slugify(name: string): string {
 let instance: TenantRepository | null = null;
 
 /**
+ * Reset the singleton instance (for testing only).
+ * @internal
+ */
+export function _resetTenantRepositoryInstance(): void {
+  instance = null;
+}
+
+/**
  * Get the DynamoDB tenant repository.
  */
 export function getTenantRepository(): TenantRepository {

@@ -595,6 +595,23 @@ Godmode is the **Flowency** control plane, not the tenant — it was wearing the
 - Rewrote `godmode/login/page.tsx` + `LoginForm.tsx` (Flowency, WCAG-checked button `#a85436→#b15c39`); swapped one lime badge in `TenantRow.tsx`.
 - **Verify:** run `pnpm -w build` to confirm green. (localhost was serving a stale `next start` build — bare 500, no dev overlay — so it won't show the change until rebuilt.) If godmode 500s after a clean rebuild, post the terminal stack.
 
+### [CTO] 2026-06-27 — owner account + team UX added (heads-up, CTO-edited apps/web)
+Jason flagged: no "who am I logged in as", no account/password area, no tenant-users area. Fixed the visible gaps; richer mutations are specced for WEB below. **WEB: don't revert; please run `pnpm -w build`.**
+- `components/AppHeader.tsx` — now always shows the signed-in identity + a way out: admin email links to `/settings`, a switched-in **platform/godmode** session shows a "Godmode" badge + "Back to godmode", and **Sign out** is always present. Added a **Team** nav link.
+- New `app/settings/page.tsx` — account (email, role) + **Change password** (routes through the existing verified reset flow for now).
+- New `app/team/page.tsx` — read-only list of the tenant's users (name / email / role / status, "you" marked) via `listByTenant`.
+- `middleware.ts` — `/settings` + `/team` added to the protected matcher.
+
+**WEB fast-follow (build + gate):**
+- **In-app password change** (no email round-trip): add `changePassword(email, current, next)` to `lib/auth/cognito.ts` — `const { accessToken } = await signIn(email, current); await client.send(new ChangePasswordCommand({ AccessToken: accessToken, PreviousPassword: current, ProposedPassword: next }))`. Then a `ChangePasswordForm` on `/settings` (current / new / confirm; new ≥12 + upper/lower/digit/symbol to match the pool) → server action. Keep the reset-flow link as the "forgot current password" path.
+- **Team management (admin-only)** on `/team`: gate every mutation on the current user being an **admin** (`getByEmail(session.email).role === 'admin'`). Invite (email + role) → create pending `TenantUser` + mint an ADMIN-slot magic link with `createdBy = "email|tenantId"` + `sendOnboardingEmail` (mirror `godmode/actions.ts`). Change role (`setRole`, refuse demoting the last active admin). Remove (`UserRepository.remove`, last-admin guard already enforced). Reuse the godmode `ManageAdmins` UI pattern.
+
+### [CTO] 2026-06-27 — Bench public landing page added (heads-up, CTO-edited apps/web)
+`bench.opstack.uk/` had no marketing page — root `page.tsx` just `redirect('/dashboard')` (so it bounced to login). Built a real public landing in the **OpStack brand** (Bench is an OpStack product — deep navy `#060d23`, purple/violet gradients, amber, Plus Jakarta Sans; NOT a tenant brand). Pulled from www.opstack.uk. **WEB: don't revert; please run `pnpm -w build`.**
+- `app/page.tsx` — full landing (nav, hero, features, how-it-works, contact/CTA, footer). CTAs: **Sign in** → `/login`, **Get started / Contact us** → `#contact` + `mailto:hello@opstack.uk` (placeholder — Jason to confirm the address), session-aware ("Go to dashboard" when signed in). `/` is already public (not in the middleware matcher).
+- `app/globals.css` — scoped `.bench-landing` theme (gradients, buttons, cards).
+- Thanks for the catches on my `/settings`, `/team`, `AppHeader` (member-session email) — all correct, kept.
+
 ### [AGENT:DATA] 2026-06-27 — CR1 + CR3 fixed; DATA lane complete
 
 **Fixed per CTO review:**
