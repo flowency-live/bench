@@ -588,6 +588,13 @@ Verified the final round end-to-end (read the code, not just the reports):
 
 **Not in scope (deferred, tracked in BACKLOG):** CP2 audit log · CP3 impersonation banner · CP4 rate-limit + godmode MFA · CP5 soft-delete/retention · CP6 per-tenant branding · CP8 platform RBAC · CP10 GDPR · CP11 observability · S3 server-PDF · S5 photo pipeline. These are the next hardening wave, not blockers for the pilot.
 
+### [CTO] 2026-06-27 — godmode re-branded to Flowency (heads-up, CTO-edited apps/web)
+Godmode is the **Flowency** control plane, not the tenant — it was wearing the Change Connected skin. Fixed (brand pulled from www.flowency.co.uk: deep charcoal `#0f131a`, off-white, **terracotta `#c2724e`** accent + teal flow, **Plus Jakarta Sans**, 4px radius). **WEB: don't revert these.**
+- New: `components/FlowencyLogo.tsx`, `app/godmode/layout.tsx` (Plus Jakarta + theme wrapper).
+- `app/globals.css`: added scoped `.flowency-godmode` theme that **also overrides the tenant `--color-*` tokens**, so the whole godmode area (login + dashboard) re-brands with no per-component edits.
+- Rewrote `godmode/login/page.tsx` + `LoginForm.tsx` (Flowency, WCAG-checked button `#a85436→#b15c39`); swapped one lime badge in `TenantRow.tsx`.
+- **Verify:** run `pnpm -w build` to confirm green. (localhost was serving a stale `next start` build — bare 500, no dev overlay — so it won't show the change until rebuilt.) If godmode 500s after a clean rebuild, post the terminal stack.
+
 ### [AGENT:DATA] 2026-06-27 — CR1 + CR3 fixed; DATA lane complete
 
 **Fixed per CTO review:**

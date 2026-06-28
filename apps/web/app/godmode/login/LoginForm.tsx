@@ -16,10 +16,9 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="login-btn group w-full flex items-center justify-center gap-2.5 px-6 py-4
-                 rounded-full border-none font-extrabold text-[13px] uppercase tracking-[0.08em]
-                 text-[#001930] cursor-pointer transition-all duration-200
-                 disabled:opacity-70 disabled:cursor-not-allowed"
+      className="flow-btn group w-full flex items-center justify-center gap-2.5 px-6 py-4
+                 rounded-md font-extrabold text-[13px] uppercase tracking-[0.08em]
+                 text-white cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
     >
       <span>{pending ? 'Sending…' : 'Email me a godmode link'}</span>
       {!pending && (
@@ -45,7 +44,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
   if (state.ok) {
     return (
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 mb-5 rounded-full bg-[rgba(186,235,91,0.12)] text-[#baeb5b]">
+        <div className="inline-flex items-center justify-center w-14 h-14 mb-5 rounded-full bg-[rgba(194,114,78,0.14)] text-[var(--fl-accent-text)]">
           <svg
             width="24"
             height="24"
@@ -60,19 +59,19 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
             <polyline points="22,4 12,14.01 9,11.01" />
           </svg>
         </div>
-        <p className="mb-6 text-[15px] leading-relaxed text-[#c8d8e8]">
+        <p className="mb-6 text-[15px] leading-relaxed text-[var(--fl-text)]">
           {NEUTRAL_CONFIRMATION}
         </p>
 
         {state.devLink && (
-          <div className="p-4 rounded-xl bg-black/25 border border-white/[0.06]">
-            <p className="mb-2 text-[11px] font-semibold tracking-[0.1em] uppercase text-[#94a3b8]">
+          <div className="p-4 rounded-md bg-black/25 border border-[var(--fl-border)]">
+            <p className="mb-2 text-[11px] font-semibold tracking-[0.1em] uppercase text-[var(--fl-muted)]">
               Dev mode: no email service
             </p>
             <a
               href={state.devLink}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#baeb5b]
-                         no-underline hover:opacity-85 hover:underline hover:underline-offset-4 transition-opacity"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fl-accent-text)]
+                         no-underline hover:underline hover:underline-offset-4 transition-opacity"
             >
               Open godmode link
             </a>
@@ -85,7 +84,7 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
   return (
     <div className="flex flex-col gap-5">
       {invalid && (
-        <div className="flex items-start gap-3 px-4 py-3.5 rounded-[10px] bg-red-600/[0.08] border border-red-600/20 text-[#fca5a5] text-[13px] leading-relaxed">
+        <div className="flex items-start gap-3 px-4 py-3.5 rounded-md bg-red-600/[0.10] border border-red-600/25 text-[#fca5a5] text-[13px] leading-relaxed">
           <svg
             className="flex-shrink-0 mt-0.5 w-4 h-4"
             viewBox="0 0 24 24"
@@ -97,49 +96,37 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
         </div>
       )}
 
-      {/* Google Sign-in (primary for godmode) */}
+      {/* Google sign-in (primary for godmode) */}
       <a
         href="/godmode/auth/google"
-        className="login-btn group w-full flex items-center justify-center gap-3 px-6 py-4
-                   rounded-full border-none font-extrabold text-[13px] uppercase tracking-[0.08em]
-                   text-[#001930] cursor-pointer transition-all duration-200 no-underline"
+        className="flow-btn group w-full flex items-center justify-center gap-3 px-6 py-4
+                   rounded-md font-extrabold text-[13px] uppercase tracking-[0.08em]
+                   text-white cursor-pointer no-underline"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
-          <path
-            fill="currentColor"
-            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-          />
-          <path
-            fill="currentColor"
-            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-          />
-          <path
-            fill="currentColor"
-            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-          />
-          <path
-            fill="currentColor"
-            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-          />
+          <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+          <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+          <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+          <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
         </svg>
         <span>Sign in with Google</span>
       </a>
 
       {/* Divider */}
       <div className="flex items-center gap-4">
-        <div className="flex-1 h-px bg-white/10" />
-        <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#94a3b8]">
+        <div className="flex-1 h-px bg-[var(--fl-border)]" />
+        <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[var(--fl-muted)]">
           or
         </span>
-        <div className="flex-1 h-px bg-white/10" />
+        <div className="flex-1 h-px bg-[var(--fl-border)]" />
       </div>
 
-      {/* Magic link fallback */}
+      {/* Magic-link fallback */}
       <form action={action} className="flex flex-col gap-5">
         <div className="flex flex-col">
           <label
             htmlFor="email"
-            className="mb-2 text-[11px] font-bold tracking-[0.12em] uppercase text-[#cbd5e1]"
+            className="mb-2 text-[11px] font-bold tracking-[0.12em] uppercase text-[var(--fl-muted)]"
           >
             Flowency email
           </label>
@@ -150,20 +137,14 @@ export function LoginForm({ invalid }: { invalid?: boolean }) {
             required
             autoComplete="email"
             placeholder="you@flowency.co.uk"
-            className="login-input w-full px-4 py-3.5 rounded-[10px] border border-white/10
-                       bg-[rgba(0,12,24,0.6)] text-[15px] text-white outline-none
-                       placeholder:text-white/50
-                       hover:border-white/[0.18] hover:bg-[rgba(0,12,24,0.8)]
-                       focus:border-[rgba(186,235,91,0.5)] focus:bg-[rgba(0,12,24,0.9)]
-                       focus:shadow-[0_0_0_3px_rgba(186,235,91,0.1)]
-                       transition-all duration-200"
+            className="flow-input w-full px-4 py-3.5 rounded-md text-[15px] outline-none"
           />
         </div>
 
         <SubmitButton />
       </form>
 
-      <p className="m-0 text-xs text-[#94a3b8] text-center leading-relaxed">
+      <p className="m-0 text-xs text-[var(--fl-muted)] text-center leading-relaxed">
         Platform admins only. Flowency Google accounts or magic link.
       </p>
     </div>

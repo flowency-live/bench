@@ -63,7 +63,7 @@ export function TenantRow({
             className={
               suspended
                 ? 'rounded-full bg-red-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-red-300'
-                : 'rounded-full bg-[rgba(186,235,91,0.12)] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[var(--color-accent)]'
+                : 'rounded-full bg-[rgba(207,132,96,0.14)] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[var(--color-accent)]'
             }
           >
             {tenant.status}

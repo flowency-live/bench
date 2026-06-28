@@ -66,3 +66,71 @@ h1, h2, h3, h4, h5, h6 {
 .login-input {
   font-family: var(--font-body);
 }
+
+/* ============================================================================
+   Godmode (Flowency control plane) theme — scoped to .flowency-godmode so it
+   never leaks into tenant surfaces. Brand: www.flowency.co.uk (deep charcoal,
+   off-white text, terracotta accent + teal flow, Plus Jakarta Sans).
+   ============================================================================ */
+
+.flowency-godmode {
+  --fl-bg: #0f131a;
+  --fl-bg-deep: #0b0f15;
+  --fl-card: #161c26;
+  --fl-card-inner: #10141d;
+  --fl-border: #2a303c;
+  --fl-text: #f0f1f3;
+  --fl-muted: #9aa3b2;
+  --fl-accent: #c2724e;
+  --fl-accent-text: #d99873;
+  /* Override tenant tokens so the existing godmode dashboard + TenantRow
+     (which use --color-*) render Flowency with no per-class edits. Accent
+     #cf8460 clears WCAG AA both as text on dark (~5.7:1) and as a fill. */
+  --color-bg-primary: #0f131a;
+  --color-bg-panel: #161c26;
+  --color-accent: #cf8460;
+  --color-text-primary: #f0f1f3;
+  --color-text-secondary: #9aa3b2;
+  background-color: var(--fl-bg);
+  color: var(--fl-text);
+  font-family: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+.flowency-godmode .flow-card {
+  background: linear-gradient(180deg, var(--fl-card) 0%, var(--fl-card-inner) 100%);
+  border: 1px solid var(--fl-border);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+}
+
+.flowency-godmode .flow-btn {
+  background: linear-gradient(135deg, #a85436 0%, #b15c39 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 14px rgba(168, 84, 54, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.flowency-godmode .flow-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(168, 84, 54, 0.42);
+}
+.flowency-godmode .flow-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.flowency-godmode .flow-input {
+  background: #0c1017;
+  border: 1px solid var(--fl-border);
+  color: var(--fl-text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.flowency-godmode .flow-input::placeholder {
+  color: #7a828f;
+}
+.flowency-godmode .flow-input:hover {
+  border-color: #3a414f;
+}
+.flowency-godmode .flow-input:focus {
+  border-color: var(--fl-accent);
+  box-shadow: 0 0 0 3px rgba(194, 114, 78, 0.18);
+  background: #0d1119;
+}
