@@ -11,6 +11,7 @@ import {
   removeTenantUser,
   setTenantUserRole,
 } from './actions';
+import { GodmodeBrandPanel } from './GodmodeBrandPanel';
 
 /**
  * Wrap a server action that returns state into a void-returning action.
@@ -41,10 +42,10 @@ export function TenantRow({
   tenant: Tenant;
   users: readonly TenantUser[];
 }) {
-  const [panel, setPanel] = useState<'none' | 'admins' | 'delete'>('none');
+  const [panel, setPanel] = useState<'none' | 'admins' | 'branding' | 'delete'>('none');
   const suspended = tenant.status === 'suspended';
 
-  const toggle = (next: 'admins' | 'delete') =>
+  const toggle = (next: 'admins' | 'branding' | 'delete') =>
     setPanel((p) => (p === next ? 'none' : next));
 
   return (
@@ -90,6 +91,16 @@ export function TenantRow({
             Manage admins ({users.length})
           </button>
 
+          {/* Branding */}
+          <button
+            type="button"
+            onClick={() => toggle('branding')}
+            aria-expanded={panel === 'branding'}
+            className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white/80 transition hover:border-white/40 hover:text-white"
+          >
+            Branding
+          </button>
+
           {/* Switch in (preserved) */}
           <form action={switchTenant}>
             <input type="hidden" name="tenantId" value={tenant.id} />
@@ -116,6 +127,7 @@ export function TenantRow({
       {panel === 'admins' && (
         <ManageAdmins tenant={tenant} users={users} />
       )}
+      {panel === 'branding' && <GodmodeBrandPanel tenant={tenant} />}
       {panel === 'delete' && <DeleteConfirm tenant={tenant} />}
     </li>
   );

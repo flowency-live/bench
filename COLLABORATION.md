@@ -640,6 +640,20 @@ The `/auth/claim` page failed WCAG badly on a new tenant (default accent `#0f4c7
 3. **Brand-settings UI must validate WCAG AA on input** (accent vs bg, text vs bg ≥ 4.5:1) so a tenant can't save an unreadable palette — and show the computed accent-foreground in the preview.
 - Acceptance: the Adaptavis (default-brand) claim page + any new tenant's buttons/wordmark are all ≥4.5:1.
 
+### [CTO] 2026-06-27 — Godmode tenant branding + logo upload (decision + spec)
+**Decision (Jason):** tenant branding (colours + logo) is configured **in godmode** (platform admin sets it for any tenant), and tenants get a **real uploaded logo image** (wordmark fallback when none). What already exists: the colour editor `BrandSettingsForm` (5 colours, 1 accent, live WCAG AA checks + preview), `TenantRepository.update(tenantId, patch)`, `TenantLogo` (renders `https://{ASSETS_CDN}/tenants/{tenantId}/logo-{assetId}.png`, wordmark fallback), `brandStyle` + `--color-accent-foreground`. **Gaps: no logo upload anywhere; brand config is gated to a tenant *admin* session (a switched-in platform/godmode session can't reach it).**
+
+**INFRA (`auth/infra`):**
+- Stand up / confirm the **tenant-assets pipeline**: S3 bucket (`ASSETS_BUCKET`) + CloudFront at **`assets.bench.opstack.uk`** (`ASSETS_CDN_DOMAIN`) serving `tenants/{tenantId}/logo-*`. Grant the Amplify runtime role `s3:PutObject`/`s3:DeleteObject` on `tenants/*`. Output bucket + CDN names; set the two env vars. (If already deployed for headshots, just confirm + reuse.)
+
+**WEB (`auth/web`):**
+1. **Godmode branding panel** — let the **platform** admin edit any tenant's brand. Add a "Branding" expander on the godmode `TenantRow` (or `/godmode/tenants/[id]/brand`). **Refactor `BrandSettingsForm` to take a `tenantId` + a passed action** so it can be reused in godmode; the godmode action calls `getTenantRepository().update(tenantId, {...})` and is **gated to a `platform` session** (not the tenant-admin gate the current `/settings/brand` uses).
+2. **Logo upload** — add an image upload to that panel: accept PNG/SVG/JPG, ≤1 MB, min dimensions; a platform-gated route (`api/tenant-logo` or extend `api/upload`) puts the file to S3 `tenants/{tenantId}/logo-{uuid}.{ext}` then `update(tenantId, { logoAssetId })`. **Note: `TenantLogo` hardcodes `.png`** — store/normalise the extension so SVG/JPG resolve. Wordmark fallback stays when `logoAssetId` is null.
+3. Confirm `UpdateTenantPatch` (DATA) allows `logoAssetId`; if not, **DATA** adds it.
+4. Reuse the existing live contrast checks; **the godmode panel must enforce the same WCAG AA gate** before save.
+
+**Acceptance:** in godmode, open a tenant → set its colours + upload a logo → its dashboard/header/claim page show that logo + palette; remove the logo → wordmark fallback returns; CC unchanged.
+
 ### [AGENT:DATA] 2026-06-27 — CR1 + CR3 fixed; DATA lane complete
 
 **Fixed per CTO review:**
@@ -908,3 +922,72 @@ aws iam attach-role-policy \
 **Also fixed:** Magic link `findById` SK mismatch (pushed to main, deployed)
 
 **Acceptance test ready:** Create 2nd tenant in godmode with distinct brand tokens → dashboard/profiles render in its colors while CC unchanged.
+
+### [AGENT:INFRA] 2026-06-28 — Tenant-assets pipeline confirmed + S3 permissions granted
+
+**Claimed:** INFRA lane for CP6 tenant logo upload (per CTO spec + ADR-0013).
+
+**Confirmed existing infrastructure:**
+| Resource | Value |
+|----------|-------|
+| S3 Bucket | `bench-assets-771551874768` |
+| CloudFront CDN | `assets.bench.opstack.uk` |
+| Logo path pattern | `tenants/{tenantId}/logo-{assetId}.{ext}` |
+
+**Done:** Added S3 permissions to `bench-amplify-runtime-policy`:
+```
+s3:PutObject, s3:DeleteObject on arn:aws:s3:::bench-assets-771551874768/tenants/*
+```
+
+**Deployed:** BenchAuthStack updated. Policy already attached to `bench-amplify-service-role`.
+
+**Env vars for WEB (Amplify Console):**
+| Var | Value |
+|-----|-------|
+| `ASSETS_BUCKET` | `bench-assets-771551874768` |
+| `ASSETS_CDN_DOMAIN` | `assets.bench.opstack.uk` |
+
+**Files changed:**
+- `infrastructure/lib/stacks/bench-auth-stack.ts` — S3TenantLogoUpload policy statement + asset outputs
+
+**WEB lane unblocked:** Can now implement logo upload route (`api/tenant-logo` or extend `api/upload`) that puts files to `s3://bench-assets-771551874768/tenants/{tenantId}/logo-{uuid}.{ext}`.
+
+### [AGENT:WEB] 2026-06-28 — CP6 godmode branding + logo upload complete
+
+**Implemented per CTO spec (2026-06-27 — Godmode tenant branding + logo upload):**
+
+1. **Godmode branding panel** (`GodmodeBrandPanel.tsx`)
+   - Platform admin can edit any tenant's brand (colors + logo)
+   - Added "Branding" button to `TenantRow.tsx` (inline panel like "Manage admins")
+   - Gated to platform session
+
+2. **Godmode brand actions** (`godmode/brand-actions.ts`)
+   - `updateTenantBrandSettings()` — updates tenant branding with WCAG AA validation
+   - `uploadTenantLogo()` — uploads PNG/JPG/SVG (≤1MB) to S3, updates `brandTokens.logoAssetId`
+   - `removeTenantLogo()` — clears `logoAssetId`
+
+3. **TenantLogo extension fix**
+   - Now handles multiple extensions (PNG/JPG/SVG) by storing extension in assetId
+   - Format: `{uuid}.{ext}` → URL: `tenants/{tenantId}/logo-{uuid}.{ext}`
+   - Backwards compatible: assumes `.png` if no extension found
+
+4. **Tests**
+   - 8 new tests for godmode brand actions (auth, validation, upload)
+   - Updated cognito tests for new `AdminCreateUser`/`AdminSetUserPassword` flow
+
+**Files changed:**
+- `apps/web/app/godmode/brand-actions.ts` — godmode brand + logo server actions (new)
+- `apps/web/app/godmode/GodmodeBrandPanel.tsx` — branding UI component (new)
+- `apps/web/app/godmode/TenantRow.tsx` — added "Branding" panel toggle
+- `apps/web/app/godmode/__tests__/brand-actions.test.ts` — action tests (new)
+- `apps/web/components/TenantLogo.tsx` — extension handling fix
+- `apps/web/lib/auth/__tests__/cognito.test.ts` — updated for admin signup flow
+
+**Also fixed in this session:**
+- `/auth/claim` password creation error: Changed from `getUserSub(email)` (AdminGetUserCommand, requires IAM) to using `signUpResult.userSub` directly
+- Cognito tests updated to reflect new admin signup flow
+
+**Gate:** `pnpm -w build && pnpm -w test` ✅ — 202 tests passing (22 domain + 109 data + 71 web)
+
+**Acceptance:** In godmode, open a tenant → click "Branding" → set colors + upload logo → tenant's dashboard/header/claim page shows that logo + palette; remove logo → wordmark fallback returns.
+

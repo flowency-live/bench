@@ -6,9 +6,9 @@ vi.mock('@aws-sdk/client-cognito-identity-provider', () => ({
   CognitoIdentityProviderClient: vi.fn().mockImplementation(() => ({
     send: mockSend,
   })),
-  SignUpCommand: vi.fn().mockImplementation((params) => ({ ...params, _type: 'SignUp' })),
+  AdminCreateUserCommand: vi.fn().mockImplementation((params) => ({ ...params, _type: 'AdminCreateUser' })),
+  AdminSetUserPasswordCommand: vi.fn().mockImplementation((params) => ({ ...params, _type: 'AdminSetUserPassword' })),
   InitiateAuthCommand: vi.fn().mockImplementation((params) => ({ ...params, _type: 'InitiateAuth' })),
-  RespondToAuthChallengeCommand: vi.fn().mockImplementation((params) => ({ ...params, _type: 'RespondToAuthChallenge' })),
   ForgotPasswordCommand: vi.fn().mockImplementation((params) => ({ ...params, _type: 'ForgotPassword' })),
   ConfirmForgotPasswordCommand: vi.fn().mockImplementation((params) => ({ ...params, _type: 'ConfirmForgotPassword' })),
   AdminGetUserCommand: vi.fn().mockImplementation((params) => ({ ...params, _type: 'AdminGetUser' })),
@@ -21,21 +21,33 @@ describe('auth/cognito', () => {
   });
 
   describe('signUp', () => {
-    it('registers a new user with Cognito', async () => {
+    it('registers a new user with Cognito admin APIs', async () => {
+      // First call: AdminCreateUser
       mockSend.mockResolvedValueOnce({
-        UserSub: 'cognito-user-123',
-        UserConfirmed: true,
+        User: {
+          Attributes: [{ Name: 'sub', Value: 'cognito-user-123' }],
+        },
       });
+      // Second call: AdminSetUserPassword
+      mockSend.mockResolvedValueOnce({});
 
       const { signUp } = await import('../cognito');
       const result = await signUp('user@example.com', 'SecureP@ss123');
 
-      expect(mockSend).toHaveBeenCalledTimes(1);
-      const command = mockSend.mock.calls[0][0];
-      expect(command._type).toBe('SignUp');
-      expect(command.Username).toBe('user@example.com');
-      expect(command.Password).toBe('SecureP@ss123');
+      expect(mockSend).toHaveBeenCalledTimes(2);
+
+      const createCommand = mockSend.mock.calls[0][0];
+      expect(createCommand._type).toBe('AdminCreateUser');
+      expect(createCommand.Username).toBe('user@example.com');
+
+      const setPasswordCommand = mockSend.mock.calls[1][0];
+      expect(setPasswordCommand._type).toBe('AdminSetUserPassword');
+      expect(setPasswordCommand.Username).toBe('user@example.com');
+      expect(setPasswordCommand.Password).toBe('SecureP@ss123');
+      expect(setPasswordCommand.Permanent).toBe(true);
+
       expect(result.userSub).toBe('cognito-user-123');
+      expect(result.userConfirmed).toBe(true);
     });
 
     it('throws on duplicate email', async () => {

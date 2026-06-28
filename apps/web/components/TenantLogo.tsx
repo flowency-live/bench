@@ -39,10 +39,17 @@ const SIZE_CONFIG = {
 /**
  * Build the CDN URL for a logo asset.
  * Logos are stored under the tenant's path in the assets bucket.
+ * The logoAssetId now includes the extension (e.g., "uuid.png", "uuid.svg").
  */
 function getLogoUrl(tenantId: string, logoAssetId: string): string {
-  // Logo assets are stored as: tenants/{tenantId}/logo-{assetId}.{ext}
-  // For now assume PNG; could parse extension from assetId if needed
+  // Logo assets are stored as: tenants/{tenantId}/logo-{assetId}
+  // If assetId already has an extension, use it directly
+  // Otherwise, fall back to .png for backwards compatibility
+  const hasExtension = /\.(png|jpg|jpeg|svg)$/i.test(logoAssetId);
+  if (hasExtension) {
+    return `https://${CLOUDFRONT_DOMAIN}/tenants/${tenantId}/logo-${logoAssetId}`;
+  }
+  // Legacy format without extension - assume PNG
   return `https://${CLOUDFRONT_DOMAIN}/tenants/${tenantId}/logo-${logoAssetId}.png`;
 }
 
