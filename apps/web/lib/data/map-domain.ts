@@ -38,6 +38,16 @@ export function toViewProfile(d: DomainProfile): Profile {
     role: d.role,
     status: d.status,
     availability: d.availability,
+    ratesAndPreferences: d.ratesAndPreferences
+      ? {
+          minDayRatePence: d.ratesAndPreferences.minDayRatePence,
+          salaryPence: d.ratesAndPreferences.salaryPence,
+          employmentTypes: [...d.ratesAndPreferences.employmentTypes],
+          ir35Statuses: [...d.ratesAndPreferences.ir35Statuses],
+          hasLtdCo: d.ratesAndPreferences.hasLtdCo,
+          location: d.ratesAndPreferences.location,
+        }
+      : null,
     headline: d.positioning?.headline ?? null,
     bio: d.positioning?.bio ?? null,
     headshotUrl: resolveHeadshotUrl(d.headshotAssetId),
@@ -87,6 +97,20 @@ export function toPatch(p: ProfilePatch): DomainPatch {
     ...(p.name !== undefined ? { consultantName: p.name } : {}),
     ...('role' in p ? { role: p.role ?? null } : {}),
     ...(p.availability !== undefined ? { availability: p.availability } : {}),
+    ...('ratesAndPreferences' in p
+      ? {
+          ratesAndPreferences: p.ratesAndPreferences
+            ? {
+                minDayRatePence: p.ratesAndPreferences.minDayRatePence,
+                salaryPence: p.ratesAndPreferences.salaryPence,
+                employmentTypes: [...p.ratesAndPreferences.employmentTypes],
+                ir35Statuses: [...p.ratesAndPreferences.ir35Statuses],
+                hasLtdCo: p.ratesAndPreferences.hasLtdCo,
+                location: p.ratesAndPreferences.location,
+              }
+            : null,
+        }
+      : {}),
     ...('headline' in p || 'bio' in p
       ? { positioning: { headline: p.headline ?? '', bio: p.bio ?? '' } }
       : {}),

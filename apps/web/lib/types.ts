@@ -39,6 +39,36 @@ export interface Availability {
   readonly endDate?: string;
 }
 
+/** Employment type preference. */
+export type EmploymentType = 'contract' | 'permanent';
+
+/** IR35 status for contract work. */
+export type IR35Status = 'inside' | 'outside';
+
+/** Location from Google Places autocomplete. */
+export interface ProfileLocation {
+  readonly placeId: string;
+  readonly displayName: string;
+  readonly lat: number;
+  readonly lng: number;
+}
+
+/** Rates and working preferences. */
+export interface RatesAndPreferences {
+  /** Minimum day rate in pence (e.g., 75000 = £750.00). */
+  readonly minDayRatePence: number | null;
+  /** Target annual salary in pence (e.g., 9500000 = £95,000.00). */
+  readonly salaryPence: number | null;
+  /** Employment type preferences (can select both). */
+  readonly employmentTypes: readonly EmploymentType[];
+  /** IR35 preferences when contract is selected. */
+  readonly ir35Statuses: readonly IR35Status[];
+  /** Whether consultant operates via Limited Company. */
+  readonly hasLtdCo: boolean;
+  /** Location (UK city from Google Places). */
+  readonly location: ProfileLocation | null;
+}
+
 export interface Skill {
   readonly id: string;
   readonly title: string;
@@ -69,6 +99,7 @@ export interface Profile {
   readonly role: string | null;
   readonly status: ProfileStatus;
   readonly availability: Availability;
+  readonly ratesAndPreferences: RatesAndPreferences | null;
   readonly headline: string | null;
   readonly bio: string | null;
   readonly headshotUrl: string | null;
@@ -107,6 +138,7 @@ export interface ProfilePatch {
   readonly stories?: readonly Story[];
   readonly testimonial?: Testimonial | null;
   readonly availability?: Availability;
+  readonly ratesAndPreferences?: RatesAndPreferences | null;
 }
 
 export const STATUS_LABELS: Record<ProfileStatus, string> = {
@@ -147,6 +179,16 @@ export const NOTICE_PERIOD_ORDER: readonly NoticePeriod[] = [
   '3_months',
   '6_months',
 ];
+
+export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
+  contract: 'Contract',
+  permanent: 'Permanent',
+};
+
+export const IR35_STATUS_LABELS: Record<IR35Status, string> = {
+  inside: 'Inside IR35',
+  outside: 'Outside IR35',
+};
 
 /** Result shape for form server actions (used with React `useActionState`). */
 export interface FormState {

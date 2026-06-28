@@ -72,6 +72,38 @@ export interface ProfileTestimonial {
   readonly authorCompany: string;
 }
 
+/** Employment type preference. */
+export type EmploymentType = 'contract' | 'permanent';
+
+/** IR35 status for contract work. */
+export type IR35Status = 'inside' | 'outside';
+
+/** Location from Google Places autocomplete. */
+export interface ProfileLocation {
+  readonly placeId: string;
+  readonly displayName: string;
+  readonly lat: number;
+  readonly lng: number;
+}
+
+/**
+ * Rates and working preferences.
+ */
+export interface ProfileRatesAndPreferences {
+  /** Minimum day rate in pence (e.g., 75000 = £750.00). */
+  readonly minDayRatePence: number | null;
+  /** Target annual salary in pence (e.g., 9500000 = £95,000.00). */
+  readonly salaryPence: number | null;
+  /** Employment type preferences (can select both). */
+  readonly employmentTypes: readonly EmploymentType[];
+  /** IR35 preferences when contract is selected. */
+  readonly ir35Statuses: readonly IR35Status[];
+  /** Whether consultant operates via Limited Company. */
+  readonly hasLtdCo: boolean;
+  /** Location (UK city from Google Places). */
+  readonly location: ProfileLocation | null;
+}
+
 /**
  * Complete profile entity (ADR-0011 two-axis model).
  */
@@ -83,6 +115,7 @@ export interface Profile {
   readonly role: string | null;
   readonly status: ProfileStatus;
   readonly availability: Availability;
+  readonly ratesAndPreferences: ProfileRatesAndPreferences | null;
   readonly positioning: ProfilePositioning | null;
   readonly headshotAssetId: string | null;
   readonly skills: readonly ProfileSkill[];

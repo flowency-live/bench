@@ -9,6 +9,7 @@ import type {
   Availability,
   Profile,
   ProfilePositioning,
+  ProfileRatesAndPreferences,
   ProfileSkill,
   ProfileStatus,
   ProfileStory,
@@ -26,6 +27,7 @@ export interface ProfilePatch {
   readonly consultantName?: string;
   readonly role?: string | null;
   readonly availability?: Availability;
+  readonly ratesAndPreferences?: ProfileRatesAndPreferences | null;
   readonly positioning?: ProfilePositioning | null;
   readonly headshotAssetId?: string | null;
   readonly skills?: readonly ProfileSkill[];

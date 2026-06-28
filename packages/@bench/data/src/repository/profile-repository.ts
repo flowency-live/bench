@@ -30,6 +30,7 @@ import type {
   ProfileStory,
   ProfileTestimonial,
   ProfilePositioning,
+  ProfileRatesAndPreferences,
   CreateConsultantInput,
   ProfilePatch,
 } from '@bench/types';
@@ -62,6 +63,7 @@ interface ProfileItem {
   role: string | null;
   status: ProfileStatus;
   availability: Availability;
+  ratesAndPreferences: ProfileRatesAndPreferences | null;
   positioning: ProfilePositioning | null;
   headshotAssetId: string | null;
   createdAt: string;
@@ -171,6 +173,7 @@ function assembleProfile(
     role: profileItem.role,
     status: profileItem.status,
     availability: profileItem.availability ?? DEFAULT_AVAILABILITY,
+    ratesAndPreferences: profileItem.ratesAndPreferences ?? null,
     positioning: profileItem.positioning,
     headshotAssetId: profileItem.headshotAssetId,
     skills,
@@ -302,6 +305,7 @@ export function createProfileRepository(
         role: input.role ?? null,
         status,
         availability,
+        ratesAndPreferences: null,
         positioning: null,
         headshotAssetId: null,
         createdAt: now,
@@ -340,6 +344,7 @@ export function createProfileRepository(
         role: input.role ?? null,
         status,
         availability,
+        ratesAndPreferences: null,
         positioning: null,
         headshotAssetId: null,
         skills: [],
@@ -375,6 +380,10 @@ export function createProfileRepository(
           patch.availability !== undefined
             ? patch.availability
             : existing.availability,
+        ratesAndPreferences:
+          patch.ratesAndPreferences !== undefined
+            ? patch.ratesAndPreferences
+            : existing.ratesAndPreferences,
         positioning:
           patch.positioning !== undefined
             ? patch.positioning
@@ -410,6 +419,7 @@ export function createProfileRepository(
         role: updatedProfile.role,
         status: updatedProfile.status,
         availability: updatedProfile.availability,
+        ratesAndPreferences: updatedProfile.ratesAndPreferences,
         positioning: updatedProfile.positioning,
         headshotAssetId: updatedProfile.headshotAssetId,
         createdAt: updatedProfile.createdAt,
