@@ -23,9 +23,13 @@ const PLATFORM_PROFILE_ID = 'PLATFORM';
  * link, and redirects to the dashboard. Any failure → /login?error=invalid.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  // In Amplify SSR, request.url returns localhost. Use host header.
+  const host = request.headers.get('host') ?? request.headers.get('x-forwarded-host') ?? 'localhost:3000';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  const origin = `${protocol}://${host}`;
+
   const token = request.nextUrl.searchParams.get('token');
-  const invalid = () =>
-    NextResponse.redirect(new URL('/login?error=invalid', request.url));
+  const invalid = () => NextResponse.redirect(`${origin}/login?error=invalid`);
 
   if (!token) return invalid();
 
@@ -53,9 +57,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const email = link.createdBy.trim().toLowerCase();
     if (!isPlatformAdmin(email)) {
       // Redirect to the godmode login on a non-allowlisted email.
-      return NextResponse.redirect(
-        new URL('/godmode/login?error=invalid', request.url),
-      );
+      return NextResponse.redirect(`${origin}/godmode/login?error=invalid`);
     }
 
     await createSession({ kind: 'platform', email });
@@ -63,7 +65,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Single-use: burn the link so the URL can't be replayed.
     await links.markAsUsed(lookup.tenantId, PLATFORM_PROFILE_ID, lookup.id);
 
-    return NextResponse.redirect(new URL('/godmode', request.url));
+    return NextResponse.redirect(`${origin}/godmode`);
   }
 
   // ── Admin (tenant owner) branch — multi-tenant (ADR-0010 §Phase 1). ────────
@@ -90,9 +92,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // so they can set their password (ADR-0012: first-time password registration).
   if (user && user.tenantId === lookup.tenantId && !user.cognitoId) {
     // Don't burn the link yet — the claim page will validate and burn it.
-    return NextResponse.redirect(
-      new URL(`/auth/claim?token=${encodeURIComponent(token)}`, request.url),
-    );
+    return NextResponse.redirect(`${origin}/auth/claim?token=${encodeURIComponent(token)}`);
   }
 
   // User has cognitoId (returning user) or doesn't exist — proceed with magic link login.
@@ -111,5 +111,5 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // Single-use: burn the link so the URL can't be replayed.
   await links.markAsUsed(lookup.tenantId, ADMIN_PROFILE_ID, lookup.id);
 
-  return NextResponse.redirect(new URL('/dashboard', request.url));
+  return NextResponse.redirect(`${origin}/dashboard`);
 }
