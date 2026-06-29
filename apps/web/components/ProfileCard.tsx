@@ -16,9 +16,10 @@ function initials(name: string) {
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const days = Math.floor(diff / 86_400_000);
-  if (days <= 0) return 'today';
-  if (days === 1) return 'yesterday';
-  if (days < 30) return `${days} days ago`;
+  if (days <= 0) return 'now';
+  if (days === 1) return '1d';
+  if (days < 7) return `${days}d`;
+  if (days < 30) return `${Math.floor(days / 7)}w`;
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
@@ -28,21 +29,20 @@ interface CompletionInfo {
   readonly percent: number;
 }
 
-/** Compact completion indicator. */
 function CompletionBar({ completion }: { completion: CompletionInfo }) {
   const { completed, total, percent } = completion;
   return (
     <div
       className="flex items-center gap-2"
-      title={`Profile ${percent}% complete (${completed}/${total} sections)`}
+      title={`${percent}% complete (${completed}/${total})`}
     >
-      <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
+      <div className="h-1 w-10 overflow-hidden bg-white/10">
         <div
-          className="h-full rounded-full bg-[var(--color-accent)]"
+          className="h-full bg-[var(--color-accent)]"
           style={{ width: `${percent}%` }}
         />
       </div>
-      <span className="text-xs text-white/50">{percent}%</span>
+      <span className="font-mono text-[10px] text-white/50">{percent}</span>
     </div>
   );
 }
@@ -57,38 +57,34 @@ export function ProfileCard({
   return (
     <Link
       href={`/profiles/${profile.id}`}
-      className="group flex flex-col rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-4 transition hover:border-[var(--color-accent)]/50 hover:shadow-lg hover:shadow-black/30"
+      className="group flex flex-col border border-white/10 bg-white/[0.02] p-3 transition hover:border-[var(--color-accent)]/50 hover:bg-white/[0.04]"
     >
       {/* Row 1: Avatar + Name + Status */}
       <div className="flex items-center gap-3">
         <span
           aria-hidden
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--color-bg-primary)] text-xs font-black text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/40"
+          className="grid h-9 w-9 shrink-0 place-items-center bg-[var(--color-bg-primary)] text-[10px] font-bold text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/40"
         >
           {initials(profile.name)}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-bold text-white group-hover:text-[var(--color-accent)]">
+          <p className="truncate text-sm font-semibold text-white group-hover:text-[var(--color-accent)]">
             {profile.name}
+          </p>
+          <p className="truncate text-xs text-[var(--color-text-secondary)]">
+            {profile.role ?? 'Role TBC'}
           </p>
         </div>
         <StatusBadge status={profile.status} />
       </div>
 
-      {/* Row 2: Role */}
-      <p className="mt-1 truncate pl-[52px] text-sm text-[var(--color-text-secondary)]">
-        {profile.role ?? 'Role to be confirmed'}
-      </p>
-
-      {/* Row 3: Availability */}
-      <div className="mt-3 pl-[52px]">
-        <AvailabilityBadge availability={profile.availability} />
-      </div>
-
-      {/* Row 4: Footer */}
-      <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
-        <span className="text-xs text-white/40">{timeAgo(profile.updatedAt)}</span>
-        {completion ? <CompletionBar completion={completion} /> : null}
+      {/* Row 2: Availability + Meta */}
+      <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2">
+        <AvailabilityBadge availability={profile.availability} compact />
+        <div className="flex items-center gap-3">
+          {completion ? <CompletionBar completion={completion} /> : null}
+          <span className="font-mono text-[10px] text-white/30">{timeAgo(profile.updatedAt)}</span>
+        </div>
       </div>
     </Link>
   );

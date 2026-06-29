@@ -52,24 +52,24 @@ export function MultiSelectDropdown({
 
   const displayText =
     selected.length === 0
-      ? `All ${label}`
+      ? 'All'
       : selected.length === options.length
-        ? `All ${label}`
+        ? 'All'
         : selected.length === 1
           ? options.find((o) => o.value === selected[0])?.label ?? selected[0]
-          : `${selected.length} selected`;
+          : `${selected.length}`;
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-full border border-white/15 bg-[var(--color-bg-panel)] px-4 py-2 text-sm text-white transition hover:border-white/30"
+        className="flex items-center gap-1.5 border border-white/15 bg-white/[0.02] px-3 py-1.5 text-xs transition hover:border-white/30"
       >
-        <span className="text-[var(--color-text-secondary)]">{label}:</span>
-        <span>{displayText}</span>
+        <span className="text-[var(--color-text-secondary)] uppercase tracking-wider">{label}</span>
+        <span className="text-white font-medium">{displayText}</span>
         <svg
-          className={`h-4 w-4 text-white/50 transition ${open ? 'rotate-180' : ''}`}
+          className={`h-3 w-3 text-white/50 transition ${open ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -80,22 +80,22 @@ export function MultiSelectDropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 min-w-[200px] rounded-xl border border-white/15 bg-[var(--color-bg-panel)] py-2 shadow-xl">
-          <div className="flex gap-2 border-b border-white/10 px-3 pb-2 mb-2">
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] border border-white/15 bg-[var(--color-bg-panel)] py-1 shadow-xl">
+          <div className="flex gap-2 border-b border-white/10 px-3 py-1.5 mb-1">
             <button
               type="button"
               onClick={selectAll}
-              className="text-xs text-[var(--color-accent)] hover:underline"
+              className="text-[10px] uppercase tracking-wider text-[var(--color-accent)] hover:underline"
             >
-              Select all
+              All
             </button>
-            <span className="text-white/30">|</span>
+            <span className="text-white/20">|</span>
             <button
               type="button"
               onClick={clearAll}
-              className="text-xs text-[var(--color-accent)] hover:underline"
+              className="text-[10px] uppercase tracking-wider text-[var(--color-accent)] hover:underline"
             >
-              Clear
+              None
             </button>
           </div>
           {options.map((option) => {
@@ -105,17 +105,17 @@ export function MultiSelectDropdown({
                 key={option.value}
                 type="button"
                 onClick={() => toggle(option.value)}
-                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition hover:bg-white/5"
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition hover:bg-white/5"
               >
                 <span
-                  className={`flex h-4 w-4 items-center justify-center rounded border ${
+                  className={`flex h-3.5 w-3.5 items-center justify-center border ${
                     isSelected
                       ? 'border-[var(--color-accent)] bg-[var(--color-accent)]'
                       : 'border-white/30'
                   }`}
                 >
                   {isSelected && (
-                    <svg className="h-3 w-3 text-[var(--color-bg-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <svg className="h-2.5 w-2.5 text-[var(--color-bg-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
@@ -124,7 +124,7 @@ export function MultiSelectDropdown({
                   {option.label}
                 </span>
                 {option.count !== undefined && (
-                  <span className="ml-auto text-xs text-white/40">{option.count}</span>
+                  <span className="ml-auto font-mono text-[10px] text-white/40">{option.count}</span>
                 )}
               </button>
             );

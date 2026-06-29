@@ -21,13 +21,10 @@ export default async function DashboardPage() {
   const repo = getRepository();
   const summaries = await repo.list(tenantId);
 
-  // Summaries lack the fields needed to score completion, so load the full
-  // profiles. N+1 reads are fine at pilot scale (single tenant, small pool).
   const fullProfiles = await Promise.all(
     summaries.map((s) => repo.get(tenantId, s.id)),
   );
 
-  // Load tenant for display name
   const tenant = await getTenantRepository().get(tenantId);
 
   const profiles: DashboardRow[] = summaries.map((summary, i) => {
@@ -55,26 +52,29 @@ export default async function DashboardPage() {
   return (
     <BrandedWrapper tenant={tenant} className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <AppHeader />
-      <main className="mx-auto max-w-6xl px-6 py-10">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-              The <span className="text-[var(--color-accent)]">Collective</span>
+      <main className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
+        {/* Header: compact industrial layout */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-2 w-2 shrink-0 bg-[var(--color-accent)]" />
+            <h1 className="text-base font-bold uppercase tracking-widest text-white sm:text-lg">
+              Collective
             </h1>
-            <p className="mt-2 max-w-xl text-[var(--color-text-secondary)]">
-              {tenant?.name ?? 'Your'}&rsquo;s talent pool: every Change Maker, their
-              status, and what they&rsquo;re ready to take on.
-            </p>
+            <span className="hidden text-sm text-[var(--color-text-secondary)] sm:inline truncate">
+              {tenant?.name}
+            </span>
           </div>
-          <div className="flex gap-6">
-            <Stat label="In the Collective" value={profiles.length} />
-            <Stat label="Active" value={active} />
-            <Stat label="Available" value={available} />
-            <Stat label="Avg complete" value={avgCompletion} suffix="%" />
+
+          {/* Stats: horizontal bar, scrollable on mobile */}
+          <div className="flex gap-px overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-none">
+            <Stat label="TOTAL" value={profiles.length} />
+            <Stat label="ACTIVE" value={active} accent />
+            <Stat label="AVAIL" value={available} />
+            <Stat label="AVG" value={avgCompletion} suffix="%" />
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-4">
           {profiles.length === 0 ? (
             <EmptyState />
           ) : (
@@ -90,36 +90,45 @@ function Stat({
   label,
   value,
   suffix,
+  accent,
 }: {
   label: string;
   value: number;
   suffix?: string;
+  accent?: boolean;
 }) {
   return (
-    <div className="text-right">
-      <p className="text-3xl font-black text-[var(--color-accent)]">
-        {value}
-        {suffix}
-      </p>
-      <p className="text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
+    <div className={`flex items-center gap-2 border-y border-r first:border-l px-3 py-1.5 ${
+      accent
+        ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5'
+        : 'border-white/10 bg-white/[0.02]'
+    }`}>
+      <span className="font-mono text-base font-bold tabular-nums text-white sm:text-lg">
+        {value.toString().padStart(2, '0')}{suffix}
+      </span>
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
         {label}
-      </p>
+      </span>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="rounded-xl border border-dashed border-white/15 bg-[var(--color-bg-panel)] p-12 text-center">
-      <p className="text-lg font-black">No one in the Collective yet</p>
-      <p className="mt-2 text-[var(--color-text-secondary)]">
-        Add a consultant with just their name and email. They complete the rest.
+    <div className="border border-dashed border-white/20 bg-white/[0.02] p-6 text-center sm:p-10">
+      <div className="mx-auto w-fit border border-white/10 bg-white/[0.02] px-4 py-1.5 mb-4">
+        <span className="font-mono text-xs tracking-wider text-[var(--color-text-secondary)]">0 PROFILES</span>
+      </div>
+      <p className="text-sm font-semibold text-white">No consultants in the Collective</p>
+      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+        Add a consultant with name and email. They complete the rest.
       </p>
       <Link
         href="/dashboard/new"
-        className="mt-6 inline-block rounded-full border border-[var(--color-accent)] px-5 py-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
+        className="mt-5 inline-flex items-center gap-2 border border-[var(--color-accent)] px-4 py-2 text-xs font-bold uppercase tracking-wider text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
       >
-        + Add consultant
+        <span className="text-base leading-none">+</span>
+        <span>Add consultant</span>
       </Link>
     </div>
   );

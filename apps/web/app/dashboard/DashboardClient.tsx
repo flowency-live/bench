@@ -13,12 +13,6 @@ type ViewMode = 'cards' | 'list';
 
 const AVAILABILITY_ORDER: AvailabilityStatus[] = ['available', 'looking', 'engaged', 'pitched'];
 
-/**
- * Dashboard view row: a `ProfileSummary` augmented with a derived completion
- * score. This is a UI-only shape — it intentionally does NOT live in
- * `lib/types.ts` so the shared `ProfileSummary`/`@bench/data` contract stays
- * untouched. The dashboard page builds these rows; this is the single source.
- */
 export type DashboardRow = ProfileSummary & {
   readonly completion: {
     readonly completed: number;
@@ -53,11 +47,8 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return profiles.filter((p) => {
-      // Status filter (empty = all)
       if (statusFilter.length > 0 && !statusFilter.includes(p.status)) return false;
-      // Availability filter (empty = all)
       if (availabilityFilter.length > 0 && !availabilityFilter.includes(p.availability?.status)) return false;
-      // Text search
       if (!q) return true;
       return (
         p.name.toLowerCase().includes(q) ||
@@ -80,8 +71,9 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
 
   return (
     <div>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-3">
+      {/* Toolbar: compact, industrial */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-3">
+        <div className="flex flex-wrap gap-2">
           <MultiSelectDropdown
             label="Status"
             options={statusOptions}
@@ -95,33 +87,34 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
             onChange={(selected) => setAvailabilityFilter(selected as AvailabilityStatus[])}
           />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-lg border border-white/15 p-0.5">
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex border border-white/15">
             <button
               type="button"
               onClick={() => setView('cards')}
               title="Card view"
-              className={`rounded-md p-1.5 transition ${
+              className={`p-1.5 transition ${
                 view === 'cards'
                   ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]'
-                  : 'text-white/50 hover:text-white'
+                  : 'text-white/50 hover:text-white hover:bg-white/5'
               }`}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <rect x="3" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
-                <rect x="14" y="14" width="7" height="7" rx="1" />
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
               </svg>
             </button>
             <button
               type="button"
               onClick={() => setView('list')}
               title="List view"
-              className={`rounded-md p-1.5 transition ${
+              className={`p-1.5 transition border-l border-white/15 ${
                 view === 'list'
                   ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]'
-                  : 'text-white/50 hover:text-white'
+                  : 'text-white/50 hover:text-white hover:bg-white/5'
               }`}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -131,18 +124,27 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
               </svg>
             </button>
           </div>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or role..."
-            className="w-full rounded-full border border-white/15 bg-[var(--color-bg-panel)] px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-[var(--color-accent)] md:w-72"
-          />
+          {/* Search */}
+          <div className="relative">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search..."
+              className="w-full border border-white/15 bg-white/[0.02] px-3 py-1.5 pl-8 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--color-accent)] sm:w-48"
+            />
+            <svg className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
         </div>
       </div>
 
-      <div className="mt-3 flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-        <span>Showing {visible.length} of {profiles.length}</span>
+      {/* Results count */}
+      <div className="mt-2 flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+        <span className="font-mono">{visible.length}/{profiles.length}</span>
+        <span>showing</span>
         {(statusFilter.length > 0 || availabilityFilter.length > 0 || query) && (
           <button
             type="button"
@@ -151,66 +153,66 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
               setAvailabilityFilter([]);
               setQuery('');
             }}
-            className="text-[var(--color-accent)] hover:underline"
+            className="ml-2 text-[var(--color-accent)] hover:underline"
           >
-            Clear filters
+            Clear
           </button>
         )}
       </div>
 
       {visible.length === 0 ? (
-        <p className="mt-10 text-center text-[var(--color-text-secondary)]">
+        <p className="mt-8 text-center text-sm text-[var(--color-text-secondary)]">
           No consultants match your filters.
         </p>
       ) : view === 'cards' ? (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((p) => (
             <ProfileCard key={p.id} profile={p} completion={p.completion} />
           ))}
         </div>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-xl border border-white/10">
+        <div className="mt-4 border border-white/10 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-white/10 bg-white/[0.02]">
               <tr>
-                <th className="px-4 py-3 font-semibold text-[var(--color-text-secondary)]">Name</th>
-                <th className="hidden px-4 py-3 font-semibold text-[var(--color-text-secondary)] sm:table-cell">Role</th>
-                <th className="px-4 py-3 font-semibold text-[var(--color-text-secondary)]">Status</th>
-                <th className="px-4 py-3 font-semibold text-[var(--color-text-secondary)]">Availability</th>
-                <th className="hidden px-4 py-3 font-semibold text-[var(--color-text-secondary)] md:table-cell">Complete</th>
-                <th className="px-4 py-3 text-right font-semibold text-[var(--color-text-secondary)]">Action</th>
+                <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Name</th>
+                <th className="hidden px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] sm:table-cell">Role</th>
+                <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Status</th>
+                <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Avail</th>
+                <th className="hidden px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] md:table-cell">%</th>
+                <th className="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {visible.map((p) => (
                 <tr key={p.id} className="transition hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 font-semibold text-white">{p.name}</td>
-                  <td className="hidden px-4 py-3 text-[var(--color-text-secondary)] sm:table-cell">
+                  <td className="px-3 py-2 font-medium text-white">{p.name}</td>
+                  <td className="hidden px-3 py-2 text-[var(--color-text-secondary)] sm:table-cell">
                     {p.role || '-'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2">
                     <StatusBadge status={p.status} />
                   </td>
-                  <td className="px-4 py-3">
-                    <AvailabilityBadge availability={p.availability} />
+                  <td className="px-3 py-2">
+                    <AvailabilityBadge availability={p.availability} compact />
                   </td>
-                  <td className="hidden px-4 py-3 md:table-cell">
+                  <td className="hidden px-3 py-2 md:table-cell">
                     <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10">
+                      <div className="h-1 w-12 overflow-hidden bg-white/10">
                         <div
-                          className="h-full rounded-full bg-[var(--color-accent)]"
+                          className="h-full bg-[var(--color-accent)]"
                           style={{ width: `${p.completion.percent}%` }}
                         />
                       </div>
-                      <span className="text-xs text-[var(--color-text-secondary)]">
-                        {p.completion.percent}%
+                      <span className="font-mono text-[10px] text-[var(--color-text-secondary)]">
+                        {p.completion.percent}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-3 py-2 text-right">
                     <Link
                       href={`/profiles/${p.id}`}
-                      className="text-xs font-semibold text-[var(--color-accent)] hover:underline"
+                      className="text-xs font-semibold uppercase tracking-wider text-[var(--color-accent)] hover:underline"
                     >
                       View
                     </Link>
