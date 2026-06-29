@@ -2,7 +2,10 @@
 
 import { createHash } from 'node:crypto';
 import { redirect } from 'next/navigation';
-import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
+import {
+  PinpointSMSVoiceV2Client,
+  SendTextMessageCommand,
+} from '@aws-sdk/client-pinpoint-sms-voice-v2';
 import { getOtpRepository } from '@/lib/data/otp';
 import { getPendingInvite } from '@/lib/auth/pending-invite';
 import { completeAuthentication, getAuthErrorMessage } from '@/lib/auth/complete-auth';
@@ -42,34 +45,35 @@ function hashPhone(phone: string): string {
 }
 
 /**
- * Send OTP code via AWS SNS.
+ * Send OTP code via AWS Pinpoint SMS (End User Messaging).
+ * Uses the same configuration as bndy for UK SMS delivery.
  */
 async function sendSms(phone: string, code: string): Promise<void> {
   const region = process.env.AWS_REGION ?? 'eu-west-2';
-  console.log('[phone-otp] Sending SMS', { phone, region });
+  console.log('[phone-otp] Sending SMS via Pinpoint', { phone, region });
 
-  const sns = new SNSClient({ region });
+  const client = new PinpointSMSVoiceV2Client({ region });
 
   try {
-    const result = await sns.send(
-      new PublishCommand({
-        PhoneNumber: phone,
-        Message: `Your Bench code is ${code}. It expires in 5 minutes.`,
-        MessageAttributes: {
-          'AWS.SNS.SMS.SenderID': {
-            DataType: 'String',
-            StringValue: 'BENCH',
-          },
-        },
+    const result = await client.send(
+      new SendTextMessageCommand({
+        DestinationPhoneNumber: phone,
+        MessageBody: `Your Bench code is ${code}. It expires in 5 minutes.`,
+        OriginationIdentity: 'BENCH',
+        MessageType: 'TRANSACTIONAL',
+        ConfigurationSetName: 'bndy-sms-config',
       }),
     );
-    console.log('[phone-otp] SMS sent', { messageId: result.MessageId, phone });
-  } catch (snsError) {
-    console.error('[phone-otp] SNS error', {
-      error: snsError instanceof Error ? snsError.message : String(snsError),
+    console.log('[phone-otp] SMS sent via Pinpoint', {
+      messageId: result.MessageId,
       phone,
     });
-    throw snsError;
+  } catch (smsError) {
+    console.error('[phone-otp] Pinpoint SMS error', {
+      error: smsError instanceof Error ? smsError.message : String(smsError),
+      phone,
+    });
+    throw smsError;
   }
 }
 
