@@ -45,20 +45,32 @@ function hashPhone(phone: string): string {
  * Send OTP code via AWS SNS.
  */
 async function sendSms(phone: string, code: string): Promise<void> {
-  const sns = new SNSClient({ region: process.env.AWS_REGION ?? 'eu-west-2' });
+  const region = process.env.AWS_REGION ?? 'eu-west-2';
+  console.log('[phone-otp] Sending SMS', { phone, region });
 
-  await sns.send(
-    new PublishCommand({
-      PhoneNumber: phone,
-      Message: `Your Bench code is ${code}. It expires in 5 minutes.`,
-      MessageAttributes: {
-        'AWS.SNS.SMS.SenderID': {
-          DataType: 'String',
-          StringValue: 'BENCH',
+  const sns = new SNSClient({ region });
+
+  try {
+    const result = await sns.send(
+      new PublishCommand({
+        PhoneNumber: phone,
+        Message: `Your Bench code is ${code}. It expires in 5 minutes.`,
+        MessageAttributes: {
+          'AWS.SNS.SMS.SenderID': {
+            DataType: 'String',
+            StringValue: 'BENCH',
+          },
         },
-      },
-    }),
-  );
+      }),
+    );
+    console.log('[phone-otp] SMS sent', { messageId: result.MessageId, phone });
+  } catch (snsError) {
+    console.error('[phone-otp] SNS error', {
+      error: snsError instanceof Error ? snsError.message : String(snsError),
+      phone,
+    });
+    throw snsError;
+  }
 }
 
 /**
@@ -89,20 +101,27 @@ export async function requestPhoneOtp(
   const phoneHash = hashPhone(phone);
 
   try {
+    console.log('[phone-otp] Request started', { phoneHash: phoneHash.slice(0, 8) + '...' });
+
     // Create OTP in DynamoDB
     const otp = getOtpRepository();
     const { code } = await otp.create(phoneHash);
+    console.log('[phone-otp] OTP created', { codeLength: code.length });
 
     // Send SMS
     await sendSms(phone, code);
 
+    console.log('[phone-otp] Request completed successfully');
     return {
       step: 'verify',
       ok: true,
       phone,
     };
   } catch (err) {
-    console.error('[phone-otp] Failed to send OTP:', err);
+    console.error('[phone-otp] Failed to send OTP:', {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
     return {
       step: 'request',
       ok: false,
