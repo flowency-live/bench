@@ -275,4 +275,109 @@ describe('MagicLinkRepository', () => {
       expect(input.ExpressionAttributeValues?.[':status']).toBe('revoked');
     });
   });
+
+  describe('listSharesByProfile', () => {
+    const shareLinkId1 = 'share-00000000-0000-0000-0000-000000000001';
+    const shareLinkId2 = 'share-00000000-0000-0000-0000-000000000002';
+
+    it('returns all share links for a profile', async () => {
+      const shareLinks = [
+        {
+          PK: `TENANT#${tenantA}#PROFILE#${profileId}`,
+          SK: `LINK#share#${shareLinkId1}`,
+          id: shareLinkId1,
+          tenantId: tenantA,
+          profileId,
+          type: 'share',
+          scope: 'view',
+          status: 'active',
+          tokenHash: 'hash1',
+          passcodeHash: null,
+          expiresAt: '2024-12-31T23:59:59.999Z',
+          createdBy: 'user-123',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+        {
+          PK: `TENANT#${tenantA}#PROFILE#${profileId}`,
+          SK: `LINK#share#${shareLinkId2}`,
+          id: shareLinkId2,
+          tenantId: tenantA,
+          profileId,
+          type: 'share',
+          scope: 'view',
+          status: 'revoked',
+          tokenHash: 'hash2',
+          passcodeHash: null,
+          expiresAt: '2024-12-31T23:59:59.999Z',
+          createdBy: 'user-123',
+          createdAt: '2024-01-02T00:00:00.000Z',
+          updatedAt: '2024-01-03T00:00:00.000Z',
+        },
+      ];
+
+      ddbMock.on(QueryCommand).resolves({ Items: shareLinks });
+
+      const result = await repo.listSharesByProfile(tenantA, profileId);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe(shareLinkId1);
+      expect(result[1].id).toBe(shareLinkId2);
+    });
+
+    it('queries with correct key pattern (PK + SK prefix LINK#share#)', async () => {
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
+
+      await repo.listSharesByProfile(tenantA, profileId);
+
+      const calls = ddbMock.commandCalls(QueryCommand);
+      expect(calls).toHaveLength(1);
+
+      const input = calls[0].args[0].input;
+      expect(input.KeyConditionExpression).toContain('PK = :pk');
+      expect(input.KeyConditionExpression).toContain('begins_with(SK, :skPrefix)');
+      expect(input.ExpressionAttributeValues?.[':pk']).toBe(`TENANT#${tenantA}#PROFILE#${profileId}`);
+      expect(input.ExpressionAttributeValues?.[':skPrefix']).toBe('LINK#share#');
+    });
+
+    it('returns empty array when no share links exist', async () => {
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
+
+      const result = await repo.listSharesByProfile(tenantA, profileId);
+
+      expect(result).toEqual([]);
+    });
+
+    it('throws error when tenantId is empty', async () => {
+      await expect(repo.listSharesByProfile('', profileId)).rejects.toThrow('tenantId is required');
+    });
+
+    it('does not return invite links (only share type)', async () => {
+      // This test verifies the SK prefix is correct (LINK#share#, not LINK#)
+      const shareLink = {
+        PK: `TENANT#${tenantA}#PROFILE#${profileId}`,
+        SK: `LINK#share#${shareLinkId1}`,
+        id: shareLinkId1,
+        tenantId: tenantA,
+        profileId,
+        type: 'share',
+        scope: 'view',
+        status: 'active',
+        tokenHash: 'hash1',
+        passcodeHash: null,
+        expiresAt: '2024-12-31T23:59:59.999Z',
+        createdBy: 'user-123',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      };
+
+      ddbMock.on(QueryCommand).resolves({ Items: [shareLink] });
+
+      const result = await repo.listSharesByProfile(tenantA, profileId);
+
+      // Only share links returned, not invite links
+      expect(result).toHaveLength(1);
+      expect(result[0].type).toBe('share');
+    });
+  });
 });

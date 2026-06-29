@@ -5,8 +5,19 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getRepository } from '@/lib/data/repository';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
+import { getTenantRepository } from '@/lib/data/tenant';
 import { getSession, getTenantId } from '@/lib/auth/session';
 import type { Availability, FormState, ProfilePatch, ProfileStatus } from '@/lib/types';
+
+/** Convert a string to a URL-safe slug. */
+function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 /** Get the current tenant ID from session, or throw if not authenticated. */
 async function requireTenantId(): Promise<string> {
@@ -94,18 +105,23 @@ const SHARE_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
  *
  * The raw token is generated here and returned to the owner exactly once; we
  * persist ONLY its SHA-256 hash (the table never sees the secret). On open,
- * `/share/[token]` re-hashes the URL token and resolves it via GSI3
+ * the share route re-hashes the URL token and resolves it via GSI3
  * (`lookupByTokenHash`) to recover tenant context — the one cross-tenant read
  * per ADR-0008.
  *
- * Returns a relative path (`/share/{rawToken}`); the caller composes the
- * absolute URL from the request origin.
- *
- * TODO: a `/p/{shortcode}` shortener can wrap this later for friendlier URLs;
- * the opaque-token URL is the v1.
+ * Returns a readable URL path: `/share/{tenantSlug}/{consultantSlug}/{token}`
+ * The slugs are cosmetic (human-readable); the token is the secret that gates access.
  */
 export async function createShareLink(profileId: string): Promise<string> {
   const tenantId = await requireTenantId();
+
+  // Get tenant and profile for the readable URL slugs
+  const tenant = await getTenantRepository().get(tenantId);
+  const profile = await getRepository().get(tenantId, profileId);
+
+  if (!tenant || !profile) {
+    throw new Error('Tenant or profile not found');
+  }
 
   // 32 bytes of entropy, URL-safe — the secret half of the share link.
   const rawToken = randomBytes(32).toString('base64url');
@@ -122,5 +138,48 @@ export async function createShareLink(profileId: string): Promise<string> {
     createdBy: 'owner',
   });
 
-  return `/share/${rawToken}`;
+  // Build readable URL: /share/{tenantSlug}/{consultantSlug}/{token}
+  const tenantSlug = tenant.slug;
+  const consultantSlug = slugify(profile.name);
+
+  return `/share/${tenantSlug}/${consultantSlug}/${rawToken}`;
+}
+
+/**
+ * Get the active share link for a profile, if one exists.
+ *
+ * NOTE: We store only the token hash, not the raw token. So we cannot
+ * reconstruct the shareable URL for existing links. This returns metadata
+ * about the link (id, createdAt) but not the URL itself. Users must create
+ * a new link to get a shareable URL.
+ */
+export async function getActiveShareLink(
+  profileId: string,
+): Promise<{ id: string; createdAt: string } | null> {
+  const tenantId = await requireTenantId();
+  const links = getMagicLinkRepository();
+  const shareLinks = await links.listSharesByProfile(tenantId, profileId);
+
+  // Find an active, non-expired link
+  const now = Date.now();
+  const activeLink = shareLinks.find(
+    (link) => link.status === 'active' && new Date(link.expiresAt).getTime() > now,
+  );
+
+  if (!activeLink) return null;
+
+  return {
+    id: activeLink.id,
+    createdAt: activeLink.createdAt,
+  };
+}
+
+/**
+ * Revoke (deactivate) a share link.
+ */
+export async function revokeShareLink(profileId: string, linkId: string): Promise<void> {
+  const tenantId = await requireTenantId();
+  const links = getMagicLinkRepository();
+  await links.markAsRevoked(tenantId, profileId, linkId);
+  revalidatePath(`/profiles/${profileId}`);
 }

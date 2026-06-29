@@ -12,6 +12,7 @@ import {
   setTenantUserRole,
 } from './actions';
 import { GodmodeBrandPanel } from './GodmodeBrandPanel';
+import { AdminInviteButton } from './AdminInviteButton';
 
 /**
  * Wrap a server action that returns state into a void-returning action.
@@ -154,8 +155,9 @@ function ManageAdmins({
           {users.map((user) => (
             <li
               key={user.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-[rgba(0,12,24,0.4)] px-4 py-3"
+              className="flex flex-col gap-2 rounded-lg border border-white/10 bg-[rgba(0,12,24,0.4)] px-4 py-3"
             >
+              <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-white">
                   {user.name ? `${user.name} · ` : ''}
@@ -192,6 +194,17 @@ function ManageAdmins({
                   </button>
                 </form>
               </div>
+              </div>
+
+              {/* (Re)issue this admin's onboarding / sign-in link (ISS-1). */}
+              {user.role === 'admin' && (
+                <AdminInviteButton
+                  tenantId={tenant.id}
+                  userId={user.id}
+                  email={user.email}
+                  status={user.status === 'active' ? 'active' : 'pending'}
+                />
+              )}
             </li>
           ))}
         </ul>

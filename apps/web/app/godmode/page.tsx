@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { Logo } from '@/components/Logo';
+import { GodmodeHeader } from '@/components/GodmodeHeader';
 import { getPlatformSession } from '@/lib/auth/platform';
 import { getTenantRepository } from '@/lib/data/tenant';
 import { getUserRepository, type TenantUser } from '@/lib/data/user';
@@ -35,27 +35,7 @@ export default async function GodmodePage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-[var(--color-bg-primary)]/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <Logo className="h-7 w-auto" />
-            <span className="border-l border-white/15 pl-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-              Godmode
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden text-xs text-[var(--color-text-secondary)] sm:inline">
-              {platform.email}
-            </span>
-            <a
-              href="/auth/logout"
-              className="text-sm font-semibold text-white/60 transition hover:text-[var(--color-accent)]"
-            >
-              Sign out
-            </a>
-          </div>
-        </div>
-      </header>
+      <GodmodeHeader email={platform.email} />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div>

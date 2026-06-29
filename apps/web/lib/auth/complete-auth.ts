@@ -112,35 +112,39 @@ async function completeWithPendingInvite(
     return { success: false, error: 'invite_mismatch' };
   }
 
-  // Activate user if pending (first-time claim)
-  if (user.status === 'pending') {
-    await users.setStatus(invite.tenantId, user.id, 'active');
-  } else if (user.status !== 'active') {
-    // User is suspended or disabled
-    await clearPendingInvite();
-    return { success: false, error: 'user_inactive' };
-  }
-
-  // For admin invites (ADMIN_PROFILE_ID), user must have admin role
-  if (invite.profileId === ADMIN_PROFILE_ID && user.role !== 'admin') {
+  // SECURITY: this path mints an ADMIN session, so it only supports ADMIN
+  // invites for an admin user. Guard hard BEFORE any state change — never
+  // activate or mint a session for a non-admin invite or a non-admin user.
+  // (A future consultant-invite flow must mint a *member* session, not reuse
+  // this one. Today, `setPendingInvite` is only ever called with the ADMIN
+  // sentinel, so this is defence in depth.)
+  if (invite.profileId !== ADMIN_PROFILE_ID || user.role !== 'admin') {
     await clearPendingInvite();
     return { success: false, error: 'not_admin' };
   }
 
-  // Burn the invite token (single-use enforcement)
+  // Activate the user on first-time claim; reject if suspended/disabled.
+  if (user.status === 'pending') {
+    await users.setStatus(invite.tenantId, user.id, 'active');
+  } else if (user.status !== 'active') {
+    await clearPendingInvite();
+    return { success: false, error: 'user_inactive' };
+  }
+
+  // Burn the invite token (single-use enforcement).
   const links = getMagicLinkRepository();
   try {
     await links.markAsUsed(invite.tenantId, invite.profileId, invite.linkId);
   } catch {
-    // Token might already be burned (race condition or replay)
+    // Token might already be burned (race condition or replay).
     await clearPendingInvite();
     return { success: false, error: 'invite_burned' };
   }
 
-  // Clear the pending invite cookie
+  // Clear the pending invite cookie.
   await clearPendingInvite();
 
-  // Create admin session (only admins reach here for ADMIN_PROFILE_ID invites)
+  // Only an active admin reaches here → mint the admin (owner) session.
   await createSession({
     kind: 'admin',
     tenantId: invite.tenantId,
@@ -148,12 +152,7 @@ async function completeWithPendingInvite(
     role: 'owner',
   });
 
-  // Redirect based on profile type
-  const redirectTo = invite.profileId === ADMIN_PROFILE_ID
-    ? '/dashboard'
-    : `/profiles/${invite.profileId}/edit`;
-
-  return { success: true, redirectTo };
+  return { success: true, redirectTo: '/dashboard' };
 }
 
 /**

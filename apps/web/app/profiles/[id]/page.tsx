@@ -107,7 +107,7 @@ export default async function ProfilePage({
           </p>
         )}
 
-        <ProfileRenderer profile={profile} />
+        <ProfileRenderer profile={profile} tenant={tenant} />
 
         {/* Rates panel - admin only */}
         {canViewRates && (

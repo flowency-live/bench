@@ -1,10 +1,13 @@
 import type { Profile } from '@/lib/types';
-import { Logo } from '@/components/Logo';
+import type { Tenant } from '@bench/types';
+import { TenantLogo } from '@/components/TenantLogo';
 
 /**
- * The branded one-pager. Renders structured profile data through brand tokens
- * (navy / lime / Poppins) — the same renderer powers the owner preview and the
- * client share view. Designed to also drive the print-to-PDF path later.
+ * The branded one-pager. Renders structured profile data through the tenant's
+ * brand tokens (ADR-0013) — the same renderer powers the owner preview, the
+ * client share view, and the print-to-PDF path. White-label: the chrome
+ * (eyebrow + footer) reflects the supplied `tenant`, never a hardcoded brand.
+ * When no tenant is available it degrades to a neutral "Bench" mark.
  */
 
 function initials(name: string) {
@@ -36,7 +39,14 @@ function BrandRing({ name, url }: { name: string; url: string | null }) {
   );
 }
 
-export function ProfileRenderer({ profile }: { profile: Profile }) {
+export function ProfileRenderer({
+  profile,
+  tenant,
+}: {
+  profile: Profile;
+  /** Tenant whose brand frames the one-pager. Null → neutral Bench mark. */
+  tenant?: Tenant | null;
+}) {
   return (
     <article className="overflow-hidden rounded-2xl border border-white/10 bg-[var(--color-bg-primary)]">
       {/* Identity */}
@@ -44,7 +54,7 @@ export function ProfileRenderer({ profile }: { profile: Profile }) {
         <BrandRing name={profile.name} url={profile.headshotUrl} />
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">
-            Change Connected · Change Maker
+            {tenant ? tenant.instanceName : 'Bench'}
           </p>
           <h1 className="mt-1 text-4xl font-black leading-tight text-white">
             {profile.name}
@@ -138,9 +148,12 @@ export function ProfileRenderer({ profile }: { profile: Profile }) {
           )}
       </div>
 
-      <footer className="flex items-center justify-center gap-3 border-t border-white/10 px-8 py-4 text-center text-xs uppercase tracking-[0.2em] text-white/30">
-        <Logo className="h-5 w-auto" />
-        Change Connected · Connecting great talent, delivering great change
+      <footer className="flex items-center justify-center gap-3 border-t border-white/10 px-8 py-4 text-center text-xs uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">
+        {tenant ? (
+          <TenantLogo tenant={tenant} size="sm" />
+        ) : (
+          <span className="font-bold text-[var(--color-accent)]">Bench</span>
+        )}
       </footer>
     </article>
   );

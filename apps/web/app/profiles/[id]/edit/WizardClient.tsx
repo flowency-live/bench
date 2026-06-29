@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
 import { HeadshotUpload } from '@/components/HeadshotUpload';
 import { saveProfile, submitForReview } from '@/app/actions';
+import type { Tenant } from '@bench/types';
 import type {
   Profile,
   Skill,
@@ -23,7 +24,13 @@ const label =
   'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]';
 const help = 'mt-1.5 text-xs text-white/40';
 
-export function WizardClient({ profile }: { profile: Profile }) {
+export function WizardClient({
+  profile,
+  tenant,
+}: {
+  profile: Profile;
+  tenant?: Tenant | null;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [pending, start] = useTransition();
@@ -303,7 +310,7 @@ export function WizardClient({ profile }: { profile: Profile }) {
         {step === 5 && (
           <Section title="Review &amp; submit" intro="This is exactly how your profile will look.">
             <div className="-mx-2">
-              <ProfileRenderer profile={preview} />
+              <ProfileRenderer profile={preview} tenant={tenant} />
             </div>
           </Section>
         )}

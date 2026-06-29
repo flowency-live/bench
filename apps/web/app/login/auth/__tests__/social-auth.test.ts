@@ -28,6 +28,11 @@ vi.mock('@/lib/auth/session', () => ({
   createSession: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/lib/auth/complete-auth', () => ({
+  completeAuthentication: vi.fn(),
+  getAuthErrorMessage: vi.fn((e: string) => e),
+}));
+
 // Mock fetch for token exchange
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -75,12 +80,14 @@ describe('social-auth', () => {
 
   describe('GET /login/auth/callback', () => {
     beforeEach(() => {
-      // Mock successful token exchange
+      // Mock successful token exchange. The ID token payload must include
+      // email_verified — the callback rejects unverified emails (ADR-0014).
+      const idTokenPayload = Buffer.from(
+        JSON.stringify({ email: 'user@example.com', email_verified: true }),
+      ).toString('base64url');
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({
-          id_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20ifQ.mock',
-        }),
+        json: async () => ({ id_token: `header.${idTokenPayload}.sig` }),
       });
     });
 
@@ -112,17 +119,9 @@ describe('social-auth', () => {
       expect(response.headers.get('location')).toBe('https://example.com/login?error=missing_params');
     });
 
-    it('redirects to login with error when user not found', async () => {
-      const { getUserRepository } = await import('@/lib/data/user');
-      vi.mocked(getUserRepository).mockReturnValue({
-        getByEmail: vi.fn().mockResolvedValue(null),
-        list: vi.fn(),
-        get: vi.fn(),
-        create: vi.fn(),
-        update: vi.fn(),
-        remove: vi.fn(),
-        bindIdentity: vi.fn(),
-      });
+    it('redirects to login with an error when auth completion fails', async () => {
+      const { completeAuthentication } = await import('@/lib/auth/complete-auth');
+      vi.mocked(completeAuthentication).mockResolvedValue({ success: false, error: 'no_user' });
 
       const { GET } = await import('../callback/route');
 
@@ -134,31 +133,12 @@ describe('social-auth', () => {
       const response = await GET(request);
 
       expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe('https://example.com/login?error=user_not_found');
+      expect(response.headers.get('location')).toContain('error=auth_failed');
     });
 
-    it('creates admin session and redirects to dashboard on success', async () => {
-      const { createSession } = await import('@/lib/auth/session');
-      const { getUserRepository } = await import('@/lib/data/user');
-
-      vi.mocked(getUserRepository).mockReturnValue({
-        getByEmail: vi.fn().mockResolvedValue({
-          id: 'user-123',
-          tenantId: 'tenant-abc',
-          email: 'user@example.com',
-          name: 'Test User',
-          role: 'admin',
-          status: 'active',
-          cognitoId: null,
-          createdAt: '2026-06-20T09:00:00.000Z',
-        }),
-        list: vi.fn(),
-        get: vi.fn(),
-        create: vi.fn(),
-        update: vi.fn(),
-        remove: vi.fn(),
-        bindIdentity: vi.fn(),
-      });
+    it('completes authentication and redirects on success', async () => {
+      const { completeAuthentication } = await import('@/lib/auth/complete-auth');
+      vi.mocked(completeAuthentication).mockResolvedValue({ success: true, redirectTo: '/dashboard' });
 
       const { GET } = await import('../callback/route');
 
@@ -169,12 +149,7 @@ describe('social-auth', () => {
 
       const response = await GET(request);
 
-      expect(createSession).toHaveBeenCalledWith({
-        kind: 'admin',
-        tenantId: 'tenant-abc',
-        email: 'user@example.com',
-        role: 'owner',
-      });
+      expect(completeAuthentication).toHaveBeenCalledWith('user@example.com');
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe('https://example.com/dashboard');
     });

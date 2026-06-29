@@ -11,7 +11,7 @@ The single source of truth for **work**: what's done, what's next, who owns it. 
 
 **Maintenance rule (non-negotiable):** this file is updated **in the same change that lands the work** — no separate "update the backlog" task. AGENT updates it on every commit that completes/moves an item; CTO updates it on every review and at the end of each working session. A stale backlog is treated as a bug.
 
-_Last updated: 2026-06-27._
+_Last updated: 2026-06-28._
 
 ---
 
@@ -118,6 +118,28 @@ SaaS-Factory) vs Bench today. ✅ have · 🟡 partial · ❌ missing.
 | CP13 | Billing — plans / Stripe / usage metering / quotas + self-serve signup | ❌ PRD P2 |
 | CP14 | Enterprise — SSO/SAML + SCIM; custom roles / granular permissions | ❌ |
 | CP15 | Data resilience — tested restore, export/import, real `TENANT#` cascade-purge | 🟡 |
+
+## 🐞 Reported issues (Jason — investigate + fix)
+
+| # | Issue | CTO investigation / status |
+|---|-------|----------------------------|
+| ISS-1 | **No "resend magic link" in godmode.** A pending tenant admin (Adaptavis · `jason@leandevsystems.co.uk` · PENDING) shows Make-viewer / Remove but **no way to re-issue their onboarding/sign-in link**. | **✅ FIXED (CTO, 2026-06-28).** Added `resendAdminInvite(tenantId, userId)` in `godmode/actions.ts` — platform-only, admin-only (defends against handing an admin-scoped link to a viewer); mints a fresh single-use 30-min link (mirrors `createTenant`), best-effort emails it, and **returns the link** so godmode can share it. New `components/ShareLinkActions.tsx` (Copy / WhatsApp / Email / SMS) + `godmode/AdminInviteButton.tsx`, wired into `TenantRow → Manage admins` on each admin row (label: pending → "Send invite link", active → "Resend sign-in link"). Tests: `godmode/__tests__/resend-admin-invite.test.ts`, `godmode/__tests__/AdminInviteButton.test.tsx`. Link semantics match the existing onboarding path, so it stays consistent through the ADR-0014 auth rewrite. |
+| ISS-2 | **Brand leak: godmode shows the Change Connected logo.** Godmode is the Flowency/Bench control plane — it must never show a tenant logo. | **✅ FIXED (CTO, 2026-06-28).** New `components/GodmodeHeader.tsx` (Flowency flow-mark + "Bench" wordmark + "Godmode" badge) replaces the `<Logo/>` (hardcoded CC image) in `godmode/page.tsx`. The CC `Logo` component is now orphaned (no importers). Test: `components/__tests__/GodmodeHeader.test.tsx`. |
+| ISS-3 | **Brand leak: every `/login` is Change Connected branded** — a new tenant (different email) clicks their invite link and lands on a fully CC-skinned login. | **✅ FIXED (CTO, 2026-06-28).** `/login` reskinned to the OpStack/Bench platform brand: shared `components/BenchMark.tsx` wordmark, `.bench-landing` theme, "Sign in to Bench" + invite-only copy. Removed `PILOT_TENANT`, the CC `<Logo/>`, the CC tagline, and all lime/navy hardcodes (`login/page.tsx`, `LoginForm.tsx`, recoloured `.login-*` in `globals.css`). Pre-auth visitors now always see Bench; tenant skin applies only after auth. Test: `login/__tests__/login-page.test.tsx`. |
+| ISS-4 | **Brand leak: `ProfileRenderer` hardcodes "Change Connected" text** → leaks into *every* tenant's profile, share view, and PDF. | **✅ FIXED (CTO, 2026-06-28).** Confirmed and fixed. `ProfileRenderer` now takes a `tenant` prop and renders `TenantLogo` + `instanceName` in the eyebrow and footer (was hardcoded "Change Connected · Change Maker" / CC footer); neutral "Bench" fallback when absent. All 5 callers (share ×2, owner preview, print, wizard) pass the tenant they already resolve. Test: `components/__tests__/ProfileRenderer.test.tsx`. |
+
+> **Verification note (ISS-1–4):** the new Vitest specs couldn't be executed in the Cowork Linux sandbox — the repo's `node_modules` was installed on Windows and lacks the Linux rollup/esbuild native binaries. Static verification (grep: no CC leak in the fixed surfaces; CC `Logo` orphaned; all callers wired) passed. **Run `pnpm --filter web test` locally to confirm green before push.**
+
+### 🔎 Auth audit (ADR-0014) — CTO, 2026-06-28
+
+Verified the passwordless/invite-only rewrite against the **code** (not the plan). **Landed and correct:** invite links no longer create a session on GET — they hold an HMAC-signed pending-invite cookie (httpOnly, sameSite=strict) and redirect to `/login` (`auth/verify/route.ts`); the invite token is burned only on successful binding in `completeAuthentication` (no burn-on-click); social (callback) and phone OTP both route through `completeAuthentication`.
+
+**Found + fixed (test-first):**
+- **Email-tab dead-end for a first-time pending admin.** The emailed sign-in link (`type:'signin'`) hit the active-only branch and bounced a still-pending admin to `?error=invalid` — so a resent/onboarding invite could only be completed via social/phone, never email. Fix: when a held pending invite matches the verified email+tenant, the signin branch claims it via `completeAuthentication` (activates pending→active, binds, burns). `app/auth/verify/route.ts`; test `app/auth/__tests__/verify-route.test.ts`. **(This directly affects ISS-1: a resent invite to a *pending* admin now works via the email tab too.)**
+- **Latent privilege escalation in `completeWithPendingInvite`.** It minted a `kind:'admin'` session for ANY invite, gating role only for the ADMIN sentinel — a non-admin (consultant) invite would have produced an admin session. Not reachable today (only ADMIN pending invites are ever set) but unsafe. Fix: hard-guard to ADMIN-profile + admin-role *before* any state change; never mint a session otherwise. `lib/auth/complete-auth.ts`; test `lib/auth/__tests__/complete-auth.test.ts`.
+- **Stale test reconciled.** `social-auth.test.ts` asserted pre-ADR-0014 callback behaviour (direct `createSession`, `?error=user_not_found`) and omitted `email_verified` → it would fail CI. Realigned to the hardened callback.
+
+**Still open (tracked, not regressions):** phone-only sign-in for a returning user with no invite (needs a phone field on `TenantUser` + GSI); magic-link/OTP **rate-limiting + godmode MFA** (CP4); **`SESSION_SECRET` must be set in every deployed env** (S1) — the dev fallback secret would make the session + pending-invite cookies forgeable in prod if unset.
 
 ## 🅿️ Product backlog (parked — placeholders, not scheduled)
 

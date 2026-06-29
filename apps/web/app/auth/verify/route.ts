@@ -4,7 +4,8 @@ import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { getUserRepository } from '@/lib/data/user';
 import { createSession } from '@/lib/auth/session';
 import { isPlatformAdmin } from '@/lib/auth/platform';
-import { setPendingInvite } from '@/lib/auth/pending-invite';
+import { setPendingInvite, getPendingInvite } from '@/lib/auth/pending-invite';
+import { completeAuthentication } from '@/lib/auth/complete-auth';
 
 /** Sentinel profile id under which admin (owner) magic links are stored. */
 const ADMIN_PROFILE_ID = 'ADMIN';
@@ -106,15 +107,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // require identity verification first.
 
   if (lookup.type === 'signin') {
-    // Sign-in link: email delivery proves identity. Create session directly.
-    // User must be active and an admin for admin sign-in links.
+    // A sign-in link is emailed only to the user's own inbox, so clicking it
+    // proves identity. If the user is mid-flow on an invite (a first-time,
+    // still-pending admin who chose the EMAIL method), a matching pending invite
+    // is held — complete the claim through the shared handler, which activates
+    // pending->active, binds, and burns the original invite token (ADR-0014).
+    // This closes the gap where a pending admin could only finish via social or
+    // phone, never email.
+    const pending = await getPendingInvite();
+    if (
+      pending &&
+      pending.tenantId === lookup.tenantId &&
+      pending.email.trim().toLowerCase() === email
+    ) {
+      const result = await completeAuthentication(email);
+      // Burn THIS sign-in link too (single-use), whatever the outcome.
+      await links.markAsUsed(lookup.tenantId, ADMIN_PROFILE_ID, lookup.id);
+      if (!result.success) return invalid();
+      return NextResponse.redirect(`${origin}${result.redirectTo}`);
+    }
+
+    // Returning user sign-in (no pending invite): must be an active admin.
     if (user.status !== 'active') {
-      // Pending or inactive users should use invite flow, not signin
+      // Pending or inactive users should use the invite flow, not signin.
       return invalid();
     }
     if (user.role !== 'admin') {
       // Non-admin users can't sign in via the admin path
-      // (they would use consultant magic links for their profile)
+      // (they would use consultant magic links for their profile).
       return invalid();
     }
 

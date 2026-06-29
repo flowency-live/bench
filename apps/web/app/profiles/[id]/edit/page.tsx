@@ -27,7 +27,7 @@ export default async function EditProfilePage({
     <BrandedWrapper tenant={tenant} className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <AppHeader />
       <main className="mx-auto max-w-3xl px-6 py-8">
-        <WizardClient profile={profile} />
+        <WizardClient profile={profile} tenant={tenant} />
       </main>
     </BrandedWrapper>
   );

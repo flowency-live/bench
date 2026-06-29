@@ -22,7 +22,7 @@ function MagicLinkButton() {
       disabled={pending}
       className="login-btn group w-full flex items-center justify-center gap-2.5 px-6 py-4
                  rounded-full border-none font-extrabold text-[13px] uppercase tracking-[0.08em]
-                 text-[#001930] cursor-pointer transition-all duration-200
+                 text-white cursor-pointer transition-all duration-200
                  disabled:opacity-70 disabled:cursor-not-allowed"
     >
       <span>{pending ? 'Sending...' : 'Email me a sign-in link'}</span>
@@ -49,7 +49,7 @@ function SocialSignInPanel() {
       <a
         href="/login/auth/google"
         className="group w-full flex items-center justify-center gap-3 px-6 py-4
-                   rounded-full bg-white text-[#001930] font-semibold text-[14px]
+                   rounded-full bg-white text-white font-semibold text-[14px]
                    no-underline transition-all duration-200
                    hover:bg-gray-100 hover:shadow-lg"
       >
@@ -106,7 +106,7 @@ function PhoneOtpButton({ step }: { step: 'request' | 'verify' }) {
       disabled={pending}
       className="login-btn group w-full flex items-center justify-center gap-2.5 px-6 py-4
                  rounded-full border-none font-extrabold text-[13px] uppercase tracking-[0.08em]
-                 text-[#001930] cursor-pointer transition-all duration-200
+                 text-white cursor-pointer transition-all duration-200
                  disabled:opacity-70 disabled:cursor-not-allowed"
     >
       <span>{label}</span>
@@ -142,7 +142,7 @@ function PhoneOtpPanel() {
   if (state.verified) {
     return (
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 mb-5 rounded-full bg-[rgba(186,235,91,0.12)] text-[#baeb5b]">
+        <div className="inline-flex items-center justify-center w-14 h-14 mb-5 rounded-full bg-[rgba(133,112,235,0.12)] text-[#8570eb]">
           <svg
             width="24"
             height="24"
@@ -206,8 +206,8 @@ function PhoneOtpPanel() {
                        bg-[rgba(0,12,24,0.6)] text-[15px] text-white text-center tracking-[0.5em] font-mono outline-none
                        placeholder:text-white/50 placeholder:tracking-[0.5em]
                        hover:border-white/[0.18] hover:bg-[rgba(0,12,24,0.8)]
-                       focus:border-[rgba(186,235,91,0.5)] focus:bg-[rgba(0,12,24,0.9)]
-                       focus:shadow-[0_0_0_3px_rgba(186,235,91,0.1)]
+                       focus:border-[rgba(133,112,235,0.5)] focus:bg-[rgba(0,12,24,0.9)]
+                       focus:shadow-[0_0_0_3px_rgba(133,112,235,0.1)]
                        transition-all duration-200"
           />
         </div>
@@ -251,8 +251,8 @@ function PhoneOtpPanel() {
                      bg-[rgba(0,12,24,0.6)] text-[15px] text-white outline-none
                      placeholder:text-white/50
                      hover:border-white/[0.18] hover:bg-[rgba(0,12,24,0.8)]
-                     focus:border-[rgba(186,235,91,0.5)] focus:bg-[rgba(0,12,24,0.9)]
-                     focus:shadow-[0_0_0_3px_rgba(186,235,91,0.1)]
+                     focus:border-[rgba(133,112,235,0.5)] focus:bg-[rgba(0,12,24,0.9)]
+                     focus:shadow-[0_0_0_3px_rgba(133,112,235,0.1)]
                      transition-all duration-200"
         />
       </div>
@@ -321,7 +321,7 @@ function AuthTabs({
                      text-[12px] font-semibold uppercase tracking-wider transition-all duration-200
                      ${
                        activeTab === tab.id
-                         ? 'bg-[#baeb5b] text-[#001930]'
+                         ? 'bg-[#8570eb] text-white'
                          : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
                      }`}
         >
@@ -361,7 +361,7 @@ export function LoginForm({
   if (state.ok) {
     return (
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 mb-5 rounded-full bg-[rgba(186,235,91,0.12)] text-[#baeb5b]">
+        <div className="inline-flex items-center justify-center w-14 h-14 mb-5 rounded-full bg-[rgba(133,112,235,0.12)] text-[#8570eb]">
           <svg
             width="24"
             height="24"
@@ -387,7 +387,7 @@ export function LoginForm({
             </p>
             <a
               href={state.devLink}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#baeb5b]
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#8570eb]
                          no-underline hover:opacity-85 hover:underline hover:underline-offset-4 transition-opacity"
             >
               Open sign-in link
@@ -423,7 +423,7 @@ export function LoginForm({
       {activeTab === 'email' && (
         <form action={action} className="flex flex-col gap-5">
           {hasPendingInvite && (
-            <div className="flex items-start gap-3 px-4 py-3.5 rounded-[10px] bg-[rgba(186,235,91,0.08)] border border-[rgba(186,235,91,0.2)] text-[#baeb5b] text-[13px] leading-relaxed">
+            <div className="flex items-start gap-3 px-4 py-3.5 rounded-[10px] bg-[rgba(133,112,235,0.08)] border border-[rgba(133,112,235,0.2)] text-[#8570eb] text-[13px] leading-relaxed">
               <svg
                 className="flex-shrink-0 mt-0.5 w-4 h-4"
                 viewBox="0 0 24 24"
@@ -451,13 +451,13 @@ export function LoginForm({
               required
               autoComplete="email"
               defaultValue={pendingEmail ?? ''}
-              placeholder="you@changeconnected.co.uk"
+              placeholder="you@yourcompany.com"
               className="login-input w-full px-4 py-3.5 rounded-[10px] border border-white/10
                          bg-[rgba(0,12,24,0.6)] text-[15px] text-white outline-none
                          placeholder:text-white/50
                          hover:border-white/[0.18] hover:bg-[rgba(0,12,24,0.8)]
-                         focus:border-[rgba(186,235,91,0.5)] focus:bg-[rgba(0,12,24,0.9)]
-                         focus:shadow-[0_0_0_3px_rgba(186,235,91,0.1)]
+                         focus:border-[rgba(133,112,235,0.5)] focus:bg-[rgba(0,12,24,0.9)]
+                         focus:shadow-[0_0_0_3px_rgba(133,112,235,0.1)]
                          transition-all duration-200"
             />
           </div>

@@ -10,20 +10,19 @@ import { getTenantRepository } from '@/lib/data/tenant';
 export const dynamic = 'force-dynamic';
 
 /**
- * Client share view — read-only, no portal chrome, reads as an extension of the
- * tenant's site (ADR-0013: tenant-branded from token).
+ * Client share view with readable URL — `/share/{tenantSlug}/{consultantSlug}/{token}`.
  *
- * The `[token]` segment is the raw secret from the share link. We re-hash it
- * (SHA-256) and resolve it via GSI3 (`lookupByTokenHash`, ADR-0008) to recover
- * tenant context, then validate the link is live (active, unexpired, view scope)
- * and the underlying profile is active (ADR-0011 two-axis). Any failure — bad
- * token, expired, revoked, wrong scope, or inactive profile — falls through to the neutral
- * `Unavailable` page so we never leak why.
+ * The tenant and consultant slugs are cosmetic (for human-readable URLs);
+ * the `{token}` is the secret that gates access. We validate via GSI3 lookup
+ * just like the original `/share/{token}` route.
+ *
+ * Validation: active status, unexpired, view scope, active profile.
+ * Any failure shows the neutral "no longer available" page.
  */
-export default async function SharePage({
+export default async function ReadableSharePage({
   params,
 }: {
-  params: Promise<{ token: string }>;
+  params: Promise<{ tenantSlug: string; consultantSlug: string; token: string }>;
 }) {
   const { token } = await params;
   const tokenHash = createHash('sha256').update(token).digest('hex');

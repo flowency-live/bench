@@ -133,6 +133,100 @@ export async function createTenant(
   return { ok: true, tenantName: tenant.name };
 }
 
+/** State returned to the godmode admin-invite control. */
+export interface ResendInviteState {
+  readonly ok: boolean;
+  readonly error?: string;
+  /** Relative `/auth/verify?token=…` path — composed to an absolute URL + shared. */
+  readonly link?: string;
+}
+
+/**
+ * Re-issue a tenant admin's onboarding / sign-in link (ISS-1).
+ *
+ * Godmode mints the first admin link at tenant-create; this lets the platform
+ * admin generate a FRESH single-use link for an existing admin at any time —
+ * for a pending admin (re-send onboarding) or an active one (sign-in recovery,
+ * e.g. a new device). Mirrors `createTenant` step 3 exactly so the link flows
+ * through the same `/auth/verify` path.
+ *
+ * Generate-and-share (Jason's requirement): the link is **returned** so godmode
+ * can Copy / WhatsApp / Email / SMS it, not only auto-emailed. We also send the
+ * onboarding email best-effort (no-op in non-production).
+ *
+ * Admin-only: we refuse to issue this admin-scoped link to a viewer (the verify
+ * ADMIN branch grants an admin session, so issuing it to a viewer would escalate
+ * privilege). Platform-session required.
+ */
+export async function resendAdminInvite(
+  tenantId: string,
+  userId: string,
+): Promise<ResendInviteState> {
+  const platform = await getPlatformSession();
+  if (!platform) {
+    return { ok: false, error: 'Not authorised.' };
+  }
+  if (!tenantId || !userId) {
+    return { ok: false, error: 'Tenant and user are required.' };
+  }
+
+  // Resolve the user server-side (authoritative email + role — never trust the client).
+  const users = getUserRepository();
+  const user = (await users.listByTenant(tenantId)).find((u) => u.id === userId);
+  if (!user) {
+    return { ok: false, error: 'User not found.' };
+  }
+  if (user.role !== 'admin') {
+    return { ok: false, error: 'Invite links can only be issued to tenant admins.' };
+  }
+
+  const tenant = await getTenantRepository().get(tenantId);
+  if (!tenant) {
+    return { ok: false, error: 'Tenant not found.' };
+  }
+
+  // Mint a fresh single-use admin link (same shape as createTenant step 3).
+  const rawToken = randomBytes(32).toString('base64url');
+  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+  const links = getMagicLinkRepository();
+  await links.create(tenantId, {
+    id: randomUUID(),
+    profileId: ADMIN_PROFILE_ID,
+    type: 'invite',
+    scope: 'edit',
+    tokenHash,
+    expiresAt: new Date(Date.now() + ADMIN_LINK_TTL_MS).toISOString(),
+    // Bind this admin's email to THIS tenant so the claim resolves correctly.
+    createdBy: `${user.email}|${tenantId}`,
+  });
+
+  const verifyPath = `/auth/verify?token=${rawToken}`;
+
+  // Best-effort email to the bound admin's inbox (never the requester's).
+  const headersList = await headers();
+  const host = headersList.get('host') ?? 'localhost:3000';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  await sendOnboardingEmail({
+    to: user.email,
+    tenantName: tenant.instanceName ?? tenant.name,
+    verifyUrl: `${protocol}://${host}${verifyPath}`,
+    invitedBy: platform.email,
+  });
+
+  // TODO(audit): record { actor: platform.email, action, tenantId, target, at }
+  console.info('[godmode-audit]', {
+    actor: platform.email,
+    action: 'tenant-admin.reinvite',
+    tenantId,
+    target: user.email,
+    at: new Date().toISOString(),
+  });
+
+  revalidatePath('/godmode');
+  return { ok: true, link: verifyPath };
+}
+
 /**
  * Switch the platform admin into a tenant (impersonate) — ADR-0010 §Decisions(2).
  *

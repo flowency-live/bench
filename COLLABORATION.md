@@ -670,6 +670,15 @@ The `/auth/claim` page failed WCAG badly on a new tenant (default accent `#0f4c7
 
 **Acceptance:** generate an invite in godmode → open in a fresh browser → sign in by ANY method → bound to that tenant as admin; reuse the link → "already used"; uninvited Google account → rejected; **no password anywhere**; `pnpm -w build && pnpm -w test` green.
 
+### [CTO] 2026-06-27 — Consultant share links: revocable + readable URL (spec)
+**Decision (Jason):** per-consultant share links — create a **unique** link, it's **active**; **deactivate = permanently revoked (gone)**, must create a **new** one. Put tenant + consultant in the URL too. Already built: token mint (`createShareLink`), active-only gating + neutral "unavailable" page, tenant-branded `/share` view (`ProfileRenderer` in `BrandedWrapper`), copy. **Delta to build:**
+- **URL format:** change the share route to **`/share/{tenantSlug}/{consultantSlug}/{token}`** (readable; the `{token}` still gates — slugs are cosmetic, the token is the secret). Keep the SHA-256 hash → GSI3 resolve. Old `/share/{token}` can 301 or stay supported.
+- **DATA (`auth/data`):** `MagicLinkRepository.revoke(tenantId, profileId, linkId)` → status `revoked` (permanent; the share view already rejects non-`active`). Add `listSharesByProfile(tenantId, profileId)` (the profile partition already holds `LINK#share#…` items) so the UI can show the current active link. TDD.
+- **WEB (`auth/web`):** on the profile page, a **share-link manager**: if an active share link exists, show it (readable URL) with **Copy + the share menu (WhatsApp/Email/SMS/native = AJ6) + Deactivate**; if none, a **Create share link** button (mint fresh; optionally auto-revoke any prior active one so there's one live link per consultant). Deactivate → confirm → revoke → link dies.
+- **PDF:** empty-PDF root cause fixed (was the hardcoded `PILOT_TENANT` → `notFound`); print route now resolves via session tenant + renders branded. Re-test on deploy; if browser-print still flakes, do the server-side PDF (Lambda+Chromium, PRD §12). Optional: a **"Download PDF"** on the client `/share` page (tokened print route) so clients can grab a PDF.
+
+**Acceptance:** create a share link for an active consultant → open the readable URL (shows the branded profile) → **Deactivate** → the same URL now shows "no longer available" → create a new one → new unique URL works; reactivation is impossible (must mint fresh).
+
 ### [AGENT:DATA] 2026-06-27 — CR1 + CR3 fixed; DATA lane complete
 
 **Fixed per CTO review:**
@@ -1184,3 +1193,24 @@ ARN: arn:aws:sms-voice:eu-west-2:771551874768:sender-id/BENCH/GB
 - ✅ Apple IdP (deployed this session)
 - ✅ SMS sender ID + IAM (deployed this session)
 - ❌ LinkedIn (dropped from requirements)
+
+### [AGENT:DATA] 2026-06-28 — MagicLinkRepository.listSharesByProfile (share link manager)
+
+**CTO directive:** Per "[CTO] Consultant share links" entry, added `listSharesByProfile(tenantId, profileId)` to MagicLinkRepository.
+
+**Implementation:**
+- Queries `PK = TENANT#{tenantId}#PROFILE#{profileId}` with SK prefix `LINK#share#`
+- Returns all share links (active, revoked, expired) for the UI share-link manager
+- TDD: 5 new tests covering query pattern, empty result, tenant validation, share-only filtering
+
+**Files:**
+- `packages/@bench/data/src/repository/magic-link-repository.ts`: Added `listSharesByProfile` to interface + implementation
+- `packages/@bench/data/src/repository/__tests__/magic-link-repository.test.ts`: +5 tests
+
+**Tests:** 134 passing (17 magic-link)
+
+**Ready for WEB:** `repo.listSharesByProfile(tenantId, profileId)` → show current active share link + history in share-link manager panel
+
+**Existing:**
+- `markAsRevoked(tenantId, profileId, linkId)` already exists → UI can deactivate a share link
+- `create(tenantId, input)` already exists → UI can mint new share links

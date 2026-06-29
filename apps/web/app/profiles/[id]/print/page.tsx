@@ -69,7 +69,7 @@ export default async function PrintProfilePage({
             <span className="text-lg font-bold text-[var(--color-accent)]">Bench</span>
           )}
         </div>
-        <ProfileRenderer profile={profile} />
+        <ProfileRenderer profile={profile} tenant={tenant} />
       </div>
     </BrandedWrapper>
   );
