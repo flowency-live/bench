@@ -55,15 +55,17 @@ export interface ProfileLocation {
 
 /** Rates and working preferences. */
 export interface RatesAndPreferences {
-  /** Minimum day rate in pence (e.g., 75000 = £750.00). */
-  readonly minDayRatePence: number | null;
+  /** Day rate for Outside IR35 contract work in pence (e.g., 75000 = £750.00). */
+  readonly outsideIR35RatePence: number | null;
+  /** Day rate for Inside IR35 contract work in pence (e.g., 65000 = £650.00). */
+  readonly insideIR35RatePence: number | null;
   /** Target annual salary in pence (e.g., 9500000 = £95,000.00). */
   readonly salaryPence: number | null;
   /** Employment type preferences (can select both). */
   readonly employmentTypes: readonly EmploymentType[];
   /** IR35 preferences when contract is selected. */
   readonly ir35Statuses: readonly IR35Status[];
-  /** Whether consultant operates via Limited Company. */
+  /** Whether consultant operates via Limited Company (Outside IR35 only). */
   readonly hasLtdCo: boolean;
   /** Location (UK city from Google Places). */
   readonly location: ProfileLocation | null;

@@ -46,7 +46,17 @@ export function toViewProfile(d: DomainProfile): Profile {
     availability: d.availability,
     ratesAndPreferences: d.ratesAndPreferences
       ? {
-          minDayRatePence: d.ratesAndPreferences.minDayRatePence,
+          // Map new fields, falling back to legacy minDayRatePence for backwards compat
+          outsideIR35RatePence:
+            d.ratesAndPreferences.outsideIR35RatePence ??
+            (d.ratesAndPreferences.ir35Statuses.includes('outside')
+              ? d.ratesAndPreferences.minDayRatePence ?? null
+              : null),
+          insideIR35RatePence:
+            d.ratesAndPreferences.insideIR35RatePence ??
+            (d.ratesAndPreferences.ir35Statuses.includes('inside')
+              ? d.ratesAndPreferences.minDayRatePence ?? null
+              : null),
           salaryPence: d.ratesAndPreferences.salaryPence,
           employmentTypes: [...d.ratesAndPreferences.employmentTypes],
           ir35Statuses: [...d.ratesAndPreferences.ir35Statuses],
@@ -107,7 +117,8 @@ export function toPatch(p: ProfilePatch): DomainPatch {
       ? {
           ratesAndPreferences: p.ratesAndPreferences
             ? {
-                minDayRatePence: p.ratesAndPreferences.minDayRatePence,
+                outsideIR35RatePence: p.ratesAndPreferences.outsideIR35RatePence,
+                insideIR35RatePence: p.ratesAndPreferences.insideIR35RatePence,
                 salaryPence: p.ratesAndPreferences.salaryPence,
                 employmentTypes: [...p.ratesAndPreferences.employmentTypes],
                 ir35Statuses: [...p.ratesAndPreferences.ir35Statuses],

@@ -11,8 +11,8 @@ interface RatesPanelProps {
 
 const field =
   'w-full border border-white/15 bg-[var(--color-bg-primary)] px-4 py-2.5 text-white placeholder:text-white/30 outline-none focus:border-[var(--color-accent)]';
-const label =
-  'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]';
+const labelStyle =
+  'text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]';
 
 function formatPounds(pence: number | null): string {
   if (pence === null) return '';
@@ -25,46 +25,71 @@ function parsePounds(value: string): number | null {
   return parseInt(cleaned, 10) * 100;
 }
 
-/** Styled checkbox for rate type selection */
-function RateTypeCheckbox({
+/** Styled checkbox */
+function Checkbox({
   checked,
   onChange,
-  label: labelText,
-  description,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
-  label: string;
-  description?: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 border border-white/10 bg-white/[0.02] p-3 transition hover:border-white/20">
-      <span
-        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border transition ${
-          checked
-            ? 'border-[var(--color-accent)] bg-[var(--color-accent)]'
-            : 'border-white/30 bg-transparent'
-        }`}
-      >
-        {checked && (
-          <svg className="h-3 w-3 text-[var(--color-bg-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        )}
+    <span
+      onClick={() => onChange(!checked)}
+      className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center border transition ${
+        checked
+          ? 'border-[var(--color-accent)] bg-[var(--color-accent)]'
+          : 'border-white/30 bg-transparent hover:border-white/50'
+      }`}
+    >
+      {checked && (
+        <svg
+          className="h-3.5 w-3.5 text-[var(--color-bg-primary)]"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={3}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
+/** Rate input with currency symbol */
+function RateInput({
+  id,
+  value,
+  onChange,
+  placeholder,
+  suffix,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  suffix?: string;
+}) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50">
+        £
       </span>
-      <div className="flex-1">
-        <span className="text-sm font-medium text-white">{labelText}</span>
-        {description && (
-          <span className="mt-0.5 block text-xs text-[var(--color-text-secondary)]">{description}</span>
-        )}
-      </div>
       <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="sr-only"
+        id={id}
+        type="text"
+        className={`${field} pl-7 pr-16`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
       />
-    </label>
+      {suffix && (
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/40">
+          {suffix}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -73,50 +98,58 @@ export function RatesPanel({ profileId, rates }: RatesPanelProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // Rate type selection (determines which rate inputs are shown)
-  const [showOutsideIR35, setShowOutsideIR35] = useState(
+  // Rate type toggles
+  const [outsideIR35Enabled, setOutsideIR35Enabled] = useState(
     rates?.ir35Statuses?.includes('outside') ?? false,
   );
-  const [showInsideIR35, setShowInsideIR35] = useState(
+  const [insideIR35Enabled, setInsideIR35Enabled] = useState(
     rates?.ir35Statuses?.includes('inside') ?? false,
   );
-  const [showPermanent, setShowPermanent] = useState(
+  const [permanentEnabled, setPermanentEnabled] = useState(
     rates?.employmentTypes?.includes('permanent') ?? false,
   );
 
   // Rate values
-  const [dayRate, setDayRate] = useState(rates?.minDayRatePence ? formatPounds(rates.minDayRatePence) : '');
-  const [salary, setSalary] = useState(rates?.salaryPence ? formatPounds(rates.salaryPence) : '');
+  const [outsideIR35Rate, setOutsideIR35Rate] = useState(
+    rates?.outsideIR35RatePence ? formatPounds(rates.outsideIR35RatePence) : '',
+  );
+  const [insideIR35Rate, setInsideIR35Rate] = useState(
+    rates?.insideIR35RatePence ? formatPounds(rates.insideIR35RatePence) : '',
+  );
+  const [salary, setSalary] = useState(
+    rates?.salaryPence ? formatPounds(rates.salaryPence) : '',
+  );
   const [hasLtdCo, setHasLtdCo] = useState(rates?.hasLtdCo ?? false);
 
   const handleSave = () => {
     setError(null);
     startTransition(async () => {
-      // Build employment types and IR35 statuses from selections
       const employmentTypes: EmploymentType[] = [];
       const ir35Statuses: IR35Status[] = [];
 
-      if (showOutsideIR35 || showInsideIR35) {
+      if (outsideIR35Enabled || insideIR35Enabled) {
         employmentTypes.push('contract');
       }
-      if (showPermanent) {
+      if (permanentEnabled) {
         employmentTypes.push('permanent');
       }
-      if (showOutsideIR35) {
+      if (outsideIR35Enabled) {
         ir35Statuses.push('outside');
       }
-      if (showInsideIR35) {
+      if (insideIR35Enabled) {
         ir35Statuses.push('inside');
       }
 
       const newRates: RatesAndPreferences = {
-        minDayRatePence: (showOutsideIR35 || showInsideIR35) ? parsePounds(dayRate) : null,
-        salaryPence: showPermanent ? parsePounds(salary) : null,
+        outsideIR35RatePence: outsideIR35Enabled ? parsePounds(outsideIR35Rate) : null,
+        insideIR35RatePence: insideIR35Enabled ? parsePounds(insideIR35Rate) : null,
+        salaryPence: permanentEnabled ? parsePounds(salary) : null,
         employmentTypes,
         ir35Statuses,
-        hasLtdCo: showOutsideIR35 ? hasLtdCo : false,
+        hasLtdCo: outsideIR35Enabled ? hasLtdCo : false,
         location: rates?.location ?? null,
       };
+
       const result: RatesActionState = await updateRates(profileId, newRates);
       if (result.success) {
         setIsEditing(false);
@@ -127,136 +160,126 @@ export function RatesPanel({ profileId, rates }: RatesPanelProps) {
   };
 
   const handleCancel = () => {
-    // Reset form to original values
-    setShowOutsideIR35(rates?.ir35Statuses?.includes('outside') ?? false);
-    setShowInsideIR35(rates?.ir35Statuses?.includes('inside') ?? false);
-    setShowPermanent(rates?.employmentTypes?.includes('permanent') ?? false);
-    setDayRate(rates?.minDayRatePence ? formatPounds(rates.minDayRatePence) : '');
+    setOutsideIR35Enabled(rates?.ir35Statuses?.includes('outside') ?? false);
+    setInsideIR35Enabled(rates?.ir35Statuses?.includes('inside') ?? false);
+    setPermanentEnabled(rates?.employmentTypes?.includes('permanent') ?? false);
+    setOutsideIR35Rate(rates?.outsideIR35RatePence ? formatPounds(rates.outsideIR35RatePence) : '');
+    setInsideIR35Rate(rates?.insideIR35RatePence ? formatPounds(rates.insideIR35RatePence) : '');
     setSalary(rates?.salaryPence ? formatPounds(rates.salaryPence) : '');
     setHasLtdCo(rates?.hasLtdCo ?? false);
     setIsEditing(false);
     setError(null);
   };
 
-  const hasAnyRateTypeSelected = showOutsideIR35 || showInsideIR35 || showPermanent;
-
   if (isEditing) {
     return (
       <div className="border border-white/10 bg-[var(--color-bg-panel)] p-6">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-black text-white">Rates & Preferences</h3>
           <span className="text-xs text-[var(--color-text-secondary)]">Admin only</span>
         </div>
 
-        {error && (
-          <p className="mb-4 text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
 
-        {/* Step 1: Select rate types */}
-        <div className="mb-6">
-          <span className={label}>Select rate types</span>
-          <div className="space-y-2">
-            <RateTypeCheckbox
-              checked={showOutsideIR35}
-              onChange={setShowOutsideIR35}
-              label="Outside IR35"
-              description="Contract work via Ltd or umbrella"
-            />
-            <RateTypeCheckbox
-              checked={showInsideIR35}
-              onChange={setShowInsideIR35}
-              label="Inside IR35"
-              description="Contract via agency PAYE"
-            />
-            <RateTypeCheckbox
-              checked={showPermanent}
-              onChange={setShowPermanent}
-              label="Permanent"
-              description="Full-time employed role"
-            />
-          </div>
-        </div>
-
-        {/* Step 2: Show rate inputs based on selection */}
-        {hasAnyRateTypeSelected && (
-          <div className="space-y-4 border-t border-white/10 pt-4">
-            {/* Contract day rate (shown if either IR35 type selected) */}
-            {(showOutsideIR35 || showInsideIR35) && (
+        <div className="space-y-4">
+          {/* Outside IR35 Group */}
+          <div className="border border-white/10 bg-white/[0.02] p-4">
+            <label className="flex cursor-pointer items-center gap-3">
+              <Checkbox checked={outsideIR35Enabled} onChange={setOutsideIR35Enabled} />
               <div>
-                <label className={label} htmlFor="dayRate">
-                  Day rate {showOutsideIR35 && showInsideIR35 ? '(contract)' : showOutsideIR35 ? '(outside IR35)' : '(inside IR35)'}
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/50">
-                    £
-                  </span>
-                  <input
-                    id="dayRate"
-                    type="text"
-                    className={`${field} pl-8`}
-                    value={dayRate}
-                    onChange={(e) => setDayRate(e.target.value)}
-                    placeholder="750"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Ltd Co checkbox (only shown for Outside IR35) */}
-            {showOutsideIR35 && (
-              <label className="flex cursor-pointer items-center gap-3 text-sm text-white/80">
-                <span
-                  className={`flex h-4 w-4 items-center justify-center border transition ${
-                    hasLtdCo
-                      ? 'border-[var(--color-accent)] bg-[var(--color-accent)]'
-                      : 'border-white/30 bg-transparent'
-                  }`}
-                >
-                  {hasLtdCo && (
-                    <svg className="h-3 w-3 text-[var(--color-bg-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
+                <span className="text-sm font-semibold text-white">Outside IR35</span>
+                <span className="ml-2 text-xs text-[var(--color-text-secondary)]">
+                  Contract via Ltd or umbrella
                 </span>
-                Has Ltd Co
-                <input
-                  type="checkbox"
-                  checked={hasLtdCo}
-                  onChange={(e) => setHasLtdCo(e.target.checked)}
-                  className="sr-only"
-                />
-              </label>
-            )}
+              </div>
+            </label>
 
-            {/* Target salary (shown for Permanent) */}
-            {showPermanent && (
-              <div>
-                <label className={label} htmlFor="salary">Target salary</label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/50">
-                    £
-                  </span>
-                  <input
-                    id="salary"
-                    type="text"
-                    className={`${field} pl-8`}
-                    value={salary}
-                    onChange={(e) => setSalary(e.target.value)}
-                    placeholder="95,000"
+            {outsideIR35Enabled && (
+              <div className="mt-4 space-y-3 pl-8">
+                <div>
+                  <label htmlFor="outsideRate" className={`mb-1.5 block ${labelStyle}`}>
+                    Day rate
+                  </label>
+                  <RateInput
+                    id="outsideRate"
+                    value={outsideIR35Rate}
+                    onChange={setOutsideIR35Rate}
+                    placeholder="750"
+                    suffix="/day"
                   />
                 </div>
-              </div>
-            )}
-
-            {/* Location (read-only display if set) */}
-            {rates?.location && (
-              <div>
-                <span className={label}>Location</span>
-                <p className="text-sm text-white">{rates.location.displayName}</p>
+                <label className="flex cursor-pointer items-center gap-3 text-sm text-white/80">
+                  <Checkbox checked={hasLtdCo} onChange={setHasLtdCo} />
+                  Has Ltd Co
+                </label>
               </div>
             )}
           </div>
-        )}
+
+          {/* Inside IR35 Group */}
+          <div className="border border-white/10 bg-white/[0.02] p-4">
+            <label className="flex cursor-pointer items-center gap-3">
+              <Checkbox checked={insideIR35Enabled} onChange={setInsideIR35Enabled} />
+              <div>
+                <span className="text-sm font-semibold text-white">Inside IR35</span>
+                <span className="ml-2 text-xs text-[var(--color-text-secondary)]">
+                  Contract via agency PAYE
+                </span>
+              </div>
+            </label>
+
+            {insideIR35Enabled && (
+              <div className="mt-4 pl-8">
+                <label htmlFor="insideRate" className={`mb-1.5 block ${labelStyle}`}>
+                  Day rate
+                </label>
+                <RateInput
+                  id="insideRate"
+                  value={insideIR35Rate}
+                  onChange={setInsideIR35Rate}
+                  placeholder="650"
+                  suffix="/day"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Permanent Group */}
+          <div className="border border-white/10 bg-white/[0.02] p-4">
+            <label className="flex cursor-pointer items-center gap-3">
+              <Checkbox checked={permanentEnabled} onChange={setPermanentEnabled} />
+              <div>
+                <span className="text-sm font-semibold text-white">Permanent</span>
+                <span className="ml-2 text-xs text-[var(--color-text-secondary)]">
+                  Full-time employed role
+                </span>
+              </div>
+            </label>
+
+            {permanentEnabled && (
+              <div className="mt-4 pl-8">
+                <label htmlFor="salary" className={`mb-1.5 block ${labelStyle}`}>
+                  Target salary
+                </label>
+                <RateInput
+                  id="salary"
+                  value={salary}
+                  onChange={setSalary}
+                  placeholder="95,000"
+                  suffix="/year"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Location (read-only) */}
+          {rates?.location && (
+            <div className="border-t border-white/10 pt-4">
+              <span className={labelStyle}>Location</span>
+              <p className="mt-1 text-sm text-white">{rates.location.displayName}</p>
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 flex gap-3">
           <button
@@ -280,6 +303,11 @@ export function RatesPanel({ profileId, rates }: RatesPanelProps) {
     );
   }
 
+  // Display view
+  const hasRates =
+    rates &&
+    (rates.ir35Statuses.length > 0 || rates.employmentTypes.includes('permanent'));
+
   return (
     <div className="border border-white/10 bg-[var(--color-bg-panel)] p-6">
       <div className="mb-4 flex items-center justify-between">
@@ -293,66 +321,50 @@ export function RatesPanel({ profileId, rates }: RatesPanelProps) {
         </button>
       </div>
 
-      {!rates ? (
+      {!hasRates ? (
         <p className="text-sm text-[var(--color-text-secondary)]">No rates configured</p>
       ) : (
         <div className="space-y-3">
-          {/* Outside IR35 rate */}
-          {rates.ir35Statuses.includes('outside') && rates.minDayRatePence !== null && (
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm text-[var(--color-text-secondary)]">Outside IR35</span>
+          {/* Outside IR35 */}
+          {rates.ir35Statuses.includes('outside') && rates.outsideIR35RatePence !== null && (
+            <div className="flex items-center justify-between border-l-2 border-green-500 pl-3">
+              <div>
+                <span className="text-sm font-medium text-white">Outside IR35</span>
+                {rates.hasLtdCo && (
+                  <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-purple-400">
+                    Ltd Co
+                  </span>
+                )}
+              </div>
               <span className="font-mono text-lg font-semibold text-white">
-                £{formatPounds(rates.minDayRatePence)}/day
+                £{formatPounds(rates.outsideIR35RatePence)}/day
               </span>
             </div>
           )}
 
-          {/* Inside IR35 rate */}
-          {rates.ir35Statuses.includes('inside') && rates.minDayRatePence !== null && (
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm text-[var(--color-text-secondary)]">Inside IR35</span>
+          {/* Inside IR35 */}
+          {rates.ir35Statuses.includes('inside') && rates.insideIR35RatePence !== null && (
+            <div className="flex items-center justify-between border-l-2 border-blue-500 pl-3">
+              <span className="text-sm font-medium text-white">Inside IR35</span>
               <span className="font-mono text-lg font-semibold text-white">
-                £{formatPounds(rates.minDayRatePence)}/day
+                £{formatPounds(rates.insideIR35RatePence)}/day
               </span>
             </div>
           )}
 
-          {/* Permanent salary */}
+          {/* Permanent */}
           {rates.employmentTypes.includes('permanent') && rates.salaryPence !== null && (
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm text-[var(--color-text-secondary)]">Permanent</span>
+            <div className="flex items-center justify-between border-l-2 border-amber-500 pl-3">
+              <span className="text-sm font-medium text-white">Permanent</span>
               <span className="font-mono text-lg font-semibold text-white">
                 £{formatPounds(rates.salaryPence)}/year
               </span>
             </div>
           )}
 
-          {/* Badges */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            {rates.ir35Statuses.includes('outside') && (
-              <span className="border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-green-400">
-                Outside IR35
-              </span>
-            )}
-            {rates.ir35Statuses.includes('inside') && (
-              <span className="border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-400">
-                Inside IR35
-              </span>
-            )}
-            {rates.hasLtdCo && (
-              <span className="border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-purple-400">
-                Ltd Co
-              </span>
-            )}
-            {rates.employmentTypes.includes('permanent') && (
-              <span className="border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-400">
-                Permanent
-              </span>
-            )}
-          </div>
-
+          {/* Location */}
           {rates.location && (
-            <div className="flex items-baseline justify-between border-t border-white/10 pt-3">
+            <div className="flex items-center justify-between border-t border-white/10 pt-3">
               <span className="text-sm text-[var(--color-text-secondary)]">Location</span>
               <span className="text-sm text-white">{rates.location.displayName}</span>
             </div>
