@@ -16,6 +16,10 @@
   /* Hairline/border colour. Default suits dark surfaces; the PDF light theme and
      any light surface override it. */
   --color-border: rgba(255, 255, 255, 0.12);
+  /* Optional second accent + the decorative gradient. Default to a solid accent;
+     brandStyle() overrides both per-tenant when accentSecondary is set. */
+  --color-accent-2: var(--color-accent, #0f4c75);
+  --color-accent-grad: linear-gradient(120deg, var(--color-accent, #0f4c75), var(--color-accent, #0f4c75));
 }
 
 html {

@@ -54,6 +54,7 @@ export function GodmodeBrandPanel({ tenant }: GodmodeBrandPanelProps) {
     accent: tenant.brandTokens?.accent ?? '#0f4c75',
     textPrimary: tenant.brandTokens?.textPrimary ?? '#ffffff',
     textSecondary: tenant.brandTokens?.textSecondary ?? '#a0a0a0',
+    accentSecondary: tenant.brandTokens?.accentSecondary ?? '',
   });
 
   // Track current logo (may be updated after upload)
@@ -242,6 +243,48 @@ export function GodmodeBrandPanel({ tenant }: GodmodeBrandPanelProps) {
             value={localTokens.textSecondary}
             onChange={(v) => handleColorChange('textSecondary', v)}
           />
+        </div>
+
+        {/* Optional second accent → gradient on decorative accents (rules, dots,
+            section bars, avatar ring). Leave blank for a solid accent. */}
+        <div className="mb-4">
+          <label className="mb-1 block text-xs font-semibold">
+            Secondary accent{' '}
+            <span className="font-normal text-[var(--color-text-secondary)]">
+              (optional — gradient on accents)
+            </span>
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={localTokens.accentSecondary || localTokens.accent}
+              onChange={(e) => handleColorChange('accentSecondary', e.target.value)}
+              className="h-8 w-8 cursor-pointer rounded border border-white/10 bg-transparent"
+            />
+            <input
+              type="text"
+              name="accentSecondary"
+              value={localTokens.accentSecondary}
+              onChange={(e) => handleColorChange('accentSecondary', e.target.value)}
+              pattern="^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$|^$"
+              placeholder="(none — solid accent)"
+              className="flex-1 rounded-lg border border-white/10 bg-[rgba(0,12,24,0.6)] px-3 py-1.5 font-mono text-xs text-white focus:border-[var(--color-accent)] focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => handleColorChange('accentSecondary', '')}
+              className="rounded-full border border-white/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/70 transition hover:border-white/40 hover:text-white"
+            >
+              Clear
+            </button>
+            <span
+              className="h-8 w-14 shrink-0 rounded border border-white/10"
+              style={{
+                background: `linear-gradient(120deg, ${localTokens.accent}, ${localTokens.accentSecondary || localTokens.accent})`,
+              }}
+              aria-hidden="true"
+            />
+          </div>
         </div>
 
         {/* Contrast checks */}

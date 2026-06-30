@@ -10,6 +10,13 @@ export interface BrandTokens {
   readonly bgPrimary: string;
   readonly bgPanel: string;
   readonly accent: string;
+  /**
+   * Optional second accent. When set, decorative accent fills (rules, bullet
+   * dots, section bars, avatar ring) render as an `accent → accentSecondary`
+   * gradient. When absent/null they stay a solid `accent`. Text and chip accents
+   * always use the solid `accent` (legibility). Decorative only — no WCAG check.
+   */
+  readonly accentSecondary?: string | null;
   readonly textPrimary: string;
   readonly textSecondary: string;
   readonly fontDisplay: string;
@@ -40,6 +47,7 @@ export const CHANGE_CONNECTED_BRAND_TOKENS: BrandTokens = {
   bgPrimary: '#001930',
   bgPanel: '#002e52',
   accent: '#baeb5b',
+  accentSecondary: '#37aced', // lime → cyan gradient on decorative accents
   textPrimary: '#ffffff',
   textSecondary: '#9dadc8',
   fontDisplay: 'Poppins',

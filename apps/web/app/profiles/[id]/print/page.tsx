@@ -2,7 +2,6 @@ import { notFound, redirect } from 'next/navigation';
 import type { CSSProperties } from 'react';
 import { ProfileRenderer } from '@/components/ProfileRenderer';
 import { BrandedWrapper } from '@/components/BrandedWrapper';
-import { TenantLogo } from '@/components/TenantLogo';
 import { getRepository } from '@/lib/data/repository';
 import { getSession, getTenantId } from '@/lib/auth/session';
 import { getTenantRepository } from '@/lib/data/tenant';
@@ -61,6 +60,8 @@ export default async function PrintProfilePage({
     '--color-text-primary': '#0b1220',
     '--color-text-secondary': '#475569',
     '--color-accent': '#1e293b',
+    '--color-accent-2': '#334155',
+    '--color-accent-grad': 'linear-gradient(120deg,#1e293b,#334155)',
     '--color-accent-foreground': '#ffffff',
     '--color-border': 'rgba(0,0,0,0.12)',
   } as CSSProperties;
@@ -82,14 +83,9 @@ export default async function PrintProfilePage({
           background: var(--color-bg-primary);
           color: var(--color-text-primary);
         }
-        .pdf-scale { transform-origin: top left; width: 100%; }
-        .pdf-pad { padding: 14mm; }
-        /* Full bleed: the renderer must not carry a card border/radius in the PDF. */
-        .pdf-page article {
-          border: none !important;
-          border-radius: 0 !important;
-          background: transparent !important;
-        }
+        /* The renderer fills the sheet (min-h-full); the scale wrapper is the
+           full page so PrintTrigger can shrink overflow to one page. */
+        .pdf-scale { transform-origin: top left; width: 100%; height: 100%; }
         @media screen {
           .pdf-root { display: flex; justify-content: center; background: #4b5563; padding: 24px; min-height: 100vh; }
           .pdf-page { box-shadow: 0 10px 40px rgba(0,0,0,0.45); }
@@ -100,16 +96,7 @@ export default async function PrintProfilePage({
 
       <div className="pdf-page" style={sheetVars}>
         <div className="pdf-scale">
-          <div className="pdf-pad">
-            <div className="mb-6 flex items-center justify-between">
-              {tenant ? (
-                <TenantLogo tenant={tenant} size="md" />
-              ) : (
-                <span className="text-lg font-bold text-[var(--color-accent)]">Bench</span>
-              )}
-            </div>
-            <ProfileRenderer profile={profile} tenant={tenant} />
-          </div>
+          <ProfileRenderer profile={profile} tenant={tenant} />
         </div>
       </div>
     </BrandedWrapper>

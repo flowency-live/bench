@@ -41,6 +41,8 @@ export async function updateTenantBrandSettings(
   const bgPrimary = String(formData.get('bgPrimary') ?? '').trim();
   const bgPanel = String(formData.get('bgPanel') ?? '').trim();
   const accent = String(formData.get('accent') ?? '').trim();
+  // Optional second accent — decorative gradient stop. Empty = none (solid accent).
+  const accentSecondary = String(formData.get('accentSecondary') ?? '').trim();
   const textPrimary = String(formData.get('textPrimary') ?? '').trim();
   const textSecondary = String(formData.get('textSecondary') ?? '').trim();
 
@@ -56,6 +58,10 @@ export async function updateTenantBrandSettings(
     if (!hexPattern.test(value)) {
       return { ok: false, error: `Invalid color format for ${key}. Use hex format (#000000)` };
     }
+  }
+  // Secondary accent is optional; validate only when provided (decorative, no contrast rule).
+  if (accentSecondary && !hexPattern.test(accentSecondary)) {
+    return { ok: false, error: 'Invalid color format for secondary accent. Use hex format (#000000)' };
   }
 
   // Validate WCAG AA contrast
@@ -81,6 +87,8 @@ export async function updateTenantBrandSettings(
     bgPrimary,
     bgPanel,
     accent,
+    // Persist (or clear, when empty) the optional second accent.
+    accentSecondary: accentSecondary || null,
     textPrimary,
     textSecondary,
   };

@@ -106,10 +106,15 @@ export function readableOn(hex: string): string {
  * @returns CSS properties object suitable for React style prop
  */
 export function brandStyle(tokens: BrandTokens): CSSProperties {
+  // Optional second accent → an accent→accentSecondary gradient for decorative
+  // fills. Falls back to a solid accent (a same-stop gradient) when not set.
+  const accent2 = tokens.accentSecondary || tokens.accent;
   return {
     '--color-bg-primary': tokens.bgPrimary,
     '--color-bg-panel': tokens.bgPanel,
     '--color-accent': tokens.accent,
+    '--color-accent-2': accent2,
+    '--color-accent-grad': `linear-gradient(120deg, ${tokens.accent}, ${accent2})`,
     '--color-accent-foreground': readableOn(tokens.accent),
     '--color-text-primary': tokens.textPrimary,
     '--color-text-secondary': tokens.textSecondary,
