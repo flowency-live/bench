@@ -95,7 +95,7 @@ export function ProfileRenderer({
 
   return (
     <div
-      className="relative flex min-h-full flex-col bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]"
+      className="relative bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]"
       style={{
         background:
           'radial-gradient(60% 42% at 84% -6%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 62%), radial-gradient(50% 40% at -6% 6%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 60%), var(--color-bg-primary)',
@@ -124,7 +124,7 @@ export function ProfileRenderer({
         />
       </svg>
 
-      <div className="relative z-10 flex flex-1 flex-col px-10 py-9 sm:px-12">
+      <div className="relative z-10 flex flex-col px-10 py-9 sm:px-12">
         {/* Eyebrow */}
         <p className="mb-3 ml-0.5 text-[10.5px] font-semibold uppercase tracking-[0.34em] text-[var(--color-accent)]">
           {eyebrow}
@@ -166,7 +166,7 @@ export function ProfileRenderer({
         )}
 
         {/* Two-column body */}
-        <div className="mt-5 grid flex-1 grid-cols-1 gap-x-8 gap-y-7 md:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-x-8 gap-y-7 md:grid-cols-2">
           {/* Left: Core skills + testimonial */}
           <section className="flex flex-col">
             {sortedSkills.length > 0 && (
@@ -219,7 +219,7 @@ export function ProfileRenderer({
         )}
 
         {/* Footer */}
-        <footer className="mt-auto flex items-center justify-between gap-4 border-t border-[var(--color-border)] pt-3">
+        <footer className="mt-7 flex items-center justify-between gap-4 border-t border-[var(--color-border)] pt-3">
           {tenant ? (
             <TenantLogo tenant={tenant} size="sm" />
           ) : (

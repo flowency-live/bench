@@ -73,7 +73,10 @@ export default async function PrintProfilePage({
         @page { size: A4 ${orientation}; margin: 0; }
         html, body { margin: 0; padding: 0; background: var(--color-bg-primary); }
         @media print {
-          html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* Force the navy background + accent gradients to print even when the
+             browser's "Background graphics" option is unchecked. */
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          html, body { background: var(--color-bg-primary); }
         }
         .pdf-page {
           width: ${page.w};
@@ -83,9 +86,9 @@ export default async function PrintProfilePage({
           background: var(--color-bg-primary);
           color: var(--color-text-primary);
         }
-        /* The renderer fills the sheet (min-h-full); the scale wrapper is the
-           full page so PrintTrigger can shrink overflow to one page. */
-        .pdf-scale { transform-origin: top left; width: 100%; height: 100%; }
+        /* The renderer is natural height; the sheet's bg fills any gap below.
+           PrintTrigger measures this wrapper and scales it down to fit one page. */
+        .pdf-scale { transform-origin: top left; width: 100%; }
         @media screen {
           .pdf-root { display: flex; justify-content: center; background: #4b5563; padding: 24px; min-height: 100vh; }
           .pdf-page { box-shadow: 0 10px 40px rgba(0,0,0,0.45); }

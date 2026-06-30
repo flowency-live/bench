@@ -5,11 +5,12 @@ import { useEffect } from 'react';
 /**
  * Scales the profile to fit ONE page, then opens the print dialog.
  *
- * After fonts/layout settle, it measures the rendered content against the A4
- * sheet height and, if it overflows, applies a downward CSS scale to the inner
- * wrapper so the whole one-pager lands on a single page (width is pre-expanded
- * so the scaled result still fills the page). Then it fires `window.print()` so
- * opening the page goes straight to "Save as PDF".
+ * The renderer is natural height. We measure it against the A4 sheet and, if it
+ * overflows, scale it down. To keep it filling the page width after shrinking, we
+ * pre-widen the wrapper (which reflows the text shorter), re-measure, then apply
+ * the final scale. A small safety factor absorbs the difference between the
+ * on-screen pixel metric used here and the physical print metric. Then it fires
+ * `window.print()` so opening the page goes straight to "Save as PDF".
  */
 export function PrintTrigger() {
   useEffect(() => {
@@ -20,7 +21,7 @@ export function PrintTrigger() {
       try {
         await (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts?.ready;
       } catch {
-        // ignore — fall through to measure with whatever is loaded
+        // ignore — measure with whatever is loaded
       }
       if (cancelled) return;
 
@@ -28,12 +29,20 @@ export function PrintTrigger() {
       const scale = document.querySelector<HTMLElement>('.pdf-scale');
 
       if (page && scale) {
-        const available = page.clientHeight;
-        const content = scale.scrollHeight;
-        if (content > available + 2) {
-          // Clamp so we never shrink to an unreadable size.
-          const s = Math.max(0.45, available / content);
-          scale.style.width = `${100 / s}%`;
+        // 3% safety margin for on-screen-px vs physical-print drift + any
+        // residual printer margin, so content never spills onto a second page.
+        const target = page.clientHeight * 0.97;
+
+        scale.style.transformOrigin = 'top left';
+        scale.style.transform = '';
+        scale.style.width = '100%';
+
+        const natural = scale.scrollHeight;
+        if (natural > target) {
+          const s = target / natural;
+          // Widen by exactly 1/s so that, once scaled by s, the width returns to
+          // 100% (no horizontal clip) and the height is <= target (one page).
+          scale.style.width = `${(100 / s).toFixed(3)}%`;
           scale.style.transform = `scale(${s})`;
         }
       }
