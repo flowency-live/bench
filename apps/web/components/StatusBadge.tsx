@@ -9,12 +9,19 @@ const STYLES: Record<ProfileStatus, string> = {
   removed: 'bg-white/5 text-white/40 border-white/10',
 };
 
-export function StatusBadge({ status }: { status: ProfileStatus }) {
+// Backwards compatibility: map legacy status values to new ones
+function normalizeStatus(status: string): ProfileStatus {
+  if (status === 'in_progress') return 'draft';
+  return status as ProfileStatus;
+}
+
+export function StatusBadge({ status }: { status: ProfileStatus | string }) {
+  const normalized = normalizeStatus(status);
   return (
     <span
-      className={`inline-flex shrink-0 items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${STYLES[status]}`}
+      className={`inline-flex shrink-0 items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${STYLES[normalized]}`}
     >
-      {STATUS_LABELS[status]}
+      {STATUS_LABELS[normalized]}
     </span>
   );
 }

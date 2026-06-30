@@ -25,6 +25,12 @@ const STATUS_STYLES: Record<ProfileStatus, string> = {
   removed: 'bg-white/5 text-white/40',
 };
 
+// Backwards compatibility: map legacy status values to new ones
+function normalizeStatus(status: string): ProfileStatus {
+  if (status === 'in_progress') return 'draft';
+  return status as ProfileStatus;
+}
+
 const AVAILABILITY_STYLES: Record<AvailabilityStatus, string> = {
   available: 'bg-green-500/15 text-green-400',
   looking: 'bg-amber-400/15 text-amber-300',
@@ -38,7 +44,8 @@ interface Props {
   currentAvailability: Availability;
 }
 
-export function StatusControls({ profileId, currentStatus, currentAvailability }: Props) {
+export function StatusControls({ profileId, currentStatus: rawStatus, currentAvailability }: Props) {
+  const currentStatus = normalizeStatus(rawStatus);
   const [isPending, startTransition] = useTransition();
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showAvailabilityMenu, setShowAvailabilityMenu] = useState(false);
