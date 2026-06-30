@@ -10,18 +10,23 @@ const STYLES: Record<ProfileStatus, string> = {
 };
 
 // Backwards compatibility: map legacy status values to new ones
-function normalizeStatus(status: string): ProfileStatus {
+function normalizeStatus(status: string | null | undefined): ProfileStatus {
+  if (!status) return 'no_profile';
   if (status === 'in_progress') return 'draft';
-  return status as ProfileStatus;
+  if (status in STYLES) return status as ProfileStatus;
+  return 'no_profile'; // Fallback for unknown statuses
 }
 
-export function StatusBadge({ status }: { status: ProfileStatus | string }) {
+export function StatusBadge({ status }: { status: ProfileStatus | string | null | undefined }) {
   const normalized = normalizeStatus(status);
+  const style = STYLES[normalized];
+  const label = STATUS_LABELS[normalized];
+
   return (
     <span
-      className={`inline-flex shrink-0 items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${STYLES[normalized]}`}
+      className={`inline-flex shrink-0 items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${style}`}
     >
-      {STATUS_LABELS[normalized]}
+      {label}
     </span>
   );
 }
