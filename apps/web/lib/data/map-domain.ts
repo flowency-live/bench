@@ -36,6 +36,11 @@ function resolveHeadshotUrl(assetId: string | null): string | null {
 }
 
 export function toViewProfile(d: DomainProfile): Profile {
+  // Safely extract ratesAndPreferences fields with fallbacks for legacy data
+  const rates = d.ratesAndPreferences;
+  const ir35Statuses = rates?.ir35Statuses ?? [];
+  const employmentTypes = rates?.employmentTypes ?? [];
+
   return {
     id: d.id,
     tenantId: d.tenantId,
@@ -44,24 +49,24 @@ export function toViewProfile(d: DomainProfile): Profile {
     role: d.role,
     status: d.status,
     availability: d.availability,
-    ratesAndPreferences: d.ratesAndPreferences
+    ratesAndPreferences: rates
       ? {
           // Map new fields, falling back to legacy minDayRatePence for backwards compat
           outsideIR35RatePence:
-            d.ratesAndPreferences.outsideIR35RatePence ??
-            (d.ratesAndPreferences.ir35Statuses.includes('outside')
-              ? d.ratesAndPreferences.minDayRatePence ?? null
+            rates.outsideIR35RatePence ??
+            (ir35Statuses.includes('outside')
+              ? rates.minDayRatePence ?? null
               : null),
           insideIR35RatePence:
-            d.ratesAndPreferences.insideIR35RatePence ??
-            (d.ratesAndPreferences.ir35Statuses.includes('inside')
-              ? d.ratesAndPreferences.minDayRatePence ?? null
+            rates.insideIR35RatePence ??
+            (ir35Statuses.includes('inside')
+              ? rates.minDayRatePence ?? null
               : null),
-          salaryPence: d.ratesAndPreferences.salaryPence,
-          employmentTypes: [...d.ratesAndPreferences.employmentTypes],
-          ir35Statuses: [...d.ratesAndPreferences.ir35Statuses],
-          hasLtdCo: d.ratesAndPreferences.hasLtdCo,
-          location: d.ratesAndPreferences.location,
+          salaryPence: rates.salaryPence ?? null,
+          employmentTypes: [...employmentTypes],
+          ir35Statuses: [...ir35Statuses],
+          hasLtdCo: rates.hasLtdCo ?? false,
+          location: rates.location ?? null,
         }
       : null,
     headline: d.positioning?.headline ?? null,
