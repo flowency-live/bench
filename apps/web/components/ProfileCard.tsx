@@ -33,16 +33,19 @@ function CompletionBar({ completion }: { completion: CompletionInfo }) {
   const { completed, total, percent } = completion;
   return (
     <div
-      className="flex items-center gap-2"
+      className="flex items-center gap-1.5"
       title={`${percent}% complete (${completed}/${total})`}
     >
-      <div className="h-1 w-10 overflow-hidden bg-white/10">
+      <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+        Complete
+      </span>
+      <div className="h-1 w-8 overflow-hidden bg-white/10">
         <div
           className="h-full bg-[var(--color-accent)]"
           style={{ width: `${percent}%` }}
         />
       </div>
-      <span className="font-mono text-[10px] text-white/50">{percent}</span>
+      <span className="font-mono text-[10px] text-white/50">{percent}%</span>
     </div>
   );
 }
@@ -81,9 +84,14 @@ export function ProfileCard({
       {/* Row 2: Availability + Meta */}
       <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2">
         <AvailabilityBadge availability={profile.availability} compact />
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {completion ? <CompletionBar completion={completion} /> : null}
-          <span className="font-mono text-[10px] text-white/30">{timeAgo(profile.updatedAt)}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+              Updated
+            </span>
+            <span className="font-mono text-[10px] text-white/50">{timeAgo(profile.updatedAt)}</span>
+          </div>
         </div>
       </div>
     </Link>
