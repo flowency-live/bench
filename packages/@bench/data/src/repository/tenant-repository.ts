@@ -50,6 +50,7 @@ export interface ExtendedTenantRepository extends TenantRepository {
 
 /**
  * DynamoDB item shape for a Tenant.
+ * brandTokens may be undefined for legacy items created before schema migration.
  */
 interface TenantItem {
   PK: string;
@@ -59,7 +60,7 @@ interface TenantItem {
   name: string;
   instanceName: string;
   slug: string;
-  brandTokens: BrandTokens;
+  brandTokens?: BrandTokens;
   customDomain: string | null;
   status: TenantStatus;
   trialEndsAt: string | null;
@@ -83,6 +84,7 @@ function slugify(name: string): string {
 
 /**
  * Map a DynamoDB item to a Tenant domain object.
+ * Provides defaults for legacy items missing brandTokens (pre-schema migration).
  */
 function itemToTenant(item: TenantItem): Tenant {
   return {
@@ -90,7 +92,7 @@ function itemToTenant(item: TenantItem): Tenant {
     name: item.name,
     instanceName: item.instanceName,
     slug: item.slug,
-    brandTokens: item.brandTokens,
+    brandTokens: item.brandTokens ?? DEFAULT_BRAND_TOKENS,
     customDomain: item.customDomain,
     status: item.status,
     trialEndsAt: item.trialEndsAt,
