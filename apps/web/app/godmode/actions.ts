@@ -408,6 +408,49 @@ export async function removeTenantUser(
 }
 
 /**
+ * Add a new admin user to an existing tenant — ADR-0010 §control-plane.
+ * Godmode-only.
+ */
+export async function addTenantAdmin(
+  tenantId: string,
+  email: string,
+): Promise<TenantActionState & { userId?: string }> {
+  const platform = await getPlatformSession();
+  if (!platform) {
+    return { ok: false, error: 'Not authorised.' };
+  }
+  if (!tenantId || !email) {
+    return { ok: false, error: 'Tenant and email are required.' };
+  }
+  if (!EMAIL_RE.test(email)) {
+    return { ok: false, error: 'Invalid email address.' };
+  }
+
+  const tenant = await getTenantRepository().get(tenantId);
+  if (!tenant) {
+    return { ok: false, error: 'Tenant not found.' };
+  }
+
+  const users = getUserRepository();
+  const user = await users.create(tenantId, {
+    email: email.toLowerCase(),
+    role: 'admin',
+    invitedBy: platform.email,
+  });
+
+  console.info('[godmode-audit]', {
+    actor: platform.email,
+    action: 'tenant-admin.add',
+    tenantId,
+    target: email,
+    at: new Date().toISOString(),
+  });
+
+  revalidatePath('/godmode');
+  return { ok: true, userId: user.id };
+}
+
+/**
  * Change a tenant user's role (admin/viewer) — ADR-0010 §control-plane.
  * Godmode-only.
  */
