@@ -126,7 +126,14 @@
       "Bash(python3:*)",
       "Bash(aws sns list-origination-numbers:*)",
       "Bash(aws sns list-phone-numbers-opted-out:*)",
-      "Bash(aws cloudtrail lookup-events:*)"
+      "Bash(aws cloudtrail lookup-events:*)",
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(aws s3 ls:*)",
+      "Bash(git revert:*)",
+      "Bash(pnpm --filter @bench/web start:*)",
+      "Bash(netstat:*)",
+      "Bash(head:*)"
     ]
   }
 }
