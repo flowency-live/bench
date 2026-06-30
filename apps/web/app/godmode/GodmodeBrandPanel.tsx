@@ -10,7 +10,7 @@ import {
 } from './brand-actions';
 import { contrastRatio, getContrastLevel, validateBrandContrast } from '@/lib/brand/contrast';
 
-const CLOUDFRONT_DOMAIN = process.env.NEXT_PUBLIC_ASSETS_CDN_DOMAIN ?? 'assets.bench.opstack.uk';
+const CLOUDFRONT_DOMAIN = process.env.NEXT_PUBLIC_ASSETS_CDN_DOMAIN ?? 'd11emspihzqp3c.cloudfront.net';
 
 interface GodmodeBrandPanelProps {
   tenant: Tenant;

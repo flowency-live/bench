@@ -7,7 +7,7 @@
  */
 import type { Tenant } from '@bench/types';
 
-const CLOUDFRONT_DOMAIN = process.env.ASSETS_CDN_DOMAIN ?? 'assets.bench.opstack.uk';
+const CLOUDFRONT_DOMAIN = process.env.ASSETS_CDN_DOMAIN ?? 'd11emspihzqp3c.cloudfront.net';
 
 interface TenantLogoProps {
   tenant: Tenant;
