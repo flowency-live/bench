@@ -19,13 +19,19 @@ import type {
   ProfileSummary,
 } from '@/lib/types';
 
+const ASSETS_CDN_DOMAIN = process.env.ASSETS_CDN_DOMAIN ?? 'd11emspihzqp3c.cloudfront.net';
+const LEGACY_ASSETS_DOMAIN = 'assets.bench.opstack.uk';
+
 /**
  * Resolve a headshot asset id to a render URL.
- * TODO(assets): once the S3 + CloudFront asset pipeline lands, build a CDN URL
- * here. Today the wizard stores a pasted URL as the "asset id", so passing it
- * through round-trips correctly; a missing id renders the branded monogram.
+ * Rewrites legacy assets.bench.opstack.uk URLs to the current CloudFront domain.
  */
 function resolveHeadshotUrl(assetId: string | null): string | null {
+  if (!assetId) return null;
+  // Rewrite legacy domain to current CloudFront domain
+  if (assetId.includes(LEGACY_ASSETS_DOMAIN)) {
+    return assetId.replace(LEGACY_ASSETS_DOMAIN, ASSETS_CDN_DOMAIN);
+  }
   return assetId;
 }
 
@@ -79,7 +85,7 @@ export function toViewSummary(d: DomainSummary): ProfileSummary {
     role: d.role,
     status: d.status,
     availability: d.availability,
-    headshotUrl: d.headshotUrl ?? null,
+    headshotUrl: resolveHeadshotUrl(d.headshotUrl ?? null),
     updatedAt: d.updatedAt,
   };
 }

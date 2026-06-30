@@ -13,7 +13,7 @@ export interface BenchFoundationStackProps extends cdk.StackProps {
 export class BenchFoundationStack extends cdk.Stack {
   public readonly hostedZone: route53.IHostedZone;
   public readonly certificate: acm.ICertificate;
-  public readonly assetsBucket: s3.Bucket;
+  public readonly assetsBucket: s3.IBucket;
   public readonly assetsDistribution: cloudfront.Distribution;
 
   constructor(scope: Construct, id: string, props?: BenchFoundationStackProps) {
@@ -31,29 +31,17 @@ export class BenchFoundationStack extends cdk.Stack {
       validation: acm.CertificateValidation.fromDns(this.hostedZone),
     });
 
-    this.assetsBucket = new s3.Bucket(this, 'AssetsBucket', {
-      bucketName: `bench-assets-${this.account}`,
-      encryption: s3.BucketEncryption.S3_MANAGED,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      enforceSSL: true,
-      versioned: true,
-      cors: [
-        {
-          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.PUT],
-          allowedOrigins: [`https://${domainName}`, `https://*.${domainName}`],
-          allowedHeaders: ['*'],
-          maxAge: 3600,
-        },
-      ],
-      lifecycleRules: [
-        {
-          id: 'DeleteOldVersions',
-          noncurrentVersionExpiration: cdk.Duration.days(30),
-        },
-      ],
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
-    });
+    // Import existing bucket (created previously with RETAIN policy)
+    // CORS and lifecycle rules were configured on initial creation
+    this.assetsBucket = s3.Bucket.fromBucketName(
+      this,
+      'AssetsBucket',
+      `bench-assets-${this.account}`
+    );
 
+    // CloudFront without custom domain - uses default *.cloudfront.net domain
+    // Custom domain (assets.bench.opstack.uk) requires ACM cert in us-east-1
+    // which adds complexity. Using CloudFront default domain for now.
     this.assetsDistribution = new cloudfront.Distribution(this, 'AssetsDistribution', {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(this.assetsBucket),
@@ -61,18 +49,8 @@ export class BenchFoundationStack extends cdk.Stack {
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
       },
-      domainNames: [`assets.${domainName}`],
-      certificate: this.certificate,
       httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
-    });
-
-    new route53.ARecord(this, 'AssetsAliasRecord', {
-      zone: this.hostedZone,
-      recordName: 'assets',
-      target: route53.RecordTarget.fromAlias(
-        new cdk.aws_route53_targets.CloudFrontTarget(this.assetsDistribution)
-      ),
     });
 
     new cdk.CfnOutput(this, 'HostedZoneId', {
@@ -96,8 +74,8 @@ export class BenchFoundationStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'AssetsDomain', {
-      value: `assets.${domainName}`,
-      description: 'Assets Domain URL',
+      value: this.assetsDistribution.distributionDomainName,
+      description: 'Assets CDN Domain (CloudFront default)',
     });
   }
 }
