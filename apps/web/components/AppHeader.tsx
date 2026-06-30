@@ -28,7 +28,7 @@ export async function AppHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link href="/dashboard" className="flex items-center gap-3">
           {tenant ? (
-            <TenantLogo tenant={tenant} size="sm" />
+            <TenantLogo tenant={tenant} size="lg" />
           ) : (
             <span className="text-lg font-bold text-[var(--color-accent)]">Bench</span>
           )}
