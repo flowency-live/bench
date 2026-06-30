@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { changeStatus, setAvailability } from '@/app/actions';
+import { BrandedDatePicker } from '@/components/BrandedDatePicker';
 import type {
   Availability,
   AvailabilityStatus,
@@ -176,9 +177,9 @@ export function StatusControls({ profileId, currentStatus, currentAvailability }
       {/* Looking - Notice Period Modal */}
       {pendingAvailability === 'looking' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-6 shadow-2xl">
+          <div className="w-full max-w-sm border border-white/10 bg-[var(--color-bg-panel)] p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-white">Notice Period</h3>
-            <p className="mt-1 text-sm text-white/60">
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
               How soon can this person start a new engagement?
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
@@ -187,10 +188,10 @@ export function StatusControls({ profileId, currentStatus, currentAvailability }
                   key={np}
                   type="button"
                   onClick={() => setNoticePeriod(np)}
-                  className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                  className={`px-3 py-2.5 text-sm font-semibold transition ${
                     np === noticePeriod
                       ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]'
-                      : 'bg-white/5 text-white/70 ring-1 ring-white/10 hover:bg-white/10 hover:text-white'
+                      : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   {NOTICE_PERIOD_LABELS[np]}
@@ -201,14 +202,14 @@ export function StatusControls({ profileId, currentStatus, currentAvailability }
               <button
                 type="button"
                 onClick={cancelPending}
-                className="rounded-full px-4 py-2 text-sm font-semibold text-white/60 transition hover:text-white"
+                className="px-4 py-2 text-sm font-semibold text-white/60 transition hover:text-white"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmLooking}
-                className="rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-bold text-[var(--color-bg-primary)] transition hover:brightness-95"
+                className="bg-[var(--color-accent)] px-5 py-2 text-sm font-bold text-[var(--color-bg-primary)] transition hover:brightness-95"
               >
                 Save
               </button>
@@ -220,31 +221,31 @@ export function StatusControls({ profileId, currentStatus, currentAvailability }
       {/* Engaged - End Date Modal */}
       {pendingAvailability === 'engaged' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-6 shadow-2xl">
+          <div className="w-full max-w-sm border border-white/10 bg-[var(--color-bg-panel)] p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-white">Engagement End Date</h3>
-            <p className="mt-1 text-sm text-white/60">
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
               When does their current engagement end?
             </p>
             <div className="mt-4">
-              <input
-                type="date"
+              <BrandedDatePicker
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full rounded-lg border border-white/15 bg-[var(--color-bg-primary)] px-4 py-3 text-white outline-none focus:border-[var(--color-accent)]"
+                onChange={setEndDate}
+                placeholder="Select end date"
+                minDate={new Date().toISOString().split('T')[0]}
               />
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={cancelPending}
-                className="rounded-full px-4 py-2 text-sm font-semibold text-white/60 transition hover:text-white"
+                className="px-4 py-2 text-sm font-semibold text-white/60 transition hover:text-white"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmEngaged}
-                className="rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-bold text-[var(--color-bg-primary)] transition hover:brightness-95"
+                className="bg-[var(--color-accent)] px-5 py-2 text-sm font-bold text-[var(--color-bg-primary)] transition hover:brightness-95"
               >
                 Save
               </button>

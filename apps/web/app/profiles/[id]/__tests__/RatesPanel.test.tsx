@@ -24,7 +24,7 @@ describe('RatesPanel', () => {
   const mockRates: RatesAndPreferences = {
     minDayRatePence: 75000, // £750
     salaryPence: 9500000, // £95,000
-    employmentTypes: ['contract'],
+    employmentTypes: ['contract', 'permanent'],
     ir35Statuses: ['outside'],
     hasLtdCo: true,
     location: null,
@@ -42,11 +42,11 @@ describe('RatesPanel', () => {
     render(<RatesPanel profileId="test-profile" rates={mockRates} />);
 
     expect(screen.getByText('Rates & Preferences')).toBeInTheDocument();
-    expect(screen.getByText('£750')).toBeInTheDocument(); // Day rate
-    expect(screen.getByText('£95,000')).toBeInTheDocument(); // Salary
-    expect(screen.getByText(/Contract/i)).toBeInTheDocument();
-    expect(screen.getByText(/Outside IR35/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ltd Co/i)).toBeInTheDocument();
+    expect(screen.getByText('£750/day')).toBeInTheDocument(); // Day rate
+    expect(screen.getByText('£95,000/year')).toBeInTheDocument(); // Salary
+    // Use getAllByText since text appears both in rate row and badge
+    expect(screen.getAllByText(/Outside IR35/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Ltd Co/i).length).toBeGreaterThan(0);
   });
 
   it('renders empty state when no rates set', () => {
@@ -56,19 +56,41 @@ describe('RatesPanel', () => {
     expect(screen.getByText(/No rates configured/i)).toBeInTheDocument();
   });
 
-  it('shows edit form when Edit button clicked', async () => {
+  it('shows rate type selection when Edit button clicked', async () => {
     const user = userEvent.setup();
     render(<RatesPanel profileId="test-profile" rates={mockRates} />);
 
     await user.click(screen.getByRole('button', { name: /edit/i }));
 
+    // Should show rate type selection checkboxes
+    expect(screen.getByText('Outside IR35')).toBeInTheDocument();
+    expect(screen.getByText('Inside IR35')).toBeInTheDocument();
+    expect(screen.getByText('Permanent')).toBeInTheDocument();
+  });
+
+  it('shows day rate input when Outside IR35 is selected', async () => {
+    const user = userEvent.setup();
+    render(<RatesPanel profileId="test-profile" rates={mockRates} />);
+
+    await user.click(screen.getByRole('button', { name: /edit/i }));
+
+    // Outside IR35 should already be checked based on mockRates
     expect(screen.getByLabelText(/Day rate/i)).toBeInTheDocument();
+  });
+
+  it('shows target salary input when Permanent is selected', async () => {
+    const user = userEvent.setup();
+    render(<RatesPanel profileId="test-profile" rates={mockRates} />);
+
+    await user.click(screen.getByRole('button', { name: /edit/i }));
+
+    // Permanent should already be checked based on mockRates
     expect(screen.getByLabelText(/Target salary/i)).toBeInTheDocument();
   });
 
   it('formats currency input correctly', async () => {
     const user = userEvent.setup();
-    render(<RatesPanel profileId="test-profile" rates={null} />);
+    render(<RatesPanel profileId="test-profile" rates={mockRates} />);
 
     await user.click(screen.getByRole('button', { name: /edit/i }));
 
@@ -94,15 +116,19 @@ describe('RatesPanel', () => {
     expect(screen.getByText('London')).toBeInTheDocument();
   });
 
-  it('shows both employment types when both selected', () => {
-    const ratesWithBoth: RatesAndPreferences = {
-      ...mockRates,
-      employmentTypes: ['contract', 'permanent'],
+  it('shows Permanent badge when permanent employment type selected', () => {
+    const ratesWithPermanent: RatesAndPreferences = {
+      minDayRatePence: null,
+      salaryPence: 9500000,
+      employmentTypes: ['permanent'],
+      ir35Statuses: [],
+      hasLtdCo: false,
+      location: null,
     };
-    render(<RatesPanel profileId="test-profile" rates={ratesWithBoth} />);
+    render(<RatesPanel profileId="test-profile" rates={ratesWithPermanent} />);
 
-    expect(screen.getByText(/Contract/i)).toBeInTheDocument();
-    expect(screen.getByText(/Permanent/i)).toBeInTheDocument();
+    // Use getAllByText since Permanent appears in both rate row and badge
+    expect(screen.getAllByText(/Permanent/i).length).toBeGreaterThan(0);
   });
 
   it('shows both IR35 statuses when both selected', () => {
@@ -112,7 +138,23 @@ describe('RatesPanel', () => {
     };
     render(<RatesPanel profileId="test-profile" rates={ratesWithBothIR35} />);
 
-    expect(screen.getByText(/Inside IR35/i)).toBeInTheDocument();
-    expect(screen.getByText(/Outside IR35/i)).toBeInTheDocument();
+    // Use getAllByText since text appears in multiple places
+    expect(screen.getAllByText(/Inside IR35/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Outside IR35/i).length).toBeGreaterThan(0);
+  });
+
+  it('shows Ltd Co checkbox only when Outside IR35 is selected', async () => {
+    const user = userEvent.setup();
+    const ratesInsideOnly: RatesAndPreferences = {
+      ...mockRates,
+      ir35Statuses: ['inside'],
+      hasLtdCo: false,
+    };
+    render(<RatesPanel profileId="test-profile" rates={ratesInsideOnly} />);
+
+    await user.click(screen.getByRole('button', { name: /edit/i }));
+
+    // Ltd Co checkbox should NOT be visible when only Inside IR35 is selected
+    expect(screen.queryByText('Has Ltd Co')).not.toBeInTheDocument();
   });
 });
