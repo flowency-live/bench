@@ -10,22 +10,42 @@ import { getTenantRepository } from '@/lib/data/tenant';
 export const dynamic = 'force-dynamic';
 
 /**
- * Client share view — read-only, no portal chrome, reads as an extension of the
- * tenant's site (ADR-0013: tenant-branded from token).
+ * Unified client share view supporting both URL patterns:
  *
- * The `[token]` segment is the raw secret from the share link. We re-hash it
- * (SHA-256) and resolve it via GSI3 (`lookupByTokenHash`, ADR-0008) to recover
- * tenant context, then validate the link is live (active, unexpired, view scope)
- * and the underlying profile is active (ADR-0011 two-axis). Any failure — bad
- * token, expired, revoked, wrong scope, or inactive profile — falls through to the neutral
- * `Unavailable` page so we never leak why.
+ * 1. Simple token: `/share/{token}` (segments = [token])
+ * 2. Readable URL: `/share/{tenantSlug}/{consultantSlug}/{token}` (segments = [tenantSlug, consultantSlug, token])
+ *
+ * In both cases, the `{token}` is the secret that gates access. The tenant and
+ * consultant slugs in the readable URL are cosmetic (for human-readable links).
+ *
+ * Uses catch-all `[...segments]` route because Amplify SSR has issues with
+ * deeply nested dynamic segments like `[a]/[b]/[c]`.
+ *
+ * Validation: active status, unexpired, view scope, active profile.
+ * Any failure shows the neutral "no longer available" page.
  */
 export default async function SharePage({
   params,
 }: {
-  params: Promise<{ token: string }>;
+  params: Promise<{ segments: string[] }>;
 }) {
-  const { token } = await params;
+  const { segments } = await params;
+
+  // Extract token from segments:
+  // - 1 segment: [token]
+  // - 3 segments: [tenantSlug, consultantSlug, token]
+  const token =
+    segments.length === 1
+      ? segments[0]
+      : segments.length === 3
+        ? segments[2]
+        : null;
+
+  if (!token) {
+    // Invalid URL structure
+    return <Unavailable tenant={null} />;
+  }
+
   const tokenHash = createHash('sha256').update(token).digest('hex');
 
   const link = await getMagicLinkRepository().lookupByTokenHash(tokenHash);
