@@ -9,10 +9,11 @@
 
 /** Profile status: admin-controlled lifecycle state. */
 export type ProfileStatus =
-  | 'no_profile'   // Exists but hasn't filled anything yet
-  | 'in_progress'  // Working on their profile
-  | 'active'       // Live and visible
-  | 'removed';     // Deactivated/archived
+  | 'no_profile'  // Placeholder created, consultant hasn't added details yet
+  | 'draft'       // Has info, awaiting admin activation
+  | 'active'      // Admin activated, live and visible
+  | 'inactive'    // Admin deactivated (can be reactivated)
+  | 'removed';    // Hidden from default view, data retained
 
 /** Notice period options for "Looking" availability. */
 export type NoticePeriod =
@@ -145,15 +146,17 @@ export interface ProfilePatch {
 
 export const STATUS_LABELS: Record<ProfileStatus, string> = {
   no_profile: 'No Profile',
-  in_progress: 'In Progress',
+  draft: 'Draft',
   active: 'Active',
+  inactive: 'Inactive',
   removed: 'Removed',
 };
 
 export const STATUS_ORDER: readonly ProfileStatus[] = [
   'no_profile',
-  'in_progress',
+  'draft',
   'active',
+  'inactive',
   'removed',
 ];
 

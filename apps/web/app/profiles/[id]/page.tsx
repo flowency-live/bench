@@ -8,6 +8,7 @@ import { getSession, getTenantId } from '@/lib/auth/session';
 import { getTenantRepository } from '@/lib/data/tenant';
 import { ShareLinkButton } from './ShareLinkButton';
 import { SendInviteButton } from './SendInviteButton';
+import { SendEditLinkButton } from './SendEditLinkButton';
 import { StatusControls } from './StatusControls';
 import { RatesPanel } from './RatesPanel';
 
@@ -28,7 +29,6 @@ export default async function ProfilePage({
 
   const tenant = await getTenantRepository().get(tenantId);
   const isActive = profile.status === 'active';
-  const canInvite = profile.status === 'no_profile' || profile.status === 'in_progress';
 
   // Rates panel is only visible to tenant admins and platform admins
   const canViewRates = session?.kind === 'admin' || session?.kind === 'platform';
@@ -60,36 +60,50 @@ export default async function ProfilePage({
               Edit profile
             </Link>
 
-            {/* Create PDF — opens the bare print page in a new tab, which
-                auto-fires the browser print dialog (owner saves as PDF). Two
-                orientation choices keep it on-brand and one click each. */}
-            <span className="flex items-center gap-1 rounded-full border border-[var(--color-accent)]/40 py-1 pl-3 pr-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+            {/* Create PDF — opens the bare print page in a new tab and auto-fires
+                the print dialog (owner saves as PDF). Orientation × theme; each
+                lands on a single full-bleed page. */}
+            <div className="flex flex-col gap-1 rounded-xl border border-[var(--color-accent)]/40 px-3 py-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
                 Create PDF
               </span>
-              <Link
-                href={`/profiles/${profile.id}/print?o=portrait`}
-                target="_blank"
-                rel="noopener"
-                className="rounded-full border border-[var(--color-accent)]/60 px-3 py-1 text-xs font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
-              >
-                Portrait
-              </Link>
-              <Link
-                href={`/profiles/${profile.id}/print?o=landscape`}
-                target="_blank"
-                rel="noopener"
-                className="rounded-full border border-[var(--color-accent)]/60 px-3 py-1 text-xs font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
-              >
-                Landscape
-              </Link>
-            </span>
+              {(['dark', 'light'] as const).map((t) => (
+                <div key={t} className="flex items-center gap-1">
+                  <span className="w-10 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
+                    {t}
+                  </span>
+                  {(['portrait', 'landscape'] as const).map((orient) => (
+                    <Link
+                      key={orient}
+                      href={`/profiles/${profile.id}/print?o=${orient}&theme=${t}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="rounded-full border border-[var(--color-accent)]/60 px-3 py-0.5 text-xs font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-accent-foreground)]"
+                    >
+                      {orient === 'portrait' ? 'Portrait' : 'Landscape'}
+                    </Link>
+                  ))}
+                </div>
+              ))}
+            </div>
 
-            {/* Send invite: while profile is no_profile or in_progress. Mints a
-                14-day edit-scoped magic link the consultant uses to claim and
-                build their own profile. */}
-            {canInvite && (
+            {/* Send invite: while profile is no_profile. Mints a 14-day
+                edit-scoped magic link the consultant uses to claim and build
+                their own profile (moves no_profile → draft). */}
+            {profile.status === 'no_profile' && (
               <SendInviteButton
+                profileId={profile.id}
+                consultantName={profile.name}
+              />
+            )}
+
+            {/* Edit link: let a consultant who already has a record (draft,
+                active, or deactivated) edit their own page (wizard). Does NOT
+                change status, so an active profile stays published. */}
+            {(profile.status === 'draft' ||
+              profile.status === 'active' ||
+              profile.status === 'inactive') && (
+              <SendEditLinkButton
                 profileId={profile.id}
                 consultantName={profile.name}
               />

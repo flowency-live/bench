@@ -19,8 +19,9 @@ import {
 
 const STATUS_STYLES: Record<ProfileStatus, string> = {
   no_profile: 'bg-white/10 text-white/60',
-  in_progress: 'bg-amber-400/15 text-amber-300',
+  draft: 'bg-amber-400/15 text-amber-300',
   active: 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]',
+  inactive: 'bg-blue-400/15 text-blue-300',
   removed: 'bg-white/5 text-white/40',
 };
 

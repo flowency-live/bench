@@ -17,6 +17,8 @@ async function validateInviteToken(token: string): Promise<Tenant | null> {
   if (new Date(lookup.expiresAt).getTime() <= Date.now()) return null;
   if (lookup.type !== 'invite') return null;
   if (lookup.scope !== 'edit') return null;
+  // Sentinel links have their own routes (BUILDER → /build, ADMIN → /auth/verify).
+  if (lookup.profileId === 'BUILDER' || lookup.profileId === 'ADMIN') return null;
   // Get the tenant from the lookup
   return getTenantRepository().get(lookup.tenantId);
 }
@@ -71,18 +73,18 @@ export default async function InvitePage({
   return (
     <Shell tenant={tenant}>
       <h1 className="mb-2 text-2xl font-black text-white">
-        You&rsquo;ve been invited to build your Change Maker profile
+        Set up your {tenant.instanceName} profile
       </h1>
       <p className="mb-6 text-sm text-[var(--color-text-secondary)]">
         Set out your skills, stories, and impact. It takes just a few minutes,
-        and you can save as you go.
+        and you can save as you go. You can come back and update it any time.
       </p>
       <form action={`/invite/${token}/claim`} method="post">
         <button
           type="submit"
-          className="w-full rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95"
+          className="w-full rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-black uppercase tracking-wide text-[var(--color-accent-foreground)] transition hover:brightness-95"
         >
-          Start my profile
+          Open my profile editor
         </button>
       </form>
       <p className="mt-4 text-xs text-white/40">

@@ -83,7 +83,7 @@ export async function saveProfile(profileId: string, patch: ProfilePatch) {
 export async function submitForReview(profileId: string) {
   const tenantId = await requireTenantId();
   const repo = getRepository();
-  await repo.setStatus(tenantId, profileId, 'in_progress');
+  await repo.setStatus(tenantId, profileId, 'draft');
   revalidatePath(`/profiles/${profileId}`);
   revalidatePath('/dashboard');
 }
@@ -182,4 +182,41 @@ export async function revokeShareLink(profileId: string, linkId: string): Promis
   const links = getMagicLinkRepository();
   await links.markAsRevoked(tenantId, profileId, linkId);
   revalidatePath(`/profiles/${profileId}`);
+}
+
+/** Sentinel profileId under which a tenant's reusable builder link is stored. */
+const BUILDER_PROFILE_ID = 'BUILDER';
+
+/** Reusable builder link lifetime — 30 days (expiry is the abuse guard). */
+const BUILDER_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Mint a REUSABLE per-tenant "new consultant" builder link.
+ *
+ * The admin shares it with anyone they want to add — opening it starts a fresh
+ * profile builder (`/build/{token}` collects name + email, creates the record,
+ * and drops them into the wizard). Unlike per-consultant invites, it is not
+ * single-use; it is stored under the `BUILDER` sentinel and guarded by a 30-day
+ * expiry. Generate again any time to get a fresh link.
+ *
+ * The raw token is returned exactly once; only its hash is persisted.
+ */
+export async function generateBuilderLink(): Promise<string> {
+  const tenantId = await requireTenantId();
+
+  const rawToken = randomBytes(32).toString('base64url');
+  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+  const links = getMagicLinkRepository();
+  await links.create(tenantId, {
+    id: randomUUID(),
+    profileId: BUILDER_PROFILE_ID,
+    type: 'invite',
+    scope: 'edit',
+    tokenHash,
+    expiresAt: new Date(Date.now() + BUILDER_LINK_TTL_MS).toISOString(),
+    createdBy: 'owner',
+  });
+
+  return `/build/${rawToken}`;
 }

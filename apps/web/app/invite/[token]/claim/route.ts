@@ -32,6 +32,10 @@ export async function POST(
   if (new Date(lookup.expiresAt).getTime() <= Date.now()) return invalid();
   if (lookup.type !== 'invite') return invalid();
   if (lookup.scope !== 'edit') return invalid();
+  // Sentinel links have their own routes: BUILDER → /build, ADMIN → /auth/verify.
+  // Claiming one here would mis-scope a member session and (for BUILDER) burn a
+  // reusable link. Reject them.
+  if (lookup.profileId === 'BUILDER' || lookup.profileId === 'ADMIN') return invalid();
 
   await createSession({
     kind: 'member',

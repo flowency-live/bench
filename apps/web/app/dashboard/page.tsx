@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/AppHeader';
 import { BrandedWrapper } from '@/components/BrandedWrapper';
-import { DashboardClient, type DashboardRow } from '@/app/dashboard/DashboardClient';
+import { DashboardClient } from '@/app/dashboard/DashboardClient';
+import { BuilderLinkButton } from '@/app/dashboard/BuilderLinkButton';
 import { getRepository } from '@/lib/data/repository';
-import { computeCompletion } from '@/lib/profile-completion';
 import { getSession, getTenantId } from '@/lib/auth/session';
 import { getTenantRepository } from '@/lib/data/tenant';
 
@@ -19,35 +19,17 @@ export default async function DashboardPage() {
   }
 
   const repo = getRepository();
-  const summaries = await repo.list(tenantId);
+  const allSummaries = await repo.list(tenantId);
 
-  const fullProfiles = await Promise.all(
-    summaries.map((s) => repo.get(tenantId, s.id)),
-  );
+  // Filter out removed profiles from default view
+  const profiles = allSummaries.filter((p) => p.status !== 'removed');
 
   const tenant = await getTenantRepository().get(tenantId);
-
-  const profiles: DashboardRow[] = summaries.map((summary, i) => {
-    const full = fullProfiles[i];
-    const completion = full
-      ? (({ completed, total, percent }) => ({ completed, total, percent }))(
-          computeCompletion(full),
-        )
-      : { completed: 0, total: 6, percent: 0 };
-    return { ...summary, completion };
-  });
 
   const active = profiles.filter((p) => p.status === 'active').length;
   const available = profiles.filter(
     (p) => p.availability?.status === 'available' || p.availability?.status === 'looking',
   ).length;
-  const avgCompletion =
-    profiles.length === 0
-      ? 0
-      : Math.round(
-          profiles.reduce((sum, p) => sum + p.completion.percent, 0) /
-            profiles.length,
-        );
 
   return (
     <BrandedWrapper tenant={tenant} className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
@@ -70,8 +52,19 @@ export default async function DashboardPage() {
             <Stat label="TOTAL" value={profiles.length} />
             <Stat label="ACTIVE" value={active} accent />
             <Stat label="AVAIL" value={available} />
-            <Stat label="AVG" value={avgCompletion} suffix="%" />
           </div>
+        </div>
+
+        {/* Add consultants: manually, or via a reusable self-serve builder link. */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link
+            href="/dashboard/new"
+            className="inline-flex items-center gap-2 border border-[var(--color-accent)] px-4 py-2 text-xs font-bold uppercase tracking-wider text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
+          >
+            <span className="text-base leading-none">+</span>
+            <span>Add consultant</span>
+          </Link>
+          <BuilderLinkButton />
         </div>
 
         <div className="mt-4">

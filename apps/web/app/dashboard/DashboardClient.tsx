@@ -13,13 +13,7 @@ type ViewMode = 'cards' | 'list';
 
 const AVAILABILITY_ORDER: AvailabilityStatus[] = ['available', 'looking', 'engaged', 'pitched'];
 
-export type DashboardRow = ProfileSummary & {
-  readonly completion: {
-    readonly completed: number;
-    readonly total: number;
-    readonly percent: number;
-  };
-};
+export type DashboardRow = ProfileSummary;
 
 export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
   const [query, setQuery] = useState('');
@@ -167,7 +161,7 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
       ) : view === 'cards' ? (
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((p) => (
-            <ProfileCard key={p.id} profile={p} completion={p.completion} />
+            <ProfileCard key={p.id} profile={p} />
           ))}
         </div>
       ) : (
@@ -179,7 +173,6 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
                 <th className="hidden px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] sm:table-cell">Role</th>
                 <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Status</th>
                 <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Avail</th>
-                <th className="hidden px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] md:table-cell">%</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
@@ -195,19 +188,6 @@ export function DashboardClient({ profiles }: { profiles: DashboardRow[] }) {
                   </td>
                   <td className="px-3 py-2">
                     <AvailabilityBadge availability={p.availability} compact />
-                  </td>
-                  <td className="hidden px-3 py-2 md:table-cell">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1 w-12 overflow-hidden bg-white/10">
-                        <div
-                          className="h-full bg-[var(--color-accent)]"
-                          style={{ width: `${p.completion.percent}%` }}
-                        />
-                      </div>
-                      <span className="font-mono text-[10px] text-[var(--color-text-secondary)]">
-                        {p.completion.percent}
-                      </span>
-                    </div>
                   </td>
                   <td className="px-3 py-2 text-right">
                     <Link

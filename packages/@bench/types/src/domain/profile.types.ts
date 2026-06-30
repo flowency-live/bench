@@ -6,10 +6,11 @@
 
 /** Profile lifecycle status (axis 1). */
 export type ProfileStatus =
-  | 'no_profile' // record exists (name + email), nothing filled in
-  | 'in_progress' // consultant is completing the wizard
-  | 'active' // published, live, eligible for client share links
-  | 'removed'; // deactivated / archived; hidden, links dead, data retained
+  | 'no_profile' // placeholder created, consultant hasn't added details yet
+  | 'draft' // has info, awaiting admin activation
+  | 'active' // admin activated, live and visible
+  | 'inactive' // admin deactivated (can be reactivated)
+  | 'removed'; // hidden from default view, data retained
 
 /** Notice period for the `looking` availability state. */
 export type NoticePeriod =

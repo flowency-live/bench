@@ -14,7 +14,7 @@ const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
  *
  * The raw token is returned to the owner exactly once (as a relative
  * `/invite/{raw}` path); only its SHA-256 hash is persisted. Minting also moves
- * the profile to `in_progress` (ADR-0011 two-axis model) so the dashboard
+ * the profile to `draft` (ADR-0011 two-axis model) so the dashboard
  * reflects that the consultant is now working on it.
  *
  * The caller composes the absolute URL from the request origin and shares it
@@ -43,10 +43,49 @@ export async function sendInvite(profileId: string): Promise<string> {
     createdBy: 'owner',
   });
 
-  await getRepository().setStatus(tenantId, profileId, 'in_progress');
+  await getRepository().setStatus(tenantId, profileId, 'draft');
 
   revalidatePath(`/profiles/${profileId}`);
   revalidatePath('/dashboard');
+
+  return `/invite/${rawToken}`;
+}
+
+/**
+ * Mint an EDIT link for an existing consultant to update their own profile.
+ *
+ * Same single-use, edit-scoped magic link + member-session claim flow as
+ * `sendInvite`, but it deliberately does NOT change the profile status — an
+ * active (published) profile stays published while the consultant edits it.
+ * Used for in-progress and active profiles (onboarding from scratch still uses
+ * `sendInvite`, which moves a no_profile consultant to draft).
+ *
+ * Rates are not part of the wizard, so the consultant can edit everything except
+ * their commercial rates (admin-only).
+ */
+export async function sendEditLink(profileId: string): Promise<string> {
+  const session = await getSession();
+  const tenantId = getTenantId(session);
+  if (!tenantId) {
+    throw new Error('Not authenticated');
+  }
+
+  const rawToken = randomBytes(32).toString('base64url');
+  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+  const links = getMagicLinkRepository();
+  await links.create(tenantId, {
+    id: randomUUID(),
+    profileId,
+    type: 'invite',
+    scope: 'edit',
+    tokenHash,
+    expiresAt: new Date(Date.now() + INVITE_TTL_MS).toISOString(),
+    createdBy: 'owner',
+  });
+
+  // No status change (unlike sendInvite) — keep an active profile published.
+  revalidatePath(`/profiles/${profileId}`);
 
   return `/invite/${rawToken}`;
 }

@@ -7,7 +7,7 @@ import { sendInvite } from './invite-actions';
  * Owner control to invite a consultant to build their own profile.
  *
  * Clicking calls the `sendInvite` server action (which mints a 14-day invite
- * link, sets the profile to `in_progress`, and returns a relative `/invite/{token}`
+ * link, sets the profile to `draft`, and returns a relative `/invite/{token}`
  * path), composes the absolute URL from the current origin, then surfaces share
  * options (WhatsApp, Email, SMS, Copy). The raw token is shown once here; only
  * its hash is persisted server-side.

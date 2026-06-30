@@ -48,15 +48,15 @@ export function ProfileRenderer({
   tenant?: Tenant | null;
 }) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-white/10 bg-[var(--color-bg-primary)]">
+    <article className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-primary)]">
       {/* Identity */}
-      <header className="flex flex-col gap-6 border-b border-white/10 p-8 sm:flex-row sm:items-center">
+      <header className="flex flex-col gap-6 border-b border-[var(--color-border)] p-8 sm:flex-row sm:items-center">
         <BrandRing name={profile.name} url={profile.headshotUrl} />
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">
             {tenant ? tenant.instanceName : 'Bench'}
           </p>
-          <h1 className="mt-1 text-4xl font-black leading-tight text-white">
+          <h1 className="mt-1 text-4xl font-black leading-tight text-[var(--color-text-primary)]">
             {profile.name}
           </h1>
           {profile.role && (
@@ -74,7 +74,7 @@ export function ProfileRenderer({
         {/* Positioning */}
         {profile.bio && (
           <section>
-            <p className="max-w-2xl text-[15px] leading-relaxed text-white/85">{profile.bio}</p>
+            <p className="max-w-2xl text-[15px] leading-relaxed text-[var(--color-text-primary)]">{profile.bio}</p>
           </section>
         )}
 
@@ -88,9 +88,9 @@ export function ProfileRenderer({
                 .map((s) => (
                   <div
                     key={s.id}
-                    className="rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-4"
+                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-panel)] p-4"
                   >
-                    <p className="font-black text-white">{s.title}</p>
+                    <p className="font-black text-[var(--color-text-primary)]">{s.title}</p>
                     <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-text-secondary)]">
                       {s.body}
                     </p>
@@ -110,13 +110,13 @@ export function ProfileRenderer({
                 .map((s) => (
                   <div
                     key={s.id}
-                    className="rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-5"
+                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-panel)] p-5"
                   >
                     <span className="inline-block rounded-full bg-[var(--color-accent)]/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">
                       {s.clientTag}
                     </span>
-                    <p className="mt-3 font-black text-white">{s.title}</p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-white/80">{s.body}</p>
+                    <p className="mt-3 font-black text-[var(--color-text-primary)]">{s.title}</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-text-secondary)]">{s.body}</p>
                   </div>
                 ))}
             </div>
@@ -125,8 +125,8 @@ export function ProfileRenderer({
 
         {/* Testimonial */}
         {profile.testimonial && (
-          <section className="rounded-2xl border-l-4 border-[var(--color-accent)] bg-white/[0.03] p-6">
-            <p className="text-lg italic leading-relaxed text-white/90">
+          <section className="rounded-2xl border-l-4 border-[var(--color-accent)] bg-[var(--color-bg-panel)] p-6">
+            <p className="text-lg italic leading-relaxed text-[var(--color-text-primary)]">
               “{profile.testimonial.quote}”
             </p>
             <p className="mt-3 text-sm font-semibold text-[var(--color-accent)]">
@@ -148,7 +148,7 @@ export function ProfileRenderer({
           )}
       </div>
 
-      <footer className="flex items-center justify-center gap-3 border-t border-white/10 px-8 py-4 text-center text-xs uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">
+      <footer className="flex items-center justify-center gap-3 border-t border-[var(--color-border)] px-8 py-4 text-center text-xs uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">
         {tenant ? (
           <TenantLogo tenant={tenant} size="sm" />
         ) : (
@@ -161,9 +161,9 @@ export function ProfileRenderer({
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-4 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
+    <h2 className="mb-4 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-[var(--color-text-primary)]">
       {children}
-      <span className="h-px flex-1 bg-white/10" />
+      <span className="h-px flex-1 bg-[var(--color-border)]" />
     </h2>
   );
 }
