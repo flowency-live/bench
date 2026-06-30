@@ -46,14 +46,14 @@ export function GodmodeBrandPanel({ tenant }: GodmodeBrandPanelProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Local state for live preview
+  // Local state for live preview (provide fallbacks for legacy tenants)
   const [localTokens, setLocalTokens] = useState({
-    instanceName: tenant.instanceName,
-    bgPrimary: tenant.brandTokens.bgPrimary,
-    bgPanel: tenant.brandTokens.bgPanel,
-    accent: tenant.brandTokens.accent,
-    textPrimary: tenant.brandTokens.textPrimary,
-    textSecondary: tenant.brandTokens.textSecondary,
+    instanceName: tenant.instanceName ?? tenant.name,
+    bgPrimary: tenant.brandTokens?.bgPrimary ?? '#1a1a2e',
+    bgPanel: tenant.brandTokens?.bgPanel ?? '#16213e',
+    accent: tenant.brandTokens?.accent ?? '#0f4c75',
+    textPrimary: tenant.brandTokens?.textPrimary ?? '#ffffff',
+    textSecondary: tenant.brandTokens?.textSecondary ?? '#a0a0a0',
   });
 
   // Track current logo (may be updated after upload)
@@ -130,7 +130,7 @@ export function GodmodeBrandPanel({ tenant }: GodmodeBrandPanelProps) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={getLogoUrl(tenant.id, currentLogoId)}
-                alt={tenant.instanceName}
+                alt={tenant.instanceName ?? tenant.name}
                 className="h-full w-full object-contain p-2"
               />
             ) : (
@@ -138,7 +138,7 @@ export function GodmodeBrandPanel({ tenant }: GodmodeBrandPanelProps) {
                 className="text-xs font-bold"
                 style={{ color: localTokens.textPrimary }}
               >
-                {localTokens.instanceName.slice(0, 2).toUpperCase()}
+                {(localTokens.instanceName || 'NA').slice(0, 2).toUpperCase()}
               </span>
             )}
           </div>

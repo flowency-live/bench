@@ -10,6 +10,7 @@ import {
   deleteTenant,
   removeTenantUser,
   setTenantUserRole,
+  addTenantAdmin,
 } from './actions';
 import { GodmodeBrandPanel } from './GodmodeBrandPanel';
 import { AdminInviteButton } from './AdminInviteButton';
@@ -141,11 +142,58 @@ function ManageAdmins({
   tenant: Tenant;
   users: readonly TenantUser[];
 }) {
+  const [email, setEmail] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleAddAdmin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setAdding(true);
+    setError(null);
+    const result = await addTenantAdmin(tenant.id, email.trim());
+    setAdding(false);
+    if (result.ok) {
+      setEmail('');
+    } else {
+      setError(result.error ?? 'Failed to add admin');
+    }
+  }
+
   return (
     <div className="border-t border-white/10 px-5 py-4">
       <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
         Users in {tenant.name}
       </p>
+
+      {/* Add admin form */}
+      <form onSubmit={handleAddAdmin} className="mb-4 flex flex-wrap items-end gap-2">
+        <div className="flex flex-col">
+          <label
+            htmlFor={`add-admin-${tenant.id}`}
+            className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]"
+          >
+            Add admin
+          </label>
+          <input
+            id={`add-admin-${tenant.id}`}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="admin@example.com"
+            className="w-64 rounded-lg border border-white/10 bg-[rgba(0,12,24,0.6)] px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-[var(--color-accent)]/60"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={adding || !email.trim()}
+          className="rounded-full border border-[var(--color-accent)] px-4 py-2 text-xs font-bold uppercase tracking-wide text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)] disabled:opacity-50"
+        >
+          {adding ? 'Adding...' : 'Add'}
+        </button>
+        {error && <span className="text-xs text-red-300">{error}</span>}
+      </form>
+
       {users.length === 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">
           No users in this tenant yet.
