@@ -306,7 +306,7 @@ export function RatesPanel({ profileId, rates }: RatesPanelProps) {
   // Display view
   const hasRates =
     rates &&
-    (rates.ir35Statuses.length > 0 || rates.employmentTypes.includes('permanent'));
+    ((rates.ir35Statuses?.length ?? 0) > 0 || rates.employmentTypes?.includes('permanent'));
 
   return (
     <div className="border border-white/10 bg-[var(--color-bg-panel)] p-6">
@@ -326,7 +326,7 @@ export function RatesPanel({ profileId, rates }: RatesPanelProps) {
       ) : (
         <div className="space-y-3">
           {/* Outside IR35 */}
-          {rates.ir35Statuses.includes('outside') && rates.outsideIR35RatePence !== null && (
+          {rates.ir35Statuses?.includes('outside') && rates.outsideIR35RatePence !== null && (
             <div className="flex items-center justify-between border-l-2 border-green-500 pl-3">
               <div>
                 <span className="text-sm font-medium text-white">Outside IR35</span>
@@ -343,7 +343,7 @@ export function RatesPanel({ profileId, rates }: RatesPanelProps) {
           )}
 
           {/* Inside IR35 */}
-          {rates.ir35Statuses.includes('inside') && rates.insideIR35RatePence !== null && (
+          {rates.ir35Statuses?.includes('inside') && rates.insideIR35RatePence !== null && (
             <div className="flex items-center justify-between border-l-2 border-blue-500 pl-3">
               <span className="text-sm font-medium text-white">Inside IR35</span>
               <span className="font-mono text-lg font-semibold text-white">
@@ -353,7 +353,7 @@ export function RatesPanel({ profileId, rates }: RatesPanelProps) {
           )}
 
           {/* Permanent */}
-          {rates.employmentTypes.includes('permanent') && rates.salaryPence !== null && (
+          {rates.employmentTypes?.includes('permanent') && rates.salaryPence !== null && (
             <div className="flex items-center justify-between border-l-2 border-amber-500 pl-3">
               <span className="text-sm font-medium text-white">Permanent</span>
               <span className="font-mono text-lg font-semibold text-white">
