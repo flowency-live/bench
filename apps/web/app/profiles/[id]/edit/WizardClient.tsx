@@ -90,6 +90,8 @@ export function WizardClient({
 
   const next = () => save(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)));
   const back = () => setStep((s) => Math.max(s - 1, 0));
+  const saveOnly = () => save();
+  const saveAndExit = () => save(() => router.push(`/profiles/${profile.id}`));
   const submit = () =>
     start(async () => {
       await saveProfile(profile.id, buildPatch());
@@ -329,33 +331,55 @@ export function WizardClient({
 
       {/* Nav */}
       <div className="mt-6 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={back}
-          disabled={step === 0}
-          className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-white/70 transition hover:text-white disabled:opacity-30"
-        >
-          Back
-        </button>
-        {step < STEPS.length - 1 ? (
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={next}
-            disabled={pending}
-            className="rounded-full bg-[var(--color-accent)] px-6 py-2 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95 disabled:opacity-60"
+            onClick={back}
+            disabled={step === 0}
+            className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-white/70 transition hover:text-white disabled:opacity-30"
           >
-            Save &amp; continue
+            Back
           </button>
-        ) : (
           <button
             type="button"
-            onClick={submit}
+            onClick={saveAndExit}
             disabled={pending}
-            className="rounded-full bg-[var(--color-accent)] px-6 py-2 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95 disabled:opacity-60"
+            className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-white/70 transition hover:text-white disabled:opacity-60"
           >
-            {pending ? 'Submitting…' : 'Submit for review'}
+            Save &amp; exit
           </button>
-        )}
+        </div>
+        <div className="flex items-center gap-3">
+          {step < STEPS.length - 1 ? (
+            <>
+              <button
+                type="button"
+                onClick={saveOnly}
+                disabled={pending}
+                className="rounded-full border border-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent)]/10 disabled:opacity-60"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={next}
+                disabled={pending}
+                className="rounded-full bg-[var(--color-accent)] px-6 py-2 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95 disabled:opacity-60"
+              >
+                Continue
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={submit}
+              disabled={pending}
+              className="rounded-full bg-[var(--color-accent)] px-6 py-2 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95 disabled:opacity-60"
+            >
+              {pending ? 'Submitting…' : 'Submit for review'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
