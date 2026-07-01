@@ -504,17 +504,8 @@ export function createProfileRepository(
 
       // If testimonial was provided in patch, replace it
       if (patch.testimonial !== undefined) {
-        // Delete existing testimonial if any
-        if (existing.testimonial) {
-          transactItems.push({
-            Delete: {
-              TableName: tableName,
-              Key: { PK: pk, SK: 'TESTIMONIAL' },
-            },
-          });
-        }
-        // Add new testimonial if not null
         if (updatedProfile.testimonial) {
+          // Put overwrites any existing testimonial — no separate delete needed
           const testimonialItem: TestimonialItem = {
             PK: pk,
             SK: 'TESTIMONIAL',
@@ -527,6 +518,14 @@ export function createProfileRepository(
           };
           transactItems.push({
             Put: { TableName: tableName, Item: testimonialItem },
+          });
+        } else if (existing.testimonial) {
+          // Only delete when removing (new is null, existing is not)
+          transactItems.push({
+            Delete: {
+              TableName: tableName,
+              Key: { PK: pk, SK: 'TESTIMONIAL' },
+            },
           });
         }
       }
