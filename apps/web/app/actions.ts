@@ -71,12 +71,31 @@ export async function changeStatus(formData: FormData): Promise<void> {
 
 /** Save wizard edits to a profile. Called from the client wizard. */
 export async function saveProfile(profileId: string, patch: ProfilePatch) {
-  const tenantId = await requireTenantId();
-  const repo = getRepository();
-  const updated = await repo.update(tenantId, profileId, patch);
-  revalidatePath(`/profiles/${profileId}`);
-  revalidatePath('/dashboard');
-  return updated;
+  try {
+    console.log('[saveProfile] Starting save for profile:', profileId);
+    console.log('[saveProfile] Patch keys:', Object.keys(patch));
+
+    const tenantId = await requireTenantId();
+    console.log('[saveProfile] tenantId:', tenantId);
+
+    const repo = getRepository();
+    console.log('[saveProfile] Calling repo.update...');
+
+    const updated = await repo.update(tenantId, profileId, patch);
+    console.log('[saveProfile] repo.update succeeded, headshotUrl:', updated.headshotUrl);
+
+    console.log('[saveProfile] Calling revalidatePath...');
+    revalidatePath(`/profiles/${profileId}`);
+    revalidatePath('/dashboard');
+    console.log('[saveProfile] revalidatePath succeeded');
+
+    return updated;
+  } catch (error) {
+    console.error('[saveProfile] ERROR:', error);
+    console.error('[saveProfile] Error message:', error instanceof Error ? error.message : 'Unknown');
+    console.error('[saveProfile] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    throw error;
+  }
 }
 
 /** Consultant submits their completed profile for owner review. */

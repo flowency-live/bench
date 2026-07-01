@@ -39,7 +39,25 @@ export function createDynamoProfileRepository(config: DynamoConfig): ProfileRepo
       return toViewProfile(await repo.create(tenantId, toCreateInput(input)));
     },
     async update(tenantId, profileId, patch) {
-      return toViewProfile(await repo.update(tenantId, profileId, toPatch(patch)));
+      try {
+        console.log('[dynamo-repo.update] Converting patch...');
+        const domainPatch = toPatch(patch);
+        console.log('[dynamo-repo.update] Domain patch keys:', Object.keys(domainPatch));
+
+        console.log('[dynamo-repo.update] Calling @bench/data repo.update...');
+        const domainProfile = await repo.update(tenantId, profileId, domainPatch);
+        console.log('[dynamo-repo.update] @bench/data update succeeded');
+        console.log('[dynamo-repo.update] Domain profile headshotAssetId:', domainProfile.headshotAssetId);
+
+        console.log('[dynamo-repo.update] Converting to view profile...');
+        const viewProfile = toViewProfile(domainProfile);
+        console.log('[dynamo-repo.update] Conversion succeeded, headshotUrl:', viewProfile.headshotUrl);
+
+        return viewProfile;
+      } catch (error) {
+        console.error('[dynamo-repo.update] ERROR:', error);
+        throw error;
+      }
     },
     async setStatus(tenantId, profileId, status) {
       return toViewProfile(await repo.setStatus(tenantId, profileId, status));

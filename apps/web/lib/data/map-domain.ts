@@ -41,6 +41,10 @@ export function toViewProfile(d: DomainProfile): Profile {
   const ir35Statuses = rates?.ir35Statuses ?? [];
   const employmentTypes = rates?.employmentTypes ?? [];
 
+  // Safely extract skills and stories with fallbacks for legacy data
+  const skills = d.skills ?? [];
+  const stories = d.stories ?? [];
+
   return {
     id: d.id,
     tenantId: d.tenantId,
@@ -72,8 +76,8 @@ export function toViewProfile(d: DomainProfile): Profile {
     headline: d.positioning?.headline ?? null,
     bio: d.positioning?.bio ?? null,
     headshotUrl: resolveHeadshotUrl(d.headshotAssetId),
-    skills: d.skills.map((s) => ({ id: s.id, title: s.title, body: s.body, order: s.order })),
-    stories: d.stories.map((s) => ({
+    skills: skills.map((s) => ({ id: s.id, title: s.title, body: s.body, order: s.order })),
+    stories: stories.map((s) => ({
       id: s.id,
       clientTag: s.clientTag,
       title: s.title,
