@@ -39,6 +39,7 @@ export function WizardClient({
   const [name, setName] = useState(profile.name);
   const [role, setRole] = useState(profile.role ?? '');
   const [headshotUrl, setHeadshotUrl] = useState(profile.headshotUrl ?? '');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [headline, setHeadline] = useState(profile.headline ?? '');
   const [bio, setBio] = useState(profile.bio ?? '');
   const [skills, setSkills] = useState<Skill[]>(profile.skills.map((s) => ({ ...s })));
@@ -74,9 +75,18 @@ export function WizardClient({
 
   const save = (then?: () => void) =>
     start(async () => {
-      await saveProfile(profile.id, buildPatch());
-      setSavedAt(new Date().toLocaleTimeString('en-GB'));
-      then?.();
+      try {
+        setSaveError(null);
+        const patch = buildPatch();
+        console.log('[WizardClient] Saving with patch:', JSON.stringify(patch, null, 2));
+        await saveProfile(profile.id, patch);
+        setSavedAt(new Date().toLocaleTimeString('en-GB'));
+        then?.();
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error('[WizardClient] Save error:', msg);
+        setSaveError(`Save failed: ${msg}`);
+      }
     });
 
   const next = () => save(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)));
@@ -100,7 +110,9 @@ export function WizardClient({
           ← Back to profile
         </Link>
         <span className="text-xs text-white/40">
-          {pending ? 'Saving…' : savedAt ? `Saved ${savedAt}` : 'Auto-saves as you go'}
+          {pending ? 'Saving…' : saveError ? (
+            <span className="text-red-400">{saveError}</span>
+          ) : savedAt ? `Saved ${savedAt}` : 'Auto-saves as you go'}
         </span>
       </div>
 
