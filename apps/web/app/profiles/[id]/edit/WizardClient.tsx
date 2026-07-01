@@ -75,18 +75,17 @@ export function WizardClient({
 
   const save = (then?: () => void) =>
     start(async () => {
-      try {
-        setSaveError(null);
-        const patch = buildPatch();
-        console.log('[WizardClient] Saving with patch:', JSON.stringify(patch, null, 2));
-        await saveProfile(profile.id, patch);
-        setSavedAt(new Date().toLocaleTimeString('en-GB'));
-        then?.();
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.error('[WizardClient] Save error:', msg);
-        setSaveError(`Save failed: ${msg}`);
+      setSaveError(null);
+      const patch = buildPatch();
+      console.log('[WizardClient] Saving with patch:', JSON.stringify(patch, null, 2));
+      const result = await saveProfile(profile.id, patch);
+      if (!result.success) {
+        console.error('[WizardClient] Save error:', result.error);
+        setSaveError(`Save failed: ${result.error}`);
+        return;
       }
+      setSavedAt(new Date().toLocaleTimeString('en-GB'));
+      then?.();
     });
 
   const next = () => save(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)));

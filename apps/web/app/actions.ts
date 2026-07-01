@@ -7,7 +7,7 @@ import { getRepository } from '@/lib/data/repository';
 import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { getTenantRepository } from '@/lib/data/tenant';
 import { getSession, getTenantId } from '@/lib/auth/session';
-import type { Availability, FormState, ProfilePatch, ProfileStatus } from '@/lib/types';
+import type { Availability, FormState, Profile, ProfilePatch, ProfileStatus } from '@/lib/types';
 
 /** Convert a string to a URL-safe slug. */
 function slugify(str: string): string {
@@ -69,8 +69,13 @@ export async function changeStatus(formData: FormData): Promise<void> {
   revalidatePath(`/profiles/${profileId}`);
 }
 
+/** Result type for saveProfile that surfaces errors to client */
+export type SaveProfileResult =
+  | { success: true; profile: Profile }
+  | { success: false; error: string };
+
 /** Save wizard edits to a profile. Called from the client wizard. */
-export async function saveProfile(profileId: string, patch: ProfilePatch) {
+export async function saveProfile(profileId: string, patch: ProfilePatch): Promise<SaveProfileResult> {
   console.log('[saveProfile] Starting save for profile:', profileId);
   console.log('[saveProfile] Patch:', JSON.stringify(patch, null, 2));
 
@@ -93,14 +98,20 @@ export async function saveProfile(profileId: string, patch: ProfilePatch) {
     } catch (revalidateError) {
       console.error('[saveProfile] revalidatePath error:', revalidateError);
       console.error('[saveProfile] revalidatePath stack:', revalidateError instanceof Error ? revalidateError.stack : 'no stack');
-      throw revalidateError;
+      // Surface the error to the client
+      const msg = revalidateError instanceof Error ? revalidateError.message : String(revalidateError);
+      const stack = revalidateError instanceof Error ? revalidateError.stack : '';
+      return { success: false, error: `revalidatePath failed: ${msg}\n${stack}` };
     }
 
-    return updated;
+    return { success: true, profile: updated };
   } catch (error) {
     console.error('[saveProfile] ERROR:', error);
     console.error('[saveProfile] Stack:', error instanceof Error ? error.stack : 'no stack');
-    throw error;
+    // Surface the full error to the client
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : '';
+    return { success: false, error: `${msg}\n${stack}` };
   }
 }
 
