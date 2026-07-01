@@ -74,21 +74,34 @@ export async function saveProfile(profileId: string, patch: ProfilePatch) {
   console.log('[saveProfile] Starting save for profile:', profileId);
   console.log('[saveProfile] Patch:', JSON.stringify(patch, null, 2));
 
-  const tenantId = await requireTenantId();
-  console.log('[saveProfile] tenantId:', tenantId);
+  try {
+    const tenantId = await requireTenantId();
+    console.log('[saveProfile] tenantId:', tenantId);
 
-  const repo = getRepository();
-  console.log('[saveProfile] Calling repo.update...');
+    const repo = getRepository();
+    console.log('[saveProfile] Calling repo.update...');
 
-  const updated = await repo.update(tenantId, profileId, patch);
-  console.log('[saveProfile] repo.update succeeded, headshotUrl:', updated.headshotUrl);
+    const updated = await repo.update(tenantId, profileId, patch);
+    console.log('[saveProfile] repo.update succeeded, headshotUrl:', updated.headshotUrl);
 
-  console.log('[saveProfile] Calling revalidatePath...');
-  revalidatePath(`/profiles/${profileId}`);
-  revalidatePath('/dashboard');
-  console.log('[saveProfile] revalidatePath succeeded');
+    console.log('[saveProfile] Calling revalidatePath...');
+    try {
+      revalidatePath(`/profiles/${profileId}`);
+      revalidatePath(`/profiles/${profileId}/edit`);
+      revalidatePath('/dashboard');
+      console.log('[saveProfile] revalidatePath succeeded');
+    } catch (revalidateError) {
+      console.error('[saveProfile] revalidatePath error:', revalidateError);
+      console.error('[saveProfile] revalidatePath stack:', revalidateError instanceof Error ? revalidateError.stack : 'no stack');
+      throw revalidateError;
+    }
 
-  return updated;
+    return updated;
+  } catch (error) {
+    console.error('[saveProfile] ERROR:', error);
+    console.error('[saveProfile] Stack:', error instanceof Error ? error.stack : 'no stack');
+    throw error;
+  }
 }
 
 /** Consultant submits their completed profile for owner review. */
