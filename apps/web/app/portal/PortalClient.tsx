@@ -1,0 +1,214 @@
+'use client';
+
+import Link from 'next/link';
+import { useMemo, useState } from 'react';
+import { PortalProfileCard } from '@/components/PortalProfileCard';
+import { AvailabilityBadge } from '@/components/AvailabilityBadge';
+import { MultiSelectDropdown } from '@/components/MultiSelectDropdown';
+import type { AvailabilityStatus, ProfileSummary } from '@/lib/types';
+import { AVAILABILITY_LABELS } from '@/lib/types';
+
+type ViewMode = 'cards' | 'list';
+
+const AVAILABILITY_ORDER: AvailabilityStatus[] = ['available', 'looking', 'engaged', 'pitched'];
+
+/**
+ * Client-side profile browser for the portal.
+ *
+ * Similar to DashboardClient but:
+ * - No status filter (all profiles are active)
+ * - Links to /portal/profile/[id]
+ * - Read-only (no edit actions)
+ */
+export function PortalClient({ profiles }: { profiles: ProfileSummary[] }) {
+  const [query, setQuery] = useState('');
+  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityStatus[]>([]);
+  const [view, setView] = useState<ViewMode>('cards');
+
+  const availabilityCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const a of AVAILABILITY_ORDER) counts[a] = 0;
+    for (const p of profiles) {
+      const status = p.availability?.status;
+      if (status) counts[status] = (counts[status] ?? 0) + 1;
+    }
+    return counts;
+  }, [profiles]);
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return profiles.filter((p) => {
+      if (availabilityFilter.length > 0 && !availabilityFilter.includes(p.availability?.status)) {
+        return false;
+      }
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q) || (p.role ?? '').toLowerCase().includes(q);
+    });
+  }, [profiles, query, availabilityFilter]);
+
+  const availabilityOptions = AVAILABILITY_ORDER.map((a) => ({
+    value: a,
+    label: AVAILABILITY_LABELS[a],
+    count: availabilityCounts[a],
+  }));
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 border-b border-white/10 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <MultiSelectDropdown
+            label="Availability"
+            options={availabilityOptions}
+            selected={availabilityFilter}
+            onChange={(selected) => setAvailabilityFilter(selected as AvailabilityStatus[])}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex border border-white/15">
+            <button
+              type="button"
+              onClick={() => setView('cards')}
+              title="Card view"
+              aria-label="Card view"
+              className={`p-2.5 transition sm:p-2 ${
+                view === 'cards'
+                  ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]'
+                  : 'text-white/50 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('list')}
+              title="List view"
+              aria-label="List view"
+              className={`border-l border-white/15 p-2.5 transition sm:p-2 ${
+                view === 'list'
+                  ? 'bg-[var(--color-accent)] text-[var(--color-bg-primary)]'
+                  : 'text-white/50 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="18" x2="20" y2="18" />
+              </svg>
+            </button>
+          </div>
+          {/* Search */}
+          <div className="relative flex-1 sm:flex-none">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search..."
+              className="w-full border border-white/15 bg-white/[0.02] px-3 py-2 pl-9 text-sm text-white outline-none placeholder:text-white/40 focus:border-[var(--color-accent)] sm:w-48 sm:py-1.5 sm:pl-8"
+            />
+            <svg
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40 sm:left-2.5 sm:h-3.5 sm:w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Results count */}
+      <div className="mt-2 flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+        <span className="font-mono">
+          {visible.length}/{profiles.length}
+        </span>
+        <span>showing</span>
+        {(availabilityFilter.length > 0 || query) && (
+          <button
+            type="button"
+            onClick={() => {
+              setAvailabilityFilter([]);
+              setQuery('');
+            }}
+            className="ml-2 text-[var(--color-accent)] hover:underline"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {visible.length === 0 ? (
+        <p className="mt-8 text-center text-sm text-[var(--color-text-secondary)]">
+          No consultants match your search.
+        </p>
+      ) : view === 'cards' ? (
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {visible.map((p) => (
+            <PortalProfileCard key={p.id} profile={p} />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4 overflow-x-auto border border-white/10">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-white/10 bg-white/[0.02]">
+              <tr>
+                <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                  Name
+                </th>
+                <th className="hidden px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] sm:table-cell">
+                  Role
+                </th>
+                <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                  Availability
+                </th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {visible.map((p) => (
+                <tr key={p.id} className="transition hover:bg-white/[0.02]">
+                  <td className="px-3 py-2 font-medium text-white">{p.name}</td>
+                  <td className="hidden px-3 py-2 text-[var(--color-text-secondary)] sm:table-cell">
+                    {p.role || '-'}
+                  </td>
+                  <td className="px-3 py-2">
+                    <AvailabilityBadge availability={p.availability} compact />
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <Link
+                      href={`/portal/profile/${p.id}`}
+                      className="text-xs font-semibold uppercase tracking-wider text-[var(--color-accent)] hover:underline"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

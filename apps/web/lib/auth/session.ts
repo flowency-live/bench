@@ -34,6 +34,7 @@ export type {
   AdminSession,
   MemberSession,
   PlatformSession,
+  ClientSession,
 } from './session-token';
 
 /**
@@ -92,6 +93,8 @@ export async function clearSession(): Promise<void> {
 export function getTenantId(session: Session | null): string | null {
   if (!session) return null;
   if (session.kind === 'platform') return session.activeTenantId ?? null;
-  if (session.kind === 'admin' || session.kind === 'member') return session.tenantId;
+  if (session.kind === 'admin' || session.kind === 'member' || session.kind === 'client') {
+    return session.tenantId;
+  }
   return null;
 }

@@ -44,12 +44,20 @@ export async function AppHeader() {
             Collective
           </Link>
           {(isAdmin || isPlatform) && (
-            <Link
-              href="/team"
-              className="font-semibold text-white/80 transition hover:text-[var(--color-accent)]"
-            >
-              Team
-            </Link>
+            <>
+              <Link
+                href="/clients"
+                className="font-semibold text-white/80 transition hover:text-[var(--color-accent)]"
+              >
+                Clients
+              </Link>
+              <Link
+                href="/team"
+                className="font-semibold text-white/80 transition hover:text-[var(--color-accent)]"
+              >
+                Team
+              </Link>
+            </>
           )}
           <Link
             href="/dashboard/new"

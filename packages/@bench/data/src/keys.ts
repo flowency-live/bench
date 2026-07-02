@@ -15,6 +15,11 @@
  * | Stories for profile     | TENANT#{tid}#PROFILE#{id}  | STORY#{order}         |
  * | Magic link for profile  | TENANT#{tid}#PROFILE#{id}  | LINK#{type}#{id}      |
  * | Event for profile       | TENANT#{tid}#PROFILE#{id}  | EVENT#{timestamp}     |
+ * | Client                  | TENANT#{tid}#CLIENT#{id}   | CLIENT#{id}           |
+ * | Client list in tenant   | TENANT#{tid}               | CLIENT#{id}           |
+ * | ClientContact           | TENANT#{tid}#CLIENT#{id}   | CONTACT#{id}          |
+ * | Client magic link       | TENANT#{tid}#CLIENT#{id}   | LINK#portal#{id}      |
+ * | ClientActivity          | TENANT#{tid}#CLIENT#{id}   | ACTIVITY#{ts}#{id}    |
  *
  * GSI Key Patterns:
  * | Index | Purpose                    | PK Pattern                       |
@@ -96,6 +101,45 @@ export function storySK(order: number): string {
  */
 export function eventSK(timestamp: Date): string {
   return `EVENT#${timestamp.toISOString()}`;
+}
+
+// ============================================
+// Client Key Builders
+// ============================================
+
+/**
+ * Build client partition key
+ */
+export function clientPK(tenantId: string, clientId: string): string {
+  return `TENANT#${tenantId}#CLIENT#${clientId}`;
+}
+
+/**
+ * Build client sort key
+ */
+export function clientSK(clientId: string): string {
+  return `CLIENT#${clientId}`;
+}
+
+/**
+ * Build client contact sort key
+ */
+export function contactSK(contactId: string): string {
+  return `CONTACT#${contactId}`;
+}
+
+/**
+ * Build client activity sort key (for chronological ordering)
+ */
+export function clientActivitySK(timestamp: Date, eventId: string): string {
+  return `ACTIVITY#${timestamp.toISOString()}#${eventId}`;
+}
+
+/**
+ * Build client magic link sort key (portal type)
+ */
+export function clientMagicLinkSK(linkId: string): string {
+  return `LINK#portal#${linkId}`;
 }
 
 // ============================================

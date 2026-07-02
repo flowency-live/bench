@@ -34,6 +34,7 @@ const PUBLIC_PREFIXES = [
   '/auth/',
   '/share/',
   '/invite/',
+  '/portal/auth/', // Portal magic link landing
   '/_next/',
   '/favicon.ico',
   '/logo-change-connected.webp',
@@ -66,6 +67,10 @@ function isProtected(pathname: string): boolean {
     pathname.startsWith('/settings/') ||
     pathname === '/team' ||
     pathname.startsWith('/team/') ||
+    pathname === '/clients' ||
+    pathname.startsWith('/clients/') ||
+    pathname === '/portal' ||
+    pathname.startsWith('/portal/') ||
     isGodmode(pathname)
   );
 }
@@ -89,8 +94,19 @@ function authorize(session: Session, pathname: string): boolean {
     return session.activeTenantId != null;
   }
 
-  // Admins can reach anything protected (non-godmode).
-  if (session.kind === 'admin') return true;
+  // Client sessions can ONLY access /portal routes (read-only collective view).
+  if (session.kind === 'client') {
+    return pathname === '/portal' || pathname.startsWith('/portal/');
+  }
+
+  // Admins can reach anything protected (non-godmode, non-portal).
+  // Portal routes are client-only; admins use /dashboard for collective view.
+  if (session.kind === 'admin') {
+    if (pathname === '/portal' || pathname.startsWith('/portal/')) {
+      return false;
+    }
+    return true;
+  }
 
   // Members may ONLY reach the edit wizard for their own profile.
   if (session.kind === 'member') {
@@ -181,6 +197,8 @@ export const config = {
     '/admin/:path*',
     '/settings/:path*',
     '/team/:path*',
+    '/clients/:path*',
+    '/portal/:path*',
     '/godmode',
     '/godmode/:path*',
   ],

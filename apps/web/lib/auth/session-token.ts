@@ -65,13 +65,30 @@ export interface PlatformSession {
   readonly exp: number;
 }
 
-export type Session = AdminSession | MemberSession | PlatformSession;
+/**
+ * Client (external company contact) session — read-only portal access.
+ *
+ * Client contacts receive magic links from tenant admins and can browse the
+ * filtered collective in the portal. They have no edit capabilities.
+ */
+export interface ClientSession {
+  readonly kind: 'client';
+  readonly tenantId: string;
+  readonly clientId: string;
+  readonly contactId: string;
+  readonly contactEmail: string;
+  /** Unix epoch seconds. */
+  readonly exp: number;
+}
+
+export type Session = AdminSession | MemberSession | PlatformSession | ClientSession;
 
 /** The payload accepted by `createSession` — `exp` is filled in by the caller. */
 export type SessionInput =
   | Omit<AdminSession, 'exp'>
   | Omit<MemberSession, 'exp'>
-  | Omit<PlatformSession, 'exp'>;
+  | Omit<PlatformSession, 'exp'>
+  | Omit<ClientSession, 'exp'>;
 
 export function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
@@ -177,7 +194,8 @@ export async function verifySessionToken(token: string): Promise<Session | null>
   if (
     payload.kind !== 'admin' &&
     payload.kind !== 'member' &&
-    payload.kind !== 'platform'
+    payload.kind !== 'platform' &&
+    payload.kind !== 'client'
   ) {
     return null;
   }

@@ -31,6 +31,11 @@ export {
   skillSK,
   storySK,
   eventSK,
+  clientPK,
+  clientSK,
+  contactSK,
+  clientActivitySK,
+  clientMagicLinkSK,
   emailGSI1PK,
   statusGSI2PK,
   tokenHashGSI3PK,
@@ -103,3 +108,46 @@ export {
   type AcceptInviteIdentity,
   type AcceptInviteResult,
 } from './repository/invite-claim.js';
+
+// Client repository (Client Portal feature)
+export {
+  createClientRepository,
+  type ClientRepository,
+} from './repository/client-repository.js';
+
+// ClientContact repository (Client Portal feature)
+export {
+  createClientContactRepository,
+  type ClientContactRepository,
+} from './repository/client-contact-repository.js';
+
+// ClientActivity repository (Client Portal feature)
+export {
+  createClientActivityRepository,
+  type ClientActivityRepository,
+  type ListActivityOptions,
+} from './repository/client-activity-repository.js';
+
+// Re-export client types from @bench/types
+export type {
+  Client,
+  ClientContact,
+  ClientActivity,
+  ClientVisibilityMode,
+  ClientActivityEventType,
+  CreateClientInput,
+  UpdateClientInput,
+  CreateClientContactInput,
+  UpdateClientContactInput,
+  LogClientActivityInput,
+} from '@bench/types';
+
+// Portal link repository (Client Portal feature)
+export {
+  createPortalLinkRepository,
+  type PortalLinkRepository,
+  type PortalLink,
+  type PortalLinkLookup,
+  type PortalLinkStatus,
+  type CreatePortalLinkInput,
+} from './repository/portal-link-repository.js';
