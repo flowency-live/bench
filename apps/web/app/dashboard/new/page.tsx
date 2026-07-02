@@ -1,10 +1,25 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/AppHeader';
+import { BrandedWrapper } from '@/components/BrandedWrapper';
 import { AddConsultantForm } from '@/app/dashboard/new/AddConsultantForm';
+import { getSession, getTenantId } from '@/lib/auth/session';
+import { getTenantRepository } from '@/lib/data/tenant';
 
-export default function NewConsultantPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function NewConsultantPage() {
+  const session = await getSession();
+  const tenantId = getTenantId(session);
+
+  if (!tenantId) {
+    redirect('/login');
+  }
+
+  const tenant = await getTenantRepository().get(tenantId);
+
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
+    <BrandedWrapper tenant={tenant} className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <AppHeader />
       <main className="mx-auto max-w-md px-6 py-12">
         <Link
@@ -22,6 +37,6 @@ export default function NewConsultantPage() {
           <AddConsultantForm />
         </div>
       </main>
-    </div>
+    </BrandedWrapper>
   );
 }

@@ -95,9 +95,9 @@ export function ProfileActionBar({
             Edit profile
           </Link>
 
-          {/* Secondary actions - scrollable on mobile */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-            {/* PDF Export dropdown */}
+          {/* Secondary actions */}
+          <div className="flex items-center gap-2">
+            {/* PDF Export dropdown - outside overflow container so dropdown isn't clipped */}
             <div className="relative shrink-0" ref={pdfMenuRef}>
               <button
                 type="button"
@@ -121,10 +121,10 @@ export function ProfileActionBar({
               </button>
 
               {pdfMenuOpen && (
-                <div className="absolute left-0 top-full z-30 mt-2 w-48 origin-top-left animate-in fade-in slide-in-from-top-1 duration-150 sm:left-auto sm:right-0 sm:origin-top-right">
-                  <div className="rounded-lg border border-white/10 bg-[var(--color-bg-panel)] p-1 shadow-xl shadow-black/20">
+                <div className="absolute left-0 top-full z-50 mt-2 w-48 origin-top-left sm:left-auto sm:right-0 sm:origin-top-right">
+                  <div className="rounded-lg border border-white/10 bg-[var(--color-bg-primary)] p-1 shadow-xl shadow-black/40">
                     <div className="px-3 py-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
                         Choose format
                       </span>
                     </div>
@@ -135,11 +135,11 @@ export function ProfileActionBar({
                         target="_blank"
                         rel="noopener"
                         onClick={() => setPdfMenuOpen(false)}
-                        className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white/70 transition hover:bg-white/5 hover:text-white"
+                        className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
                       >
                         <span
                           className={`h-2 w-2 rounded-full ${
-                            opt.label.includes('Dark') ? 'bg-slate-700' : 'bg-slate-200'
+                            opt.label.includes('Dark') ? 'bg-slate-600' : 'bg-slate-300'
                           }`}
                         />
                         {opt.label}
@@ -153,8 +153,8 @@ export function ProfileActionBar({
             {/* Vertical divider */}
             <span className="hidden h-6 w-px bg-white/10 sm:block" aria-hidden="true" />
 
-            {/* Share/Invite actions slot */}
-            <div className="flex items-center gap-2">
+            {/* Share/Invite actions slot - can scroll on mobile if needed */}
+            <div className="flex items-center gap-2 overflow-x-auto">
               {children}
             </div>
           </div>
