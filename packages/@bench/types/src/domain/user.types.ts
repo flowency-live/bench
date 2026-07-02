@@ -35,6 +35,20 @@ export interface TenantUser {
   /** Email of the admin who invited this user (audit / display). */
   readonly invitedBy?: string;
   readonly createdAt: string;
+
+  // Account linking fields (multi-factor sign-in methods)
+  /** Phone number in E.164 format (e.g. +447700900123). */
+  readonly phone?: string | null;
+  /** Google OAuth subject claim (sub). */
+  readonly googleId?: string | null;
+  /** Apple OAuth subject claim (sub). */
+  readonly appleId?: string | null;
+  /** ISO timestamp when phone was linked. */
+  readonly phoneLinkedAt?: string | null;
+  /** ISO timestamp when Google was linked. */
+  readonly googleLinkedAt?: string | null;
+  /** ISO timestamp when Apple was linked. */
+  readonly appleLinkedAt?: string | null;
 }
 
 /** Input for creating a tenant user; `tenantId` is supplied to the repo method. */

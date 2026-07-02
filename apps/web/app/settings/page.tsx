@@ -82,6 +82,20 @@ export default async function SettingsPage() {
           </div>
         </section>
 
+        {/* Security */}
+        <section className="mt-6 rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-6">
+          <h2 className="text-lg font-black">Security</h2>
+          <p className="mt-1.5 text-sm text-[var(--color-text-secondary)]">
+            Manage how you sign in to your account. Link additional methods like phone, Google, or Apple.
+          </p>
+          <Link
+            href="/settings/security"
+            className="mt-4 inline-block rounded-full border border-[var(--color-accent)] px-5 py-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-accent)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-bg-primary)]"
+          >
+            Manage sign-in methods
+          </Link>
+        </section>
+
         {/* Branding */}
         <section className="mt-6 rounded-xl border border-white/10 bg-[var(--color-bg-panel)] p-6">
           <h2 className="text-lg font-black">Branding</h2>
