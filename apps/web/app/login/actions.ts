@@ -7,6 +7,7 @@ import { getMagicLinkRepository } from '@/lib/data/magic-link';
 import { getUserRepository } from '@/lib/data/user';
 import { getTenantRepository } from '@/lib/data/tenant';
 import { sendMagicLinkEmail } from '@/lib/email/send';
+import { getPendingInvite } from '@/lib/auth/pending-invite';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -52,9 +53,25 @@ export async function requestAdminLink(
   const users = getUserRepository();
   const user = await users.getByEmail(email);
 
-  // No user found, not an admin, or not yet active → neutral success, no link minted.
-  // Pending users must use the invite link from godmode, not the signin flow.
-  if (!user || user.role !== 'admin' || user.status !== 'active') {
+  // No user found or not an admin → neutral success, no link minted.
+  if (!user || user.role !== 'admin') {
+    return { ok: true };
+  }
+
+  // Pending users can only request a link if they're in the onboarding flow
+  // (have a pending invite). Without an invite, they can't complete signup.
+  if (user.status === 'pending') {
+    const pendingInvite = await getPendingInvite();
+    // Only allow if pending invite exists, matches tenant, and matches email
+    if (
+      !pendingInvite ||
+      pendingInvite.tenantId !== user.tenantId ||
+      pendingInvite.email.trim().toLowerCase() !== email
+    ) {
+      return { ok: true };
+    }
+  } else if (user.status !== 'active') {
+    // Suspended or other non-active status → no link
     return { ok: true };
   }
 
