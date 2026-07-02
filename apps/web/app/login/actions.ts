@@ -52,8 +52,9 @@ export async function requestAdminLink(
   const users = getUserRepository();
   const user = await users.getByEmail(email);
 
-  // No user found or not an admin → neutral success, no link minted.
-  if (!user || user.role !== 'admin') {
+  // No user found, not an admin, or not yet active → neutral success, no link minted.
+  // Pending users must use the invite link from godmode, not the signin flow.
+  if (!user || user.role !== 'admin' || user.status !== 'active') {
     return { ok: true };
   }
 
