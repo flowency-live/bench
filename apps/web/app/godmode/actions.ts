@@ -167,7 +167,8 @@ export async function resendAdminInvite(
     return { ok: false, error: 'Not authorised.' };
   }
   if (!tenantId || !userId) {
-    return { ok: false, error: 'Tenant and user are required.' };
+    console.error('[resendAdminInvite] Missing params:', { tenantId, userId });
+    return { ok: false, error: `Tenant and user are required. (received: tenantId=${tenantId}, userId=${userId})` };
   }
 
   // Resolve the user server-side (authoritative email + role — never trust the client).
