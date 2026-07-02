@@ -329,14 +329,14 @@ export function WizardClient({
         )}
       </div>
 
-      {/* Nav */}
-      <div className="mt-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      {/* Nav - stacks on mobile, inline on desktop */}
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={back}
             disabled={step === 0}
-            className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-white/70 transition hover:text-white disabled:opacity-30"
+            className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:text-white disabled:opacity-30 sm:flex-none sm:px-5 sm:py-2"
           >
             Back
           </button>
@@ -344,19 +344,19 @@ export function WizardClient({
             type="button"
             onClick={saveAndExit}
             disabled={pending}
-            className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-white/70 transition hover:text-white disabled:opacity-60"
+            className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:text-white disabled:opacity-60 sm:flex-none sm:px-5 sm:py-2"
           >
             Save &amp; exit
           </button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {step < STEPS.length - 1 ? (
             <>
               <button
                 type="button"
                 onClick={saveOnly}
                 disabled={pending}
-                className="rounded-full border border-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent)]/10 disabled:opacity-60"
+                className="flex-1 rounded-full border border-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent)]/10 disabled:opacity-60 sm:flex-none sm:px-5 sm:py-2"
               >
                 Save
               </button>
@@ -364,7 +364,7 @@ export function WizardClient({
                 type="button"
                 onClick={next}
                 disabled={pending}
-                className="rounded-full bg-[var(--color-accent)] px-6 py-2 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95 disabled:opacity-60"
+                className="flex-1 rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95 disabled:opacity-60 sm:flex-none sm:px-6 sm:py-2"
               >
                 Continue
               </button>
@@ -374,7 +374,7 @@ export function WizardClient({
               type="button"
               onClick={submit}
               disabled={pending}
-              className="rounded-full bg-[var(--color-accent)] px-6 py-2 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95 disabled:opacity-60"
+              className="w-full rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-black uppercase tracking-wide text-[var(--color-bg-primary)] transition hover:brightness-95 disabled:opacity-60 sm:w-auto sm:px-6 sm:py-2"
             >
               {pending ? 'Submitting…' : 'Submit for review'}
             </button>

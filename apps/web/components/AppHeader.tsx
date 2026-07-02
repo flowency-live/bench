@@ -3,6 +3,7 @@ import { getSession, getTenantId } from '@/lib/auth/session';
 import { getTenantRepository } from '@/lib/data/tenant';
 import { TenantLogo } from '@/components/TenantLogo';
 import { getActiveTenant } from '@/lib/brand/resolve';
+import { MobileMenu } from '@/components/MobileMenu';
 
 /**
  * Branded portal header (ADR-0013).
@@ -25,7 +26,7 @@ export async function AppHeader() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-white/10 bg-[var(--color-bg-primary)]/90 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:h-16 sm:px-6">
         <Link href="/dashboard" className="flex items-center gap-3">
           {tenant ? (
             <TenantLogo tenant={tenant} size="lg" />
@@ -34,7 +35,8 @@ export async function AppHeader() {
           )}
         </Link>
 
-        <nav className="flex items-center gap-5 text-sm">
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-5 text-sm sm:flex">
           <Link
             href="/dashboard"
             className="font-semibold text-white/80 transition hover:text-[var(--color-accent)]"
@@ -44,7 +46,7 @@ export async function AppHeader() {
           {(isAdmin || isPlatform) && (
             <Link
               href="/team"
-              className="hidden font-semibold text-white/80 transition hover:text-[var(--color-accent)] sm:block"
+              className="font-semibold text-white/80 transition hover:text-[var(--color-accent)]"
             >
               Team
             </Link>
@@ -58,7 +60,7 @@ export async function AppHeader() {
 
           {/* Account cluster — who am I + the way out */}
           {session && (
-            <div className="hidden items-center gap-3 border-l border-white/15 pl-5 sm:flex">
+            <div className="flex items-center gap-3 border-l border-white/15 pl-5">
               {isPlatform ? (
                 <>
                   <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-secondary)]">
@@ -91,6 +93,14 @@ export async function AppHeader() {
             </div>
           )}
         </nav>
+
+        {/* Mobile menu */}
+        <MobileMenu
+          isAdmin={isAdmin}
+          isPlatform={isPlatform}
+          isMember={isMember}
+          email={email}
+        />
       </div>
     </header>
   );

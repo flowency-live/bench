@@ -52,10 +52,10 @@ export function ProfileActionBar({
   ];
 
   return (
-    <div className="mb-8">
+    <div className="mb-6 sm:mb-8">
       {/* Top row: Navigation and status */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Link
             href="/dashboard"
             className="group flex items-center gap-2 text-sm text-[var(--color-text-secondary)] transition hover:text-[var(--color-accent)]"
@@ -69,10 +69,10 @@ export function ProfileActionBar({
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            Collective
+            <span className="hidden sm:inline">Collective</span>
           </Link>
-          <span className="h-4 w-px bg-white/10" aria-hidden="true" />
-          <span className="text-sm font-medium text-white/90">{profileName}</span>
+          <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden="true" />
+          <span className="text-sm font-medium text-white/90 truncate">{profileName}</span>
         </div>
         <StatusControls
           profileId={profileId}
@@ -81,79 +81,82 @@ export function ProfileActionBar({
         />
       </div>
 
-      {/* Action bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-3">
-        {/* Primary action */}
-        <Link
-          href={`/profiles/${profileId}/edit`}
-          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-bg-primary)] transition hover:brightness-110"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-          Edit profile
-        </Link>
+      {/* Action bar - responsive grid on mobile */}
+      <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          {/* Primary action */}
+          <Link
+            href={`/profiles/${profileId}/edit`}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-bg-primary)] transition hover:brightness-110 sm:py-2"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit profile
+          </Link>
 
-        {/* Secondary actions group */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* PDF Export dropdown */}
-          <div className="relative" ref={pdfMenuRef}>
-            <button
-              type="button"
-              onClick={() => setPdfMenuOpen(!pdfMenuOpen)}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/12 px-3 py-2 text-sm font-medium text-white/80 transition hover:border-white/25 hover:text-white"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export PDF
-              <svg
-                className={`h-3 w-3 transition-transform ${pdfMenuOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+          {/* Secondary actions - scrollable on mobile */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {/* PDF Export dropdown */}
+            <div className="relative shrink-0" ref={pdfMenuRef}>
+              <button
+                type="button"
+                onClick={() => setPdfMenuOpen(!pdfMenuOpen)}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/12 px-3 py-2 text-sm font-medium text-white/80 transition hover:border-white/25 hover:text-white"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="hidden sm:inline">Export PDF</span>
+                <span className="sm:hidden">PDF</span>
+                <svg
+                  className={`h-3 w-3 transition-transform ${pdfMenuOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
 
-            {pdfMenuOpen && (
-              <div className="absolute right-0 top-full z-30 mt-2 w-48 origin-top-right animate-in fade-in slide-in-from-top-1 duration-150">
-                <div className="rounded-lg border border-white/10 bg-[var(--color-bg-panel)] p-1 shadow-xl shadow-black/20">
-                  <div className="px-3 py-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
-                      Choose format
-                    </span>
+              {pdfMenuOpen && (
+                <div className="absolute left-0 top-full z-30 mt-2 w-48 origin-top-left animate-in fade-in slide-in-from-top-1 duration-150 sm:left-auto sm:right-0 sm:origin-top-right">
+                  <div className="rounded-lg border border-white/10 bg-[var(--color-bg-panel)] p-1 shadow-xl shadow-black/20">
+                    <div className="px-3 py-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                        Choose format
+                      </span>
+                    </div>
+                    {pdfOptions.map((opt) => (
+                      <Link
+                        key={opt.href}
+                        href={opt.href}
+                        target="_blank"
+                        rel="noopener"
+                        onClick={() => setPdfMenuOpen(false)}
+                        className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white/70 transition hover:bg-white/5 hover:text-white"
+                      >
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            opt.label.includes('Dark') ? 'bg-slate-700' : 'bg-slate-200'
+                          }`}
+                        />
+                        {opt.label}
+                      </Link>
+                    ))}
                   </div>
-                  {pdfOptions.map((opt) => (
-                    <Link
-                      key={opt.href}
-                      href={opt.href}
-                      target="_blank"
-                      rel="noopener"
-                      onClick={() => setPdfMenuOpen(false)}
-                      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white/70 transition hover:bg-white/5 hover:text-white"
-                    >
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          opt.label.includes('Dark') ? 'bg-slate-700' : 'bg-slate-200'
-                        }`}
-                      />
-                      {opt.label}
-                    </Link>
-                  ))}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* Vertical divider */}
-          <span className="hidden h-6 w-px bg-white/10 sm:block" aria-hidden="true" />
+            {/* Vertical divider */}
+            <span className="hidden h-6 w-px bg-white/10 sm:block" aria-hidden="true" />
 
-          {/* Share/Invite actions slot */}
-          <div className="flex flex-wrap items-center gap-2">
-            {children}
+            {/* Share/Invite actions slot */}
+            <div className="flex items-center gap-2">
+              {children}
+            </div>
           </div>
         </div>
       </div>
